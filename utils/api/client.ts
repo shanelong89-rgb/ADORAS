@@ -94,12 +94,13 @@ class AdorasAPIClient {
   }
 
   /**
-   * Make authenticated request
+   * Make authenticated request with retry logic
    */
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    requiresAuth: boolean = true
+    requiresAuth: boolean = true,
+    retryCount: number = 0
   ): Promise<T> {
     const token = this.getAccessToken();
     const headers: HeadersInit = {
@@ -117,13 +118,15 @@ class AdorasAPIClient {
     }
 
     const fullUrl = `${BASE_URL}${endpoint}`;
+    const maxRetries = 2; // Retry up to 2 times (3 total attempts)
 
     try {
-      console.log(`🌐 API Request: ${options.method || 'GET'} ${fullUrl}`);
+      console.log(`🌐 API Request: ${options.method || 'GET'} ${fullUrl}${retryCount > 0 ? ` (Retry ${retryCount})` : ''}`);
       
-      // Add timeout to prevent hanging requests (10 seconds)
+      // Add timeout to prevent hanging requests (15 seconds for first try, 20 for retries)
+      const timeout = retryCount > 0 ? 20000 : 15000;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const response = await fetch(fullUrl, {
         ...options,
@@ -159,12 +162,30 @@ class AdorasAPIClient {
       console.error(`💥 Network Error [${endpoint}]:`, error);
       console.error(`💥 Full URL:`, fullUrl);
       
-      // Provide more specific error messages
+      // Check if we should retry
+      const isRetryable = error instanceof Error && 
+        (error.name === 'AbortError' || 
+         error.message.includes('fetch') || 
+         error.message.includes('network') ||
+         error.message.includes('Failed to fetch'));
+      
+      if (isRetryable && retryCount < maxRetries) {
+        // Exponential backoff: 1s, 2s
+        const delay = Math.pow(2, retryCount) * 1000;
+        console.log(`⏳ Retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Retry the request
+        return this.request<T>(endpoint, options, requiresAuth, retryCount + 1);
+      }
+      
+      // Provide more specific error messages after all retries exhausted
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          throw new Error('Request timeout - server not responding');
-        } else if (error.message.includes('fetch')) {
-          throw new Error('Cannot connect to server - edge function may not be deployed');
+          throw new Error('Connection timeout. The server took too long to respond. Please try again.');
+        } else if (error.message.includes('fetch') || error.message.includes('network')) {
+          throw new Error('Network error. Please check your internet connection and try again.');
         }
       }
       
