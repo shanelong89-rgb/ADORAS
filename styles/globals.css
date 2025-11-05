@@ -140,7 +140,8 @@
   
   /* Support for iOS safe areas (notch, home indicator) */
   body {
-    padding-top: env(safe-area-inset-top);
+    /* Safe area padding removed - handled by individual components */
+    /* padding-top: env(safe-area-inset-top); */
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
