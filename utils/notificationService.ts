@@ -33,7 +33,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
   }
 
   if (Notification.permission === 'denied') {
-    console.warn('Notification permission denied');
+    // User has previously denied permission - this is OK, don't warn
+    console.log('ℹ️ Notification permission was previously denied by user');
     return false;
   }
 
@@ -209,7 +210,7 @@ export async function subscribeToPushNotifications(userId: string): Promise<bool
     console.log('📡 [SUBSCRIBE] Checking permission...');
     const hasPermission = await requestNotificationPermission();
     if (!hasPermission) {
-      console.warn('📡 [SUBSCRIBE] Notification permission not granted');
+      console.log('ℹ️ [SUBSCRIBE] Notification permission not granted - user must enable in Settings');
       return false;
     }
     console.log('📡 [SUBSCRIBE] ✅ Permission granted');
