@@ -160,7 +160,7 @@
   </div>
   
   <script>
-    let sw Registration;
+    let swRegistration;
     let pushSubscription;
     let vapidKey;
     
@@ -311,7 +311,8 @@
       log('Step 3: Getting VAPID public key...');
       
       try {
-        const projectId = window.location.hostname.split('.')[0];
+        // Import the actual project ID from your app
+        const projectId = 'cyaaksjydpegofrldxbo'; // Your Supabase project ID
         const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/notifications/vapid-public-key`);
         
         if (!response.ok) {
@@ -388,7 +389,7 @@
       }
       
       try {
-        const projectId = window.location.hostname.split('.')[0];
+        const projectId = 'cyaaksjydpegofrldxbo'; // Your Supabase project ID
         const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/notifications/subscribe`, {
           method: 'POST',
           headers: {
