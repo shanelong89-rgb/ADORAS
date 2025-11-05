@@ -105,6 +105,14 @@
   <div class="container">
     <h1>🔧 Push Notification Diagnostic</h1>
     
+    <div class="section" style="background: #e3f2fd; border-left: 4px solid #2196f3;">
+      <p style="margin: 0; color: #1565c0;">
+        <strong>💡 Tip:</strong> This is a standalone diagnostic page. After testing, 
+        <a href="/" style="color: #1976d2; text-decoration: underline;">go back to the main Adoras app</a> 
+        to enable notifications from Settings → Notifications.
+      </p>
+    </div>
+    
     <div class="section">
       <h2>Current Status</h2>
       <div id="status-checks"></div>
@@ -235,38 +243,51 @@
     
     // Step 1: Check Service Worker
     async function checkServiceWorker() {
-      log('Step 1: Checking service worker...');
+      log('Step 1: Checking service worker...', 'info');
       
       if (!('serviceWorker' in navigator)) {
-        log('Service worker not supported in this browser', 'error');
+        log('❌ Service worker not supported in this browser', 'error');
+        log('Your browser does not support service workers. Push notifications will not work.', 'error');
         return false;
       }
       
+      log('✅ Service worker API is supported', 'success');
+      
       try {
+        log('Checking for existing service worker registration...', 'info');
         swRegistration = await navigator.serviceWorker.getRegistration();
         
         if (!swRegistration) {
-          log('Service worker not registered', 'error');
-          log('Attempting to register service worker...', 'warning');
+          log('⚠️ No service worker currently registered', 'warning');
+          log('Attempting to register service worker at /sw.js...', 'info');
           
           try {
-            swRegistration = await navigator.serviceWorker.register('/sw.js');
-            log('Service worker registered successfully!', 'success');
+            swRegistration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+            log('✅ Service worker registered successfully!', 'success');
+            log(`Scope: ${swRegistration.scope}`, 'info');
           } catch (err) {
-            log(`Failed to register service worker: ${err.message}`, 'error');
+            log(`❌ Failed to register service worker: ${err.message}`, 'error');
+            log(`Error name: ${err.name}`, 'error');
+            log('💡 Make sure /sw.js exists and is accessible', 'warning');
             return false;
           }
         } else {
-          log('Service worker already registered', 'success');
+          log('✅ Service worker already registered', 'success');
+          log(`Scope: ${swRegistration.scope}`, 'info');
+          log(`Active: ${!!swRegistration.active}`, 'info');
+          log(`Installing: ${!!swRegistration.installing}`, 'info');
+          log(`Waiting: ${!!swRegistration.waiting}`, 'info');
         }
         
+        log('Waiting for service worker to be ready...', 'info');
         await navigator.serviceWorker.ready;
-        log('Service worker is active and ready', 'success');
+        log('✅ Service worker is active and ready!', 'success');
         
         updateStatus();
         return true;
       } catch (error) {
-        log(`Service worker check failed: ${error.message}`, 'error');
+        log(`❌ Service worker check failed: ${error.message}`, 'error');
+        log(`Error stack: ${error.stack}`, 'error');
         return false;
       }
     }
@@ -424,56 +445,89 @@
     
     // Run Full Diagnostic
     async function runFullDiagnostic() {
-      log('='.repeat(50), 'info');
-      log('STARTING FULL DIAGNOSTIC', 'info');
-      log('='.repeat(50), 'info');
-      
-      const step1 = await checkServiceWorker();
-      if (!step1) {
-        log('❌ FAILED at Step 1: Service Worker', 'error');
-        return;
+      try {
+        log('='.repeat(50), 'info');
+        log('🚀 STARTING FULL DIAGNOSTIC', 'info');
+        log('='.repeat(50), 'info');
+        
+        log('Running Step 1 of 5: Service Worker Check...', 'info');
+        const step1 = await checkServiceWorker();
+        if (!step1) {
+          log('❌ FAILED at Step 1: Service Worker not available', 'error');
+          log('💡 Solution: The main Adoras app should register the service worker. Try closing and reopening the app from the home screen.', 'warning');
+          return;
+        }
+        log('✅ Step 1 PASSED', 'success');
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        log('Running Step 2 of 5: Permission Check...', 'info');
+        const step2 = await requestPermission();
+        if (!step2) {
+          log('❌ FAILED at Step 2: Permission not granted', 'error');
+          log('💡 Solution: Go to iOS Settings → Adoras → Notifications → Allow Notifications', 'warning');
+          return;
+        }
+        log('✅ Step 2 PASSED', 'success');
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        log('Running Step 3 of 5: VAPID Key Fetch...', 'info');
+        const step3 = await getVapidKey();
+        if (!step3) {
+          log('❌ FAILED at Step 3: Could not fetch VAPID key from server', 'error');
+          log('💡 Solution: Check your internet connection and server status', 'warning');
+          return;
+        }
+        log('✅ Step 3 PASSED', 'success');
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        log('Running Step 4 of 5: Push Subscription...', 'info');
+        const step4 = await createSubscription();
+        if (!step4) {
+          log('❌ FAILED at Step 4: Could not create push subscription', 'error');
+          log('💡 Solution: This usually means iOS restrictions. Make sure you opened this from the PWA on home screen, not Safari.', 'warning');
+          return;
+        }
+        log('✅ Step 4 PASSED', 'success');
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        log('Running Step 5 of 5: Backend Save...', 'info');
+        const step5 = await sendToBackend();
+        if (!step5) {
+          log('❌ FAILED at Step 5: Could not save subscription to backend', 'error');
+          log('💡 Solution: Check server logs for errors', 'warning');
+          return;
+        }
+        log('✅ Step 5 PASSED', 'success');
+        
+        log('='.repeat(50), 'success');
+        log('🎉 ALL STEPS PASSED! Push notifications should work!', 'success');
+        log('='.repeat(50), 'success');
+      } catch (error) {
+        log(`❌ Unexpected error during diagnostic: ${error.message}`, 'error');
+        console.error('Diagnostic error:', error);
       }
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const step2 = await requestPermission();
-      if (!step2) {
-        log('❌ FAILED at Step 2: Permission', 'error');
-        return;
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const step3 = await getVapidKey();
-      if (!step3) {
-        log('❌ FAILED at Step 3: VAPID Key', 'error');
-        return;
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const step4 = await createSubscription();
-      if (!step4) {
-        log('❌ FAILED at Step 4: Push Subscription', 'error');
-        return;
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const step5 = await sendToBackend();
-      if (!step5) {
-        log('❌ FAILED at Step 5: Backend Save', 'error');
-        return;
-      }
-      
-      log('='.repeat(50), 'success');
-      log('✅ ALL STEPS PASSED! Push notifications should work!', 'success');
-      log('='.repeat(50), 'success');
     }
     
     // Initialize
     updateStatus();
-    log('Diagnostic tool loaded. iOS users: Make sure you opened this from the home screen PWA!', 'info');
+    
+    // Check if opened from PWA
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isIOS && !isStandalone) {
+      log('⚠️ WARNING: You opened this page in Safari, not from the PWA!', 'warning');
+      log('⚠️ Push notifications only work when opened from the home screen icon.', 'warning');
+      log('💡 Close this and open Adoras from your home screen, then navigate to Settings → Notifications', 'warning');
+    } else if (isIOS && isStandalone) {
+      log('✅ Good! You opened this from the PWA (home screen icon)', 'success');
+    }
+    
+    log('Diagnostic tool loaded and ready.', 'info');
   </script>
 </body>
 </html>
