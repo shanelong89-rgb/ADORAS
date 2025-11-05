@@ -470,6 +470,7 @@ export function AppContent() {
 
   /**
    * Initialize push notifications and daily prompts when user is authenticated
+   * DISABLED AUTO-SUBSCRIPTION - Users must manually enable in Settings
    */
   useEffect(() => {
     const setupNotifications = async () => {
@@ -478,21 +479,9 @@ export function AppContent() {
       }
 
       try {
-        // Check if already subscribed
-        const isSubscribed = await isPushSubscribed();
+        // Only initialize daily prompt scheduler - NO AUTO-SUBSCRIPTION
+        // Users must manually enable push notifications in Settings to avoid iOS issues
         
-        if (!isSubscribed) {
-          // Request permission and subscribe (first-time user experience)
-          const success = await subscribeToPushNotifications(user.id);
-          
-          if (success) {
-            toast.success('Notifications enabled! 🔔', {
-              description: 'You\'ll receive daily prompts and memory updates',
-              duration: 4000,
-            });
-          }
-        }
-
         // Get notification preferences
         const prefs = await getNotificationPreferences(user.id);
         
