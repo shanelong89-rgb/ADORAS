@@ -76,8 +76,25 @@ export function NotificationSettings({ userId }: NotificationSettingsProps) {
     setIsSupported(isNotificationSupported());
     setPermission(getNotificationPermission());
 
-    // Load preferences and subscription status
+    // Load preferences and subscription status immediately
     loadSettings();
+    
+    // Also check again after 2 seconds (service worker might need time)
+    const timeoutId = setTimeout(() => {
+      console.log('🔄 Rechecking subscription status after delay...');
+      loadSettings();
+    }, 2000);
+    
+    // Set up periodic checks every 10 seconds to keep state in sync
+    const intervalId = setInterval(() => {
+      console.log('🔄 Periodic subscription status check...');
+      loadSettings();
+    }, 10000);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
   }, [userId]);
 
   const loadSettings = async () => {
@@ -484,14 +501,28 @@ export function NotificationSettings({ userId }: NotificationSettingsProps) {
 
           <div className="flex gap-2">
             {!isSubscribed ? (
-              <Button
-                onClick={handleEnableNotifications}
-                disabled={isLoading || permission === 'denied' || (isIOS && !isStandalone)}
-                className="flex-1"
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                {isLoading ? 'Enabling...' : 'Enable Notifications'}
-              </Button>
+              <>
+                <Button
+                  onClick={handleEnableNotifications}
+                  disabled={isLoading || permission === 'denied' || (isIOS && !isStandalone)}
+                  className="flex-1"
+                >
+                  <Bell className="w-4 h-4 mr-2" />
+                  {isLoading ? 'Enabling...' : 'Enable Notifications'}
+                </Button>
+                <Button
+                  onClick={() => {
+                    console.log('🔄 Manual refresh triggered');
+                    loadSettings();
+                    toast.info('Checking notification status...');
+                  }}
+                  variant="outline"
+                  size="icon"
+                  title="Refresh status"
+                >
+                  <Info className="w-4 h-4" />
+                </Button>
+              </>
             ) : (
               <>
                 <Button
