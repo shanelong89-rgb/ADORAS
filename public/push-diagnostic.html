@@ -335,7 +335,14 @@
       try {
         // Import the actual project ID from your app
         const projectId = 'cyaaksjydpegofrldxbo'; // Your Supabase project ID
-        const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/notifications/vapid-public-key`);
+        const publicAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg2MDU3MzIsImV4cCI6MjA0NDE4MTczMn0.8w-hV_xNLiYwE9Hx8zIAMHH67OY-e6BzbE_kU_3bFLc';
+        
+        log('Fetching with Authorization header...', 'info');
+        const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/notifications/vapid-public-key`, {
+          headers: {
+            'Authorization': `Bearer ${publicAnonKey}`
+          }
+        });
         
         if (!response.ok) {
           log(`Failed to get VAPID key: ${response.status} ${response.statusText}`, 'error');
@@ -346,7 +353,7 @@
         
         const data = await response.json();
         vapidKey = data.publicKey;
-        log(`VAPID key received: ${vapidKey.substring(0, 30)}...`, 'success');
+        log(`✅ VAPID key received: ${vapidKey.substring(0, 30)}...`, 'success');
         
         return true;
       } catch (error) {
@@ -412,10 +419,14 @@
       
       try {
         const projectId = 'cyaaksjydpegofrldxbo'; // Your Supabase project ID
+        const publicAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg2MDU3MzIsImV4cCI6MjA0NDE4MTczMn0.8w-hV_xNLiYwE9Hx8zIAMHH67OY-e6BzbE_kU_3bFLc';
+        
+        log('Sending with Authorization header...', 'info');
         const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/notifications/subscribe`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${publicAnonKey}`
           },
           body: JSON.stringify({
             userId: 'diagnostic-user',
@@ -429,12 +440,12 @@
         
         if (!response.ok) {
           const text = await response.text();
-          log(`Backend save failed: ${response.status} ${text}`, 'error');
+          log(`❌ Backend save failed: ${response.status} ${text}`, 'error');
           return false;
         }
         
         const result = await response.json();
-        log('Subscription saved to backend successfully!', 'success');
+        log('✅ Subscription saved to backend successfully!', 'success');
         log(`Response: ${JSON.stringify(result)}`, 'success');
         
         return true;
