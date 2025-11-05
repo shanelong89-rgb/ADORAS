@@ -355,37 +355,62 @@ export async function unsubscribeFromPushNotifications(userId: string): Promise<
 // Check if user is subscribed
 export async function isPushSubscribed(): Promise<boolean> {
   try {
+    console.log('🔍 [IS_SUBSCRIBED] Checking subscription status...');
+    
     if (!isNotificationSupported()) {
+      console.log('❌ [IS_SUBSCRIBED] Notifications not supported');
+      return false;
+    }
+
+    // Check permission first
+    const permission = Notification.permission;
+    console.log('🔍 [IS_SUBSCRIBED] Permission:', permission);
+    
+    if (permission !== 'granted') {
+      console.log('❌ [IS_SUBSCRIBED] Permission not granted');
       return false;
     }
 
     // First check if service worker exists
     const existingReg = await navigator.serviceWorker.getRegistration();
     if (!existingReg) {
-      console.log('ℹ️ [IS_SUBSCRIBED] Service worker not registered');
+      console.log('❌ [IS_SUBSCRIBED] Service worker not registered');
       return false;
     }
+    
+    console.log('✅ [IS_SUBSCRIBED] Service worker exists');
 
     // Wait for it to be ready with timeout
     const registration = await Promise.race([
       navigator.serviceWorker.ready,
       new Promise<ServiceWorkerRegistration>((_, reject) => 
-        setTimeout(() => reject(new Error('Service worker timeout after 3 seconds')), 3000)
+        setTimeout(() => reject(new Error('Service worker timeout after 5 seconds')), 5000)
       )
-    ]).catch(() => {
-      console.log('ℹ️ [IS_SUBSCRIBED] Service worker not ready yet');
+    ]).catch((err) => {
+      console.log('⏱️ [IS_SUBSCRIBED] Service worker not ready yet:', err.message);
       return null;
     });
     
     if (!registration) {
+      console.log('❌ [IS_SUBSCRIBED] Service worker not ready');
       return false;
     }
+    
+    console.log('✅ [IS_SUBSCRIBED] Service worker ready');
 
     const subscription = await registration.pushManager.getSubscription();
+    
+    console.log('🔍 [IS_SUBSCRIBED] Subscription:', subscription ? {
+      endpoint: subscription.endpoint.substring(0, 50) + '...',
+      hasKeys: !!(subscription.toJSON().keys)
+    } : 'null');
 
-    return !!subscription;
+    const isSubscribed = !!subscription;
+    console.log(`${isSubscribed ? '✅' : '❌'} [IS_SUBSCRIBED] Result: ${isSubscribed}`);
+    
+    return isSubscribed;
   } catch (error) {
-    console.error('Error checking subscription status:', error);
+    console.error('❌ [IS_SUBSCRIBED] Error checking subscription status:', error);
     return false;
   }
 }
