@@ -23,13 +23,7 @@ export function WelcomeScreen({ onNext, onLogin }: WelcomeScreenProps) {
   }, [isAuthenticated, isLoading, onNext]);
 
   return (
-    <div 
-      className="flex items-center justify-center relative overflow-hidden animate-fade-in bg-primary"
-      style={{
-        minHeight: '100vh',
-        minHeight: '-webkit-fill-available'
-      }}
-    >
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden animate-fade-in bg-primary">
       {/* Extended background container that goes behind notch */}
       <div className="fixed inset-0 -top-20">
         {/* Background plant image */}
@@ -53,15 +47,7 @@ export function WelcomeScreen({ onNext, onLogin }: WelcomeScreenProps) {
       </div>
       
       {/* Content container with safe area padding */}
-      <div 
-        className="relative w-full flex items-center justify-center p-2 sm:p-4" 
-        style={{ 
-          minHeight: '100vh',
-          minHeight: '-webkit-fill-available',
-          paddingTop: 'max(1rem, env(safe-area-inset-top))',
-          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
-        }}
-      >
+      <div className="relative w-full min-h-screen flex items-center justify-center p-2 sm:p-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
         {/* Corner frame decorations */}
         <div className="absolute top-3 left-3 sm:top-4 sm:left-4 w-4 h-4 sm:w-6 sm:h-6 border-l-2 border-t-2 border-white/50"></div>
         <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 w-4 h-4 sm:w-6 sm:h-6 border-l-2 border-b-2 border-white/50"></div>

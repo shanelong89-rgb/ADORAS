@@ -139,23 +139,9 @@ export function LoginScreen({ onSuccess, onSignUpClick, onBack }: LoginScreenPro
   };
 
   return (
-    <div 
-      className="flex items-center justify-center p-2 sm:p-4 animate-fade-in relative" 
-      style={{ 
-        minHeight: '100vh',
-        minHeight: '-webkit-fill-available',
-        backgroundColor: 'rgb(245, 249, 233)',
-        paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
-        paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))'
-      }}
-    >
+    <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 animate-fade-in relative" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
       {/* Timeline at the top */}
-      <div 
-        className="absolute left-1/2 transform -translate-x-1/2 z-10 w-full max-w-[90vw] md:max-w-none md:w-auto"
-        style={{
-          top: 'max(1rem, calc(env(safe-area-inset-top) + 0.5rem))'
-        }}
-      >
+      <div className="absolute top-4 sm:top-8 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-[90vw] md:max-w-none md:w-auto">
         <div className="flex items-start justify-between md:gap-1">
           {[3, 4, 5, 6, 7].map((num, index) => (
             <React.Fragment key={num}>
@@ -186,12 +172,7 @@ export function LoginScreen({ onSuccess, onSignUpClick, onBack }: LoginScreenPro
       </div>
 
       {/* Back Button - positioned under timeline */}
-      <div 
-        className="absolute left-4 sm:left-8 z-10"
-        style={{
-          top: 'max(3.5rem, calc(env(safe-area-inset-top) + 3rem))'
-        }}
-      >
+      <div className="absolute top-14 sm:top-20 left-4 sm:left-8 z-10">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"

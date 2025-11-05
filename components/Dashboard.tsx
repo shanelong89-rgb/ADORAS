@@ -915,7 +915,7 @@ export function Dashboard({
         {/* Tab Content */}
         <div className="flex-1 flex flex-col">
           {activeTab === 'prompts' && (
-            <div className="pt-4 px-4 pb-4 sm:pt-6 sm:px-6 sm:pb-6 flex-1">
+            <div className="pt-4 px-4 pb-6 sm:pt-6 sm:px-6 sm:pb-8 flex-1">
               <PromptsTab 
                 userType={userType}
                 partnerName={partnerProfile?.name}
@@ -951,7 +951,7 @@ export function Dashboard({
           )}
           
           {activeTab === 'media' && (
-            <div className="pt-4 px-4 pb-4 sm:pt-6 sm:px-6 sm:pb-6 flex-1">
+            <div className="pt-4 px-4 pb-6 sm:pt-6 sm:px-6 sm:pb-8 flex-1">
               <MediaLibraryTab 
                 memories={validatedMemories}
                 userType={userType}

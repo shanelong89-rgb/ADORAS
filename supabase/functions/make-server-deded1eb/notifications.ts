@@ -7,8 +7,7 @@ import { Hono } from 'npm:hono';
 import { cors } from 'npm:hono/cors';
 import { createClient } from 'npm:@supabase/supabase-js';
 import webpush from 'npm:web-push';
-import { Buffer } from 'node:buffer';
-import * as kv from './kv_store.tsx';
+import * as kv from './kv_store.ts';
 
 const notifications = new Hono();
 

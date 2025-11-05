@@ -9,7 +9,7 @@ echo ""
 
 # Step 1: Rename .tsx to .ts
 echo "Step 1: Renaming .tsx files to .ts..."
-cd supabase/functions/make-server-deded1eb
+cd supabase/functions/server
 
 # Rename each file
 for file in *.tsx; do
@@ -38,7 +38,7 @@ echo ""
 echo "Step 3: Deploying to Supabase..."
 echo ""
 
-supabase functions deploy make-server-deded1eb --project-ref cyaaksjydpegofrldxbo
+supabase functions deploy server --project-ref cyaaksjydpegofrldxbo
 
 echo ""
 echo "=============================================="

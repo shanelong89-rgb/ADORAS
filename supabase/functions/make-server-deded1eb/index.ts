@@ -1152,7 +1152,7 @@ app.get("/make-server-deded1eb/test/check-connection", async (c) => {
  */
 app.get("/make-server-deded1eb/diagnostic/invitations", async (c) => {
   try {
-    const { Keys } = await import('./database.ts');
+    const { Keys } = await import('./database.tsx');
     const allInvitations = await kv.getByPrefix(Keys.prefixes.invitations);
     
     const formattedInvitations = allInvitations.map((inv: any) => ({
@@ -1185,7 +1185,7 @@ app.get("/make-server-deded1eb/diagnostic/invitations", async (c) => {
  */
 app.get("/make-server-deded1eb/diagnostic/users", async (c) => {
   try {
-    const { Keys } = await import('./database.ts');
+    const { Keys } = await import('./database.tsx');
     const allUsers = await kv.getByPrefix(Keys.prefixes.users);
     
     const formattedUsers = allUsers.map((user: any) => ({
@@ -1217,7 +1217,7 @@ app.get("/make-server-deded1eb/diagnostic/users", async (c) => {
  */
 app.get("/make-server-deded1eb/diagnostic/connections", async (c) => {
   try {
-    const { Keys } = await import('./database.ts');
+    const { Keys } = await import('./database.tsx');
     const allConnections = await kv.getByPrefix(Keys.prefixes.connections);
     
     const formattedConnections = await Promise.all(allConnections.map(async (conn: any) => {
