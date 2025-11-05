@@ -229,29 +229,41 @@ export async function subscribeToPushNotifications(userId: string): Promise<bool
     
     // First try to get existing registration
     const existingReg = await navigator.serviceWorker.getRegistration();
+    
+    console.log('📡 [SUBSCRIBE] Service worker check result:', {
+      existingReg: !!existingReg,
+      scope: existingReg?.scope,
+      active: !!existingReg?.active,
+      installing: !!existingReg?.installing,
+      waiting: !!existingReg?.waiting,
+    });
+    
     if (!existingReg) {
-      console.log('ℹ️ [SUBSCRIBE] Service worker not registered');
-      console.log('ℹ️ [SUBSCRIBE] This is expected in Figma Make preview environment');
-      console.log('ℹ️ [SUBSCRIBE] Push notifications will work when deployed to production');
-      console.log('ℹ️ [SUBSCRIBE] Using in-app notifications instead');
+      console.error('❌ [SUBSCRIBE] Service worker not registered');
+      console.error('❌ [SUBSCRIBE] Expected: Service worker should be auto-registered by pwaInstaller.ts on page load');
+      console.error('❌ [SUBSCRIBE] Please check browser console for SW registration errors');
+      console.error('❌ [SUBSCRIBE] Try refreshing the page or reinstalling the PWA');
       return false;
     }
     
     console.log('📡 [SUBSCRIBE] Found existing service worker registration');
     
     // Wait for it to be ready with timeout
+    console.log('📡 [SUBSCRIBE] Waiting for service worker to be ready...');
     const registration = await Promise.race([
       navigator.serviceWorker.ready,
       new Promise<ServiceWorkerRegistration>((_, reject) => 
         setTimeout(() => reject(new Error('Service worker timeout after 5 seconds')), 5000)
       )
-    ]).catch(() => {
-      console.log('ℹ️ [SUBSCRIBE] Service worker not ready yet');
-      console.log('ℹ️ [SUBSCRIBE] Using in-app notifications instead');
+    ]).catch((error) => {
+      console.error('❌ [SUBSCRIBE] Service worker failed to become ready:', error);
+      console.error('❌ [SUBSCRIBE] This means the SW is registered but not active');
+      console.error('❌ [SUBSCRIBE] Try refreshing the page');
       return null;
     });
     
     if (!registration) {
+      console.error('❌ [SUBSCRIBE] Service worker registration is null');
       return false;
     }
     
@@ -264,11 +276,21 @@ export async function subscribeToPushNotifications(userId: string): Promise<bool
 
     // Subscribe to push notifications
     console.log('📡 [SUBSCRIBE] Creating push subscription...');
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-    });
-    console.log('📡 [SUBSCRIBE] ✅ Push subscription created:', subscription.endpoint);
+    let subscription;
+    try {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      });
+      console.log('📡 [SUBSCRIBE] ✅ Push subscription created:', subscription.endpoint);
+    } catch (subError) {
+      console.error('❌ [SUBSCRIBE] Failed to create push subscription:', subError);
+      console.error('❌ [SUBSCRIBE] Error details:', {
+        name: subError instanceof Error ? subError.name : 'Unknown',
+        message: subError instanceof Error ? subError.message : String(subError),
+      });
+      throw subError; // Re-throw to be caught by outer try-catch
+    }
 
     // Send subscription to server
     console.log('📡 [SUBSCRIBE] Sending subscription to server...');
