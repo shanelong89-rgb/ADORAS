@@ -508,13 +508,12 @@ export function Dashboard({
         
         {/* Unified Header + Tabs Sticky Container */}
         <div 
-          className={`sticky z-50 transition-transform duration-100 ease-out ${
+          className={`sticky top-0 z-50 transition-transform duration-100 ease-out ${
             showHeader ? 'translate-y-0' : '-translate-y-full'
           }`}
-          style={{ top: 'env(safe-area-inset-top)' }}
         >
           {/* Modern Header */}
-          <div className="bg-card/80 backdrop-blur-md border-b border-border/20">
+          <div className="bg-card/80 backdrop-blur-md border-b border-border/20" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between px-5 sm:px-8 md:px-10 lg:px-12 xl:px-16 py-4 sm:py-5 max-w-4xl mx-auto">
             <div className="flex items-center space-x-3 sm:space-x-5 min-w-0 flex-1">
               <div className="relative flex-shrink-0">
