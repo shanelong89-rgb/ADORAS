@@ -234,26 +234,21 @@ export function NotificationSettings({ userId }: NotificationSettingsProps) {
             });
           }, 2000);
         }
-      } else if (subscribed === false && permission === 'granted') {
-        // iOS PWA: Service worker might not be ready, but permissions are granted
-        // In-app notifications will still work, so treat this as partial success
-        console.log('ℹ️ [ENABLE_FLOW] Push subscription not ready, but permission granted. In-app notifications active.');
-        setIsSubscribed(false); // Push not active, but...
-        
-        toast.success('✅ Notifications enabled! You\'ll see alerts when you receive messages.', {
-          duration: 5000,
-        });
-        
-        if (isIOS) {
-          setTimeout(() => {
-            toast.info('💡 Background notifications will activate once the app is fully installed', {
-              duration: 6000,
-            });
-          }, 2000);
-        }
       } else {
-        console.error('❌ [ENABLE_FLOW] Subscription returned false without permission');
-        toast.error('Failed to complete notification setup. Please check notification permissions.');
+        // CRITICAL FIX: Don't show false success messages!
+
+        console.error('❌ [ENABLE_FLOW] Push subscription FAILED');
+        console.error('❌ Details:', { subscribed, permission, isIOS, isStandalone });
+        setIsSubscribed(false);
+        
+        toast.error('❌ Push notification setup failed\'', {
+          duration: 10000,
+          description: 'Use the diagnostic tool to find the exact issue',
+          action: {
+            label: 'Run Diagnostic',
+            onClick: () => window.open('/push-diagnostic.html', '_blank'),
+          },
+        });
       }
     } catch (error) {
       console.error('❌ Failed to enable notifications:', error);
