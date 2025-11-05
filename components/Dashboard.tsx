@@ -502,7 +502,7 @@ export function Dashboard({
       {/* Extended background container that goes behind notch */}
       <div className="fixed inset-0 -top-20 -z-10" style={{ backgroundColor: 'rgb(245, 249, 233)' }}></div>
       
-      <div className="min-h-screen bg-transparent animate-fade-in" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="min-h-screen bg-transparent animate-fade-in flex flex-col">
         {/* Safari Install Banner - Shows on iOS Safari when not installed */}
         <SafariInstallBanner />
         
