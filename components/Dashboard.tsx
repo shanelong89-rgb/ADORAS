@@ -151,6 +151,13 @@ export function Dashboard({
 
   // Calculate unread message count per connection for sidebar badges
   const getUnreadCountForConnection = React.useCallback((connectionId: string) => {
+    // 🔔 CRITICAL: Don't show badge for the ACTIVE connection
+    // If user is viewing this chat, messages aren't "unread" for badge purposes
+    const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+    if (connectionId === activeConnectionId && activeTab === 'chat') {
+      return 0; // No badge when actively viewing this chat
+    }
+    
     // Get the last read timestamp for this specific connection
     const stored = localStorage.getItem(`lastChatRead_${userProfile.id}_${connectionId}`);
     const connectionLastRead = stored ? parseInt(stored) : 0;
@@ -170,7 +177,7 @@ export function Dashboard({
     }).length;
     
     return unreadCount;
-  }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper]);
+  }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper, activeStorytellerId, activeLegacyKeeperId, activeTab]);
 
   // Calculate unread message count across ALL connections for Chat tab badge
   const unreadMessageCount = React.useMemo(() => {
