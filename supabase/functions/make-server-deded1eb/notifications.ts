@@ -7,7 +7,23 @@ import { Hono } from 'npm:hono';
 import { cors } from 'npm:hono/cors';
 import { createClient } from 'npm:@supabase/supabase-js';
 import webpush from 'npm:web-push';
-import * as kv from './kv_store.ts';
+import { Buffer } from 'node:buffer';
+import * as kv from './kv_store.tsx';
+
+// Make Buffer available globally for web-push library
+// @ts-ignore: Deno global augmentation
+globalThis.Buffer = Buffer;
+
+// Deno-compatible base64 encoding function (replaces Buffer for our code)
+function base64Encode(str: string): string {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  let binary = '';
+  for (let i = 0; i < data.length; i++) {
+    binary += String.fromCharCode(data[i]);
+  }
+  return btoa(binary);
+}
 
 const notifications = new Hono();
 
@@ -138,8 +154,8 @@ notifications.post('/make-server-deded1eb/notifications/subscribe', async (c) =>
       updatedAt: new Date().toISOString(),
     };
 
-    // Use endpoint as unique key
-    const key = `push_sub:${userId}:${Buffer.from(subscription.endpoint).toString('base64').substring(0, 32)}`;
+    // Use endpoint as unique key (using Deno-compatible encoding)
+    const key = `push_sub:${userId}:${base64Encode(subscription.endpoint).substring(0, 32)}`;
     await kv.set(key, subscriptionData);
 
     // Store in user's subscription list
@@ -187,8 +203,8 @@ notifications.post('/make-server-deded1eb/notifications/unsubscribe', async (c) 
 
     console.log('Unsubscribing user from push notifications:', userId);
 
-    // Generate subscription key
-    const key = `push_sub:${userId}:${Buffer.from(endpoint).toString('base64').substring(0, 32)}`;
+    // Generate subscription key (using Deno-compatible encoding)
+    const key = `push_sub:${userId}:${base64Encode(endpoint).substring(0, 32)}`;
     
     // Delete subscription
     await kv.del(key);
