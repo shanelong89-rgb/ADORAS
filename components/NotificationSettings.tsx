@@ -1004,6 +1004,112 @@ export function NotificationSettings({
           </CardContent>
         </Card>
       )}
+
+      {/* Advanced Troubleshooting Section - iOS Specific */}
+      {isIOS && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wrench className="w-5 h-5" />
+              Advanced Troubleshooting
+            </CardTitle>
+            <CardDescription>
+              Tools to fix push notification issues on iOS
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Service Worker Status */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Service Worker Status:</span>
+                <span className="text-sm">
+                  {typeof navigator !== "undefined" &&
+                  "serviceWorker" in navigator
+                    ? "Supported ✅"
+                    : "Not Supported ❌"}
+                </span>
+              </div>
+            </div>
+
+            {/* Manual Service Worker Registration */}
+            <div className="space-y-2">
+              <Label className="text-sm">
+                If push notifications aren't working, try re-registering the
+                service worker:
+              </Label>
+              <Button
+                onClick={async () => {
+                  console.log("🔧 Manually re-registering service worker...");
+                  if (!("serviceWorker" in navigator)) {
+                    toast.error(
+                      "Service workers not supported in this browser",
+                    );
+                    return;
+                  }
+
+                  try {
+                    // Unregister existing SW first
+                    const existing =
+                      await navigator.serviceWorker.getRegistration();
+                    if (existing) {
+                      await existing.unregister();
+                      console.log("🗑️ Unregistered existing service worker");
+                    }
+
+                    // Wait a bit
+                    await new Promise((resolve) =>
+                      setTimeout(resolve, 500),
+                    );
+
+                    // Register new SW
+                    const registration =
+                      await navigator.serviceWorker.register("/sw.js", {
+                        scope: "/",
+                      });
+                    console.log(
+                      "✅ Service worker re-registered:",
+                      registration,
+                    );
+
+                    // Wait for it to be active
+                    await navigator.serviceWorker.ready;
+
+                    toast.success(
+                      "Service worker re-registered successfully! Now try enabling notifications again.",
+                    );
+                  } catch (error) {
+                    console.error("❌ SW re-registration failed:", error);
+                    toast.error(
+                      `Failed to register service worker: ${error instanceof Error ? error.message : "Unknown error"}`,
+                    );
+                  }
+                }}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                <Wrench className="w-4 h-4 mr-2" />
+                Re-register Service Worker
+              </Button>
+            </div>
+
+            {/* Link to Full Diagnostic */}
+            <div className="pt-2 border-t">
+              <Button
+                onClick={() => {
+                  window.location.href = "/push-diagnostic.html";
+                }}
+                variant="secondary"
+                size="sm"
+                className="w-full"
+              >
+                <Wrench className="w-4 h-4 mr-2" />
+                Open Full Push Diagnostic Tool
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
