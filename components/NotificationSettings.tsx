@@ -241,7 +241,7 @@ export function NotificationSettings({ userId }: NotificationSettingsProps) {
         console.error('❌ Details:', { subscribed, permission, isIOS, isStandalone });
         setIsSubscribed(false);
         
-        toast.error('❌ Push notification setup failed\'', {
+        toast.error('❌ Push notification setup failed', {
           duration: 10000,
           description: 'Use the diagnostic tool to find the exact issue',
           action: {
