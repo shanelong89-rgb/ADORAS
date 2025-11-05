@@ -904,13 +904,34 @@ export function AppContent() {
         
         // CRITICAL: Update per-connection cache FIRST before global memories
         // This ensures Dashboard's validation logic always has the correct expected data
+        // Use MERGE strategy to preserve newer memories not yet in API response
+        const mergeMemories = (existing: Memory[], incoming: Memory[]): Memory[] => {
+          const existingById = new Map(existing.map(m => [m.id, m]));
+          const incomingById = new Map(incoming.map(m => [m.id, m]));
+          
+          // Keep all existing, update with incoming data if available
+          const merged = existing.map(m => incomingById.get(m.id) || m);
+          
+          // Add new memories not in existing
+          incoming.forEach(m => {
+            if (!existingById.has(m.id)) {
+              merged.push(m);
+            }
+          });
+          
+          // Sort chronologically
+          merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+          
+          return merged;
+        };
+        
         if (userType === 'keeper') {
           setMemoriesByStoryteller((prev) => {
             // Mark state change timestamp for validation
             (window as any)._lastMemoryStateChange = Date.now();
             return {
               ...prev,
-              [connectionId]: uiMemories,
+              [connectionId]: mergeMemories(prev[connectionId] || [], uiMemories),
             };
           });
         } else {
@@ -919,7 +940,7 @@ export function AppContent() {
             (window as any)._lastMemoryStateChange = Date.now();
             return {
               ...prev,
-              [connectionId]: uiMemories,
+              [connectionId]: mergeMemories(prev[connectionId] || [], uiMemories),
             };
           });
         }
@@ -928,7 +949,34 @@ export function AppContent() {
         // This prevents background refreshes from mixing chats
         if (shouldUpdateGlobal) {
           console.log(`✅ Updating global memories for ACTIVE connection: ${connectionId}`);
-          setMemories(uiMemories);
+          
+          // MERGE strategy: Preserve newer memories that might not be in the API response yet
+          setMemories((prevMemories) => {
+            // Create a map of existing memories by ID for fast lookup
+            const existingById = new Map(prevMemories.map(m => [m.id, m]));
+            
+            // Create a map of new memories by ID
+            const newById = new Map(uiMemories.map(m => [m.id, m]));
+            
+            // Merge: Keep all existing memories, update with new data if available
+            const merged = prevMemories.map(existing => 
+              newById.get(existing.id) || existing
+            );
+            
+            // Add any new memories that weren't in the existing array
+            uiMemories.forEach(newMem => {
+              if (!existingById.has(newMem.id)) {
+                merged.push(newMem);
+              }
+            });
+            
+            // Sort by timestamp to maintain chronological order
+            merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+            
+            console.log(`📊 Merged memories: ${prevMemories.length} existing + ${uiMemories.length} from API = ${merged.length} total`);
+            
+            return merged;
+          });
         } else {
           console.log(`ℹ️ Skipping global memories update for background connection: ${connectionId}`);
         }
