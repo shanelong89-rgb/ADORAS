@@ -80,6 +80,7 @@ export function NotificationSettings({
   const [showDiagnostic, setShowDiagnostic] = useState(false);
   const [isPreviewEnvironment, setIsPreviewEnvironment] =
     useState(false);
+  const [subscriptionFailed, setSubscriptionFailed] = useState(false);
   const [preferences, setPreferences] =
     useState<NotificationPreferences>({
       userId,
@@ -192,6 +193,7 @@ export function NotificationSettings({
 
     try {
       setIsLoading(true); // Set loading state immediately
+      setSubscriptionFailed(false); // Clear previous failure
 
       // iOS CRITICAL FIX: Request permission IMMEDIATELY
       // iOS requires Notification.requestPermission() to be called
@@ -299,6 +301,7 @@ export function NotificationSettings({
           "✅ [ENABLE_FLOW] Successfully subscribed!",
         );
         setIsSubscribed(true);
+        setSubscriptionFailed(false); // Clear failure state
 
         // Reload settings to confirm subscription status (non-blocking)
         loadSettings().catch((err) => {
@@ -335,30 +338,12 @@ export function NotificationSettings({
           isStandalone,
         });
         setIsSubscribed(false);
+        setSubscriptionFailed(true); // Track failure
 
         toast.error("❌ Push notification setup failed", {
           duration: 10000,
           description:
-            "Tap the button below to run diagnostics and find the exact issue",
-          action: {
-            label: "Run Diagnostic",
-            onClick: (event) => {
-              console.log("🔧 Diagnostic button clicked!", event);
-              event?.preventDefault?.();
-              event?.stopPropagation?.();
-              
-              // On iOS PWA, window.open might be blocked, use location.href instead
-              console.log("🔧 Navigating to /push-diagnostic.html");
-              
-              try {
-                window.location.href = "/push-diagnostic.html";
-              } catch (error) {
-                console.error("🔧 Navigation error:", error);
-                // Fallback: try window.open
-                window.open("/push-diagnostic.html", "_blank");
-              }
-            },
-          },
+            "See the diagnostic tool below to troubleshoot the issue",
         });
       }
     } catch (error) {
@@ -735,29 +720,38 @@ export function NotificationSettings({
             )}
           </div>
 
-          {/* Push Notification Diagnostic Link */}
-          {!isSubscribed && permission !== "granted" && (
-            <Alert className="border-orange-200 bg-orange-50 dark:bg-orange-950/20 mt-4">
-              <AlertCircle className="h-4 w-4 text-orange-600" />
-              <AlertTitle className="text-orange-900 dark:text-orange-100">
-                Troubleshooting Help
+          {/* Push Notification Diagnostic Link - Shows when subscription fails */}
+          {subscriptionFailed && (
+            <Alert className="border-red-300 bg-red-50 dark:bg-red-950/20 mt-4">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertTitle className="text-red-900 dark:text-red-100">
+                ❌ Push Notification Setup Failed
               </AlertTitle>
-              <AlertDescription className="text-orange-800 dark:text-orange-200">
-                <p className="text-sm mb-3">
-                  If notifications aren't working, use our diagnostic tool to find the issue.
+              <AlertDescription className="text-red-800 dark:text-red-200 space-y-3">
+                <p className="text-sm">
+                  The push notification subscription failed. Use the diagnostic tool below to identify and fix the issue.
                 </p>
-                <Button
-                  onClick={() => {
-                    console.log("🔧 Opening push diagnostic page...");
-                    window.location.href = "/push-diagnostic.html";
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/20"
-                >
-                  <Wrench className="w-4 h-4 mr-2" />
-                  Open Push Notification Diagnostic
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      console.log("🔧 Opening push diagnostic page...");
+                      window.location.href = "/push-diagnostic.html";
+                    }}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    size="sm"
+                  >
+                    <Wrench className="w-4 h-4 mr-2" />
+                    Run Full Diagnostic
+                  </Button>
+                  <Button
+                    onClick={() => setShowDiagnostic(!showDiagnostic)}
+                    variant="outline"
+                    size="sm"
+                    className="border-red-300"
+                  >
+                    {showDiagnostic ? "Hide" : "Show"} Quick Check
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}
