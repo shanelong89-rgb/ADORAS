@@ -52,9 +52,11 @@ export function NotificationOnboardingDialog({
     setIsAndroid(android);
     
     // Check if running as standalone PWA
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || 
-                      (window.navigator as any).standalone === true ||
-                      document.referrer.includes('android-app://');
+    // iOS-specific: Check navigator.standalone first (Safari-specific property)
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const standalone = isIOSDevice
+      ? (window.navigator as any).standalone === true || window.matchMedia('(display-mode: standalone)').matches
+      : window.matchMedia('(display-mode: standalone)').matches || document.referrer.includes('android-app://');
     setIsStandalone(standalone);
     
     // Get current notification permission
