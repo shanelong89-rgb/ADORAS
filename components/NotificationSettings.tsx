@@ -65,6 +65,36 @@ interface NotificationSettingsProps {
 export function NotificationSettings({
   userId,
 }: NotificationSettingsProps) {
+  console.log('🔔 [NOTIF_SETTINGS] Component rendering with userId:', userId, 'type:', typeof userId);
+  
+  // Safety check for userId
+  if (!userId || typeof userId !== 'string') {
+    console.error('❌ [NOTIF_SETTINGS] Invalid userId:', userId);
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BellOff className="w-5 h-5" />
+            Configuration Error
+          </CardTitle>
+          <CardDescription>
+            Unable to load notification settings. Please try logging out and back in.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-800 dark:text-red-200">
+              <strong>Error:</strong> User ID is missing or invalid.
+            </p>
+            <p className="text-xs text-red-700 dark:text-red-300 mt-2">
+              Debug info: userId = {String(userId)} (type: {typeof userId})
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
@@ -81,6 +111,8 @@ export function NotificationSettings({
   const [isPreviewEnvironment, setIsPreviewEnvironment] =
     useState(false);
   const [subscriptionFailed, setSubscriptionFailed] = useState(false);
+  const [swRegistered, setSwRegistered] = useState<boolean | null>(null);
+  const [swActive, setSwActive] = useState<boolean | null>(null);
   const [preferences, setPreferences] =
     useState<NotificationPreferences>({
       userId,
@@ -94,72 +126,119 @@ export function NotificationSettings({
     });
 
   useEffect(() => {
-    // Detect iOS
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    setIsIOS(iOS);
+    try {
+      console.log('🔔 [INIT] Initializing notification settings for userId:', userId);
+      
+      // Detect iOS
+      const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      setIsIOS(iOS);
 
-    // Check if running as standalone PWA
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true ||
-      document.referrer.includes("android-app://");
-    setIsStandalone(standalone);
+      // Check if running as standalone PWA
+      const standalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes("android-app://");
+      setIsStandalone(standalone);
 
-    // Detect Figma Make preview environment
-    const previewEnv =
-      window.location.hostname.includes("figma.site") ||
-      window.location.hostname.includes("figmaiframepreview");
-    setIsPreviewEnvironment(previewEnv);
+      // Detect Figma Make preview environment
+      const previewEnv =
+        window.location.hostname.includes("figma.site") ||
+        window.location.hostname.includes("figmaiframepreview");
+      setIsPreviewEnvironment(previewEnv);
 
-    console.log("📱 Platform detection:", {
-      iOS,
-      standalone,
-      previewEnv,
-    });
+      console.log("📱 Platform detection:", {
+        iOS,
+        standalone,
+        previewEnv,
+      });
 
-    // Check notification support
-    setIsSupported(isNotificationSupported());
-    setPermission(getNotificationPermission());
+      // Check notification support
+      setIsSupported(isNotificationSupported());
+      setPermission(getNotificationPermission());
 
-    // Load preferences and subscription status immediately
-    loadSettings();
+      // Load preferences and subscription status immediately
+      loadSettings().catch(err => {
+        console.error('Failed to load settings on mount:', err);
+      });
 
-    // Also check again after 2 seconds (service worker might need time)
-    const timeoutId = setTimeout(() => {
-      console.log(
-        "🔄 Rechecking subscription status after delay...",
-      );
-      loadSettings();
-    }, 2000);
+      // Also check again after 2 seconds (service worker might need time)
+      const timeoutId = setTimeout(() => {
+        console.log(
+          "🔄 Rechecking subscription status after delay...",
+        );
+        loadSettings().catch(err => {
+          console.error('Failed to reload settings:', err);
+        });
+      }, 2000);
 
-    // Set up periodic checks every 10 seconds to keep state in sync
-    const intervalId = setInterval(() => {
-      console.log("🔄 Periodic subscription status check...");
-      loadSettings();
-    }, 10000);
+      // Set up periodic checks every 10 seconds to keep state in sync
+      const intervalId = setInterval(() => {
+        console.log("🔄 Periodic subscription status check...");
+        loadSettings().catch(err => {
+          console.error('Failed to check settings periodically:', err);
+        });
+      }, 10000);
 
-    return () => {
-      clearTimeout(timeoutId);
-      clearInterval(intervalId);
-    };
+      return () => {
+        clearTimeout(timeoutId);
+        clearInterval(intervalId);
+      };
+    } catch (error) {
+      console.error('❌ [INIT] Critical error in useEffect:', error);
+      // Don't crash the component - just log
+    }
   }, [userId]);
 
   const loadSettings = async () => {
     try {
-      // Check subscription status
-      const subscribed = await isPushSubscribed();
-      setIsSubscribed(subscribed);
-
-      // Load preferences
-      const prefs = await getNotificationPreferences(userId);
-      if (prefs) {
-        setPreferences(prefs);
+      console.log('📡 [LOAD_SETTINGS] Starting to load settings for userId:', userId);
+      
+      // Check service worker registration status
+      if ("serviceWorker" in navigator) {
+        try {
+          const registration =
+            await navigator.serviceWorker.getRegistration();
+          setSwRegistered(!!registration);
+          setSwActive(!!registration?.active);
+        } catch (swError) {
+          console.warn('Service worker check failed:', swError);
+          setSwRegistered(false);
+          setSwActive(false);
+        }
+      } else {
+        setSwRegistered(false);
+        setSwActive(false);
       }
+
+      // Check subscription status
+      try {
+        const subscribed = await isPushSubscribed();
+        setIsSubscribed(subscribed);
+        console.log('📡 [LOAD_SETTINGS] Subscription status:', subscribed);
+      } catch (subError) {
+        console.warn('Subscription check failed:', subError);
+        setIsSubscribed(false);
+      }
+
+      // Load preferences (don't fail if this doesn't work)
+      try {
+        const prefs = await getNotificationPreferences(userId);
+        if (prefs) {
+          setPreferences(prefs);
+          console.log('📡 [LOAD_SETTINGS] Loaded preferences');
+        }
+      } catch (prefError) {
+        console.warn('Failed to load preferences, using defaults:', prefError);
+        // Keep using default preferences - don't fail
+      }
+      
+      console.log('📡 [LOAD_SETTINGS] Settings loaded successfully');
     } catch (error) {
       console.error(
-        "Failed to load notification settings:",
+        "❌ [LOAD_SETTINGS] Critical error loading notification settings:",
         error,
       );
+      // Don't throw - just log and continue
     }
   };
 
@@ -1020,68 +1099,80 @@ export function NotificationSettings({
           <CardContent className="space-y-4">
             {/* Service Worker Status */}
             <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg space-y-2">
+              <h4 className="text-sm mb-2">Service Worker Status:</h4>
+              
               <div className="flex items-center justify-between">
-                <span className="text-sm">Service Worker Status:</span>
-                <span className="text-sm">
-                  {typeof navigator !== "undefined" &&
-                  "serviceWorker" in navigator
-                    ? "Supported ✅"
-                    : "Not Supported ❌"}
-                </span>
+                <span className="text-sm">API Support:</span>
+                <Badge variant={typeof navigator !== "undefined" && "serviceWorker" in navigator ? "default" : "destructive"}>
+                  {typeof navigator !== "undefined" && "serviceWorker" in navigator ? "Yes" : "No"}
+                </Badge>
               </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Registered:</span>
+                <Badge variant={swRegistered === null ? "secondary" : swRegistered ? "default" : "destructive"}>
+                  {swRegistered === null ? "Checking..." : swRegistered ? "Yes" : "No"}
+                </Badge>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Active:</span>
+                <Badge variant={swActive === null ? "secondary" : swActive ? "default" : "destructive"}>
+                  {swActive === null ? "Checking..." : swActive ? "Yes" : "No"}
+                </Badge>
+              </div>
+              
+              {swRegistered === false && (
+                <Alert variant="destructive" className="mt-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Service worker not found! Click the button below to register it.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             {/* Manual Service Worker Registration */}
             <div className="space-y-2">
               <Label className="text-sm">
-                If push notifications aren't working, try re-registering the
-                service worker:
+                If push notifications aren't working, try re-registering the service worker:
               </Label>
               <Button
                 onClick={async () => {
                   console.log("🔧 Manually re-registering service worker...");
                   if (!("serviceWorker" in navigator)) {
-                    toast.error(
-                      "Service workers not supported in this browser",
-                    );
+                    toast.error("Service workers not supported in this browser");
                     return;
                   }
 
                   try {
                     // Unregister existing SW first
-                    const existing =
-                      await navigator.serviceWorker.getRegistration();
+                    const existing = await navigator.serviceWorker.getRegistration();
                     if (existing) {
                       await existing.unregister();
                       console.log("🗑️ Unregistered existing service worker");
                     }
 
                     // Wait a bit
-                    await new Promise((resolve) =>
-                      setTimeout(resolve, 500),
-                    );
+                    await new Promise((resolve) => setTimeout(resolve, 500));
 
                     // Register new SW
-                    const registration =
-                      await navigator.serviceWorker.register("/sw.js", {
-                        scope: "/",
-                      });
-                    console.log(
-                      "✅ Service worker re-registered:",
-                      registration,
-                    );
+                    const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+                    console.log("✅ Service worker re-registered:", registration);
 
                     // Wait for it to be active
                     await navigator.serviceWorker.ready;
 
-                    toast.success(
-                      "Service worker re-registered successfully! Now try enabling notifications again.",
-                    );
+                    toast.success("Service worker re-registered successfully! Now try enabling notifications again.");
+                    
+                    // Reload status
+                    await loadSettings();
                   } catch (error) {
                     console.error("❌ SW re-registration failed:", error);
-                    toast.error(
-                      `Failed to register service worker: ${error instanceof Error ? error.message : "Unknown error"}`,
-                    );
+                    toast.error(`Failed to register service worker: ${error instanceof Error ? error.message : "Unknown error"}`);
+                    
+                    // Still reload status
+                    await loadSettings();
                   }
                 }}
                 variant="outline"
