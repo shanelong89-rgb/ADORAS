@@ -2445,8 +2445,9 @@ export function ChatTab({
       {/* Messages Area - Add bottom padding for fixed input */}
       <ScrollArea 
         ref={scrollAreaRef}
-        className={`flex-1 px-3 pb-32 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
+        className={`flex-1 px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
         style={{ 
+          paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
@@ -2496,7 +2497,13 @@ export function ChatTab({
       </ScrollArea>
 
       {/* Input Area - Fixed to bottom of screen */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t shadow-lg" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+      <div 
+        className="fixed bottom-0 left-0 right-0 z-50 border-t shadow-lg" 
+        style={{ 
+          backgroundColor: 'rgb(245, 249, 233)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        }}
+      >
         {/* Recording Indicator */}
         {isRecording && (
           <div className="px-4 py-2 bg-red-50 border-b border-red-200">
@@ -2507,7 +2514,7 @@ export function ChatTab({
           </div>
         )}
 
-        <div className="bg-card/95 backdrop-blur-sm p-3 pb-6 max-w-[1400px] mx-auto">
+        <div className="bg-card/95 backdrop-blur-sm p-3 max-w-[1400px] mx-auto">
         {/* Past Prompts Button - Top Row */}
         {pastPrompts.length > 0 && !currentPromptContext && !activePrompt && (
           <div className="mb-2">
@@ -2738,7 +2745,10 @@ export function ChatTab({
       {showScrollToTop && (
         <Button
           onClick={handleScrollToTop}
-          className="fixed bottom-24 right-4 sm:right-6 z-[100] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground animate-fade-in border-2 border-white"
+          className="fixed right-4 sm:right-6 z-[100] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground animate-fade-in border-2 border-white"
+          style={{
+            bottom: 'calc(110px + env(safe-area-inset-bottom, 0px))'
+          }}
           size="icon"
         >
           <ChevronUp className="w-6 h-6 sm:w-7 sm:h-7" />

@@ -166,7 +166,11 @@ export default function App() {
   if (isChromeFixMode) {
     return (
       <ErrorBoundary>
-        <div className="min-h-screen" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+        <div style={{ 
+          minHeight: '100vh',
+          minHeight: '-webkit-fill-available',
+          backgroundColor: 'rgb(245, 249, 233)'
+        }}>
           <ChromeLoginFix />
           <Toaster 
             position="top-center" 
@@ -186,7 +190,11 @@ export default function App() {
   if (isDiagnosticMode) {
     return (
       <ErrorBoundary>
-        <div className="min-h-screen" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+        <div style={{ 
+          minHeight: '100vh',
+          minHeight: '-webkit-fill-available',
+          backgroundColor: 'rgb(245, 249, 233)'
+        }}>
           <MobileAuthDiagnostic />
           <Toaster 
             position="top-center" 
@@ -204,7 +212,13 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+      <div 
+        style={{ 
+          minHeight: '100vh',
+          minHeight: '-webkit-fill-available',
+          backgroundColor: 'rgb(245, 249, 233)'
+        }}
+      >
         <AuthProvider>
           <AppContent />
         </AuthProvider>
