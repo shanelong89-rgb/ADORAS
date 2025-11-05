@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  
+  <!-- iOS Web App Configuration (MUST be before manifest) -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Adoras">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json">
+  
+  <!-- Preload Critical Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400;1,500;1,600;1,700;1,900&family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400;1,500;1,600;1,700;1,900&family=Inter:wght@400;500;600;700&display=swap">
+  
+  <!-- Theme Colors -->
+  <meta name="theme-color" content="#36453B">
+  <meta name="msapplication-TileColor" content="#36453B">
+  <meta name="msapplication-navbutton-color" content="#36453B">
+  
+  <!-- App Icons -->
+  <link rel="icon" type="image/png" href="/icon-192.png" sizes="192x192">
+  <link rel="icon" type="image/png" href="/icon-512.png" sizes="512x512">
+  
+  <!-- iOS Touch Icons (Various Sizes for Different Devices) -->
+  <!-- iOS doesn't support SVG for touch icons - must be PNG -->
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+  <link rel="apple-touch-icon" href="/apple-touch-icon-152.png" sizes="152x152">
+  <link rel="apple-touch-icon" href="/apple-touch-icon-120.png" sizes="120x120">
+  
+  <!-- Favicon for browser tab -->
+  <link rel="shortcut icon" href="/icon-192.png">
+  <link rel="icon" type="image/png" href="/icon-192.png">
+  
+  <!-- App Metadata -->
+  <meta name="description" content="Reconnect with family through shared memories, stories, photos, and voice notes">
+  <meta name="keywords" content="family, memories, stories, photos, voice notes, legacy, adoras">
+  
+  <!-- Open Graph / Social Sharing -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Adoras - Family Memory Sharing">
+  <meta property="og:description" content="Reconnect with family through shared memories, stories, photos, and voice notes">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Adoras - Family Memory Sharing">
+  <meta name="twitter:description" content="Reconnect with family through shared memories, stories, photos, and voice notes">
+  
+  <title>Adoras - Family Memory Sharing</title>
+  
+  <style>
+    /* Loading screen styles */
+    #app-loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #F5F9E9;
+      z-index: 9999;
+    }
+    
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(54, 69, 59, 0.2);
+      border-top-color: #36453B;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Prevent FOUC */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
+</head>
+<body>
+  <!-- App Loading Indicator -->
+  <div id="app-loading">
+    <div class="loading-spinner"></div>
+  </div>
+  
+  <!-- React App Root -->
+  <div id="root"></div>
+  
+  <!-- Vite App Entry Point -->
+  <script type="module" src="/main.tsx"></script>
+  
+  <!-- Loading Screen Script -->
+  <script>
+    // Remove loading screen when app loads
+    window.addEventListener('DOMContentLoaded', () => {
+      const loading = document.getElementById('app-loading');
+      if (loading) {
+        setTimeout(() => {
+          loading.style.opacity = '0';
+          loading.style.transition = 'opacity 0.3s';
+          setTimeout(() => loading.remove(), 300);
+        }, 500);
+      }
+    });
+    
+    // Service worker registration is handled by pwaInstaller.ts in the React app
+  </script>
+</body>
+</html>

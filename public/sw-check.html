@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Worker Check - Adoras</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f9e9;
+    }
+    .status {
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      background: white;
+    }
+    .success { border-left: 4px solid #22c55e; }
+    .error { border-left: 4px solid #ef4444; }
+    .warning { border-left: 4px solid #f59e0b; }
+    .info { border-left: 4px solid #3b82f6; }
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+    }
+    button {
+      background: rgb(54, 69, 59);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    h1 { color: rgb(54, 69, 59); }
+    h2 { margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Service Worker Debug Tool</h1>
+  <p>This page helps diagnose service worker registration issues on iOS.</p>
+
+  <div id="results"></div>
+
+  <h2>Actions</h2>
+  <button onclick="checkSWFile()">Check if /sw.js exists</button>
+  <button onclick="attemptRegistration()">Attempt Registration</button>
+  <button onclick="checkExisting()">Check Existing Registration</button>
+  <button onclick="unregisterAll()">Unregister All</button>
+  <button onclick="clearAll()">Clear Everything</button>
+
+  <script>
+    const resultsDiv = document.getElementById('results');
+
+    function addResult(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `status ${type}`;
+      div.innerHTML = message;
+      resultsDiv.appendChild(div);
+      resultsDiv.scrollTop = resultsDiv.scrollHeight;
+    }
+
+    function addLog(title, data) {
+      const div = document.createElement('div');
+      div.className = 'status info';
+      div.innerHTML = `<strong>${title}</strong><pre>${JSON.stringify(data, null, 2)}</pre>`;
+      resultsDiv.appendChild(div);
+    }
+
+    // Initial environment check
+    (function() {
+      addResult('<h2>📱 Environment Check</h2>', 'info');
+      
+      const env = {
+        userAgent: navigator.userAgent,
+        isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
+        isStandalone: window.matchMedia('(display-mode: standalone)').matches || navigator.standalone,
+        swSupported: 'serviceWorker' in navigator,
+        pushSupported: 'PushManager' in window,
+        notificationSupported: 'Notification' in window,
+        notificationPermission: 'Notification' in window ? Notification.permission : 'N/A',
+        location: window.location.href
+      };
+
+      addLog('Environment', env);
+
+      if (!env.swSupported) {
+        addResult('❌ Service Workers are NOT supported in this browser!', 'error');
+      } else {
+        addResult('✅ Service Workers ARE supported', 'success');
+      }
+
+      if (env.isIOS) {
+        addResult('📱 iOS device detected', 'info');
+        if (env.isStandalone) {
+          addResult('✅ Running in standalone mode (PWA)', 'success');
+        } else {
+          addResult('⚠️ Running in Safari browser (not installed as PWA)', 'warning');
+        }
+      }
+    })();
+
+    async function checkSWFile() {
+      addResult('<h2>🔍 Checking /sw.js file...</h2>', 'info');
+      
+      try {
+        const response = await fetch('/sw.js', { method: 'HEAD' });
+        if (response.ok) {
+          addResult(`✅ /sw.js exists! (Status: ${response.status})`, 'success');
+          addLog('Response Headers', Object.fromEntries(response.headers.entries()));
+        } else {
+          addResult(`❌ /sw.js not found! (Status: ${response.status})`, 'error');
+        }
+      } catch (error) {
+        addResult(`❌ Error checking /sw.js: ${error.message}`, 'error');
+      }
+
+      // Also try GET request
+      try {
+        const response = await fetch('/sw.js');
+        if (response.ok) {
+          const text = await response.text();
+          const size = text.length;
+          const firstLine = text.split('\\n')[0];
+          addResult(`✅ /sw.js is accessible via GET (${size} bytes)`, 'success');
+          addResult(`First line: <code>${firstLine}</code>`, 'info');
+        }
+      } catch (error) {
+        addResult(`❌ GET request failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function attemptRegistration() {
+      addResult('<h2>📝 Attempting Service Worker Registration...</h2>', 'info');
+
+      if (!('serviceWorker' in navigator)) {
+        addResult('❌ Service Workers not supported!', 'error');
+        return;
+      }
+
+      try {
+        console.log('Starting registration...');
+        addResult('⏳ Registering /sw.js...', 'info');
+
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+        });
+
+        addResult('✅ Registration successful!', 'success');
+        addLog('Registration Object', {
+          scope: registration.scope,
+          installing: !!registration.installing,
+          waiting: !!registration.waiting,
+          active: !!registration.active,
+          updateViaCache: registration.updateViaCache
+        });
+
+        // Wait a moment for activation
+        setTimeout(async () => {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg && reg.active) {
+            addResult('✅ Service Worker is now ACTIVE!', 'success');
+          } else if (reg && (reg.installing || reg.waiting)) {
+            addResult('⏳ Service Worker is installing/waiting...', 'warning');
+          } else {
+            addResult('⚠️ Service Worker state unclear', 'warning');
+          }
+        }, 2000);
+
+      } catch (error) {
+        addResult(`❌ Registration FAILED!`, 'error');
+        addLog('Error Details', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        });
+      }
+    }
+
+    async function checkExisting() {
+      addResult('<h2>🔎 Checking Existing Registration...</h2>', 'info');
+
+      if (!('serviceWorker' in navigator)) {
+        addResult('❌ Service Workers not supported!', 'error');
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        
+        if (registration) {
+          addResult('✅ Service Worker IS registered!', 'success');
+          addLog('Registration Details', {
+            scope: registration.scope,
+            installing: !!registration.installing,
+            waiting: !!registration.waiting,
+            active: !!registration.active,
+            updateViaCache: registration.updateViaCache
+          });
+
+          if (registration.active) {
+            addResult('✅ Service Worker is ACTIVE', 'success');
+            addLog('Active Worker', {
+              scriptURL: registration.active.scriptURL,
+              state: registration.active.state
+            });
+          } else if (registration.installing) {
+            addResult('⏳ Service Worker is INSTALLING', 'warning');
+          } else if (registration.waiting) {
+            addResult('⏳ Service Worker is WAITING', 'warning');
+          } else {
+            addResult('⚠️ Registration exists but no worker state', 'warning');
+          }
+        } else {
+          addResult('❌ NO Service Worker registered!', 'error');
+        }
+
+        // Check controller
+        if (navigator.serviceWorker.controller) {
+          addResult('✅ Page is controlled by a Service Worker', 'success');
+          addLog('Controller', {
+            scriptURL: navigator.serviceWorker.controller.scriptURL,
+            state: navigator.serviceWorker.controller.state
+          });
+        } else {
+          addResult('⚠️ Page is NOT controlled by a Service Worker', 'warning');
+        }
+
+      } catch (error) {
+        addResult(`❌ Error checking registration: ${error.message}`, 'error');
+      }
+    }
+
+    async function unregisterAll() {
+      addResult('<h2>🗑️ Unregistering All Service Workers...</h2>', 'info');
+
+      if (!('serviceWorker' in navigator)) {
+        addResult('❌ Service Workers not supported!', 'error');
+        return;
+      }
+
+      try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        
+        if (registrations.length === 0) {
+          addResult('ℹ️ No service workers to unregister', 'info');
+          return;
+        }
+
+        addResult(`Found ${registrations.length} registration(s)`, 'info');
+
+        for (const registration of registrations) {
+          const success = await registration.unregister();
+          if (success) {
+            addResult(`✅ Unregistered: ${registration.scope}`, 'success');
+          } else {
+            addResult(`❌ Failed to unregister: ${registration.scope}`, 'error');
+          }
+        }
+
+        addResult('✅ All service workers unregistered!', 'success');
+        addResult('💡 Reload the page to see changes', 'info');
+
+      } catch (error) {
+        addResult(`❌ Error unregistering: ${error.message}`, 'error');
+      }
+    }
+
+    async function clearAll() {
+      addResult('<h2>🧹 Clearing Everything...</h2>', 'info');
+
+      // Unregister service workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.unregister();
+        }
+        addResult('✅ Service workers unregistered', 'success');
+      }
+
+      // Clear caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        for (const name of cacheNames) {
+          await caches.delete(name);
+        }
+        addResult(`✅ Cleared ${cacheNames.length} cache(s)`, 'success');
+      }
+
+      // Clear storage
+      localStorage.clear();
+      sessionStorage.clear();
+      addResult('✅ Local/Session storage cleared', 'success');
+
+      addResult('✅ Everything cleared!', 'success');
+      addResult('💡 Reload the page to start fresh', 'info');
+    }
+
+    // Auto-check on load
+    setTimeout(() => {
+      checkExisting();
+      checkSWFile();
+    }, 500);
+  </script>
+</body>
+</html>

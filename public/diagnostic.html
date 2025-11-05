@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adoras Diagnostic</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f9e9;
+    }
+    h1 {
+      color: #36453b;
+    }
+    .test {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border-left: 4px solid #36453b;
+    }
+    .pass {
+      border-left-color: #22c55e;
+    }
+    .fail {
+      border-left-color: #ef4444;
+    }
+    code {
+      background: #f1f1f1;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 Adoras Deployment Diagnostic</h1>
+  
+  <div id="tests">
+    <p>Running tests...</p>
+  </div>
+
+  <script>
+    const results = [];
+    
+    // Test 1: JavaScript execution
+    results.push({
+      name: 'JavaScript Execution',
+      pass: true,
+      message: 'JavaScript is running'
+    });
+    
+    // Test 2: Fetch API
+    try {
+      fetch('/manifest.json')
+        .then(r => r.json())
+        .then(data => {
+          results.push({
+            name: 'Manifest Loading',
+            pass: true,
+            message: `Manifest loaded: ${data.name}`
+          });
+          renderResults();
+        })
+        .catch(err => {
+          results.push({
+            name: 'Manifest Loading',
+            pass: false,
+            message: `Error: ${err.message}`
+          });
+          renderResults();
+        });
+    } catch (err) {
+      results.push({
+        name: 'Fetch API',
+        pass: false,
+        message: `Error: ${err.message}`
+      });
+    }
+    
+    // Test 3: localStorage
+    try {
+      localStorage.setItem('test', 'value');
+      const val = localStorage.getItem('test');
+      localStorage.removeItem('test');
+      results.push({
+        name: 'LocalStorage',
+        pass: val === 'value',
+        message: val === 'value' ? 'Working' : 'Not working'
+      });
+    } catch (err) {
+      results.push({
+        name: 'LocalStorage',
+        pass: false,
+        message: `Error: ${err.message}`
+      });
+    }
+    
+    // Test 4: Console
+    results.push({
+      name: 'Console API',
+      pass: typeof console !== 'undefined',
+      message: typeof console !== 'undefined' ? 'Available' : 'Not available'
+    });
+    
+    // Test 5: Current URL
+    results.push({
+      name: 'Current URL',
+      pass: true,
+      message: window.location.href
+    });
+    
+    // Test 6: User Agent
+    results.push({
+      name: 'User Agent',
+      pass: true,
+      message: navigator.userAgent
+    });
+    
+    function renderResults() {
+      const container = document.getElementById('tests');
+      container.innerHTML = results.map(result => `
+        <div class="test ${result.pass ? 'pass' : 'fail'}">
+          <strong>${result.pass ? '✅' : '❌'} ${result.name}</strong>
+          <br>
+          <code>${result.message}</code>
+        </div>
+      `).join('');
+      
+      container.innerHTML += `
+        <div class="test">
+          <strong>📋 Next Steps</strong>
+          <br>
+          ${results.every(r => r.pass) 
+            ? 'All tests passed! If main app still broken, check React errors in console.' 
+            : 'Some tests failed. Check browser console for details.'
+          }
+        </div>
+      `;
+    }
+    
+    // Initial render
+    setTimeout(renderResults, 100);
+  </script>
+</body>
+</html>

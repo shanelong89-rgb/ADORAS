@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Config Checker - Adoras</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f9e9;
+      line-height: 1.6;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 20px;
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .error { 
+      border-left: 5px solid #ef4444;
+      background: #fee2e2;
+    }
+    .success { 
+      border-left: 5px solid #22c55e;
+      background: #dcfce7;
+    }
+    .warning { 
+      border-left: 5px solid #f59e0b;
+      background: #fef3c7;
+    }
+    h1 { 
+      color: rgb(54, 69, 59);
+      margin-bottom: 10px;
+    }
+    h2 { 
+      color: rgb(54, 69, 59);
+      margin-top: 25px;
+      border-bottom: 2px solid rgb(54, 69, 59);
+      padding-bottom: 5px;
+    }
+    code {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .step {
+      background: #f8f9fa;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 8px;
+      border-left: 4px solid rgb(54, 69, 59);
+    }
+    .step-number {
+      display: inline-block;
+      background: rgb(54, 69, 59);
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 28px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    a {
+      color: rgb(54, 69, 59);
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 2px solid rgb(54, 69, 59);
+    }
+    a:hover {
+      opacity: 0.7;
+    }
+    .big-button {
+      display: inline-block;
+      background: rgb(54, 69, 59);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      text-decoration: none;
+      border: none;
+      margin: 10px 5px;
+    }
+    .big-button:hover {
+      opacity: 0.9;
+      border: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+    .highlight {
+      background: yellow;
+      padding: 2px 4px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 GitHub Configuration Checker</h1>
+  <p><strong>Current Status:</strong> Your site returns <code>404: NOT_FOUND</code></p>
+  <p><strong>Build Output:</strong> <code>build/src/index.html</code> (WRONG - should be <code>build/index.html</code>)</p>
+
+  <div class="section error">
+    <h2>❌ Problem Identified</h2>
+    <p>The vite.config.ts on GitHub is <strong>STILL NOT CORRECT</strong>.</p>
+    <p>Even though you may have edited it, the changes either:</p>
+    <ul>
+      <li>❌ Didn't save properly</li>
+      <li>❌ Didn't commit properly</li>
+      <li>❌ Are missing the critical <code>root: './src'</code> line</li>
+    </ul>
+  </div>
+
+  <div class="section warning">
+    <h2>🎯 Let's Verify What's Actually On GitHub</h2>
+    
+    <div class="step">
+      <span class="step-number">1</span>
+      <strong>Check Your GitHub vite.config.ts</strong>
+      <br><br>
+      <a href="https://github.com/shanelong89-rgb/Adorasai/blob/main/vite.config.ts" target="_blank" class="big-button">
+        📂 Open vite.config.ts on GitHub
+      </a>
+      <br><br>
+      <p>Look at <strong>line 10</strong>. What does it say?</p>
+      
+      <table>
+        <tr>
+          <th>If Line 10 Says:</th>
+          <th>Status</th>
+        </tr>
+        <tr>
+          <td><code>root: './src',</code></td>
+          <td>✅ CORRECT</td>
+        </tr>
+        <tr>
+          <td><code>root: '.',</code></td>
+          <td>❌ WRONG - This is Figma Make config</td>
+        </tr>
+        <tr>
+          <td><em>Line 10 doesn't mention "root"</em></td>
+          <td>❌ WRONG - Missing the critical line!</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="step">
+      <span class="step-number">2</span>
+      <strong>Check Line 12</strong>
+      
+      <table>
+        <tr>
+          <th>If Line 12 Says:</th>
+          <th>Status</th>
+        </tr>
+        <tr>
+          <td><code>outDir: '../build',</code></td>
+          <td>✅ CORRECT (with <code>root: './src'</code>)</td>
+        </tr>
+        <tr>
+          <td><code>outDir: 'build',</code></td>
+          <td>❌ WRONG - Missing the <code>../</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="step">
+      <span class="step-number">3</span>
+      <strong>Check Line 21</strong>
+      
+      <table>
+        <tr>
+          <th>If Line 21 Says:</th>
+          <th>Status</th>
+        </tr>
+        <tr>
+          <td><code>publicDir: 'public',</code></td>
+          <td>✅ CORRECT (with <code>root: './src'</code>)</td>
+        </tr>
+        <tr>
+          <td><code>publicDir: 'src/public',</code></td>
+          <td>❌ WRONG - Don't need "src/" prefix</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section success">
+    <h2>✅ CORRECT vite.config.ts (Lines 6-22)</h2>
+    <p>Your GitHub vite.config.ts should look <strong>EXACTLY</strong> like this:</p>
+    
+    <pre>export default defineConfig({
+  plugins: [
+    react(),
+  ],
+  <span class="highlight">root: './src',</span>              // ← LINE 10: MUST HAVE THIS!
+  build: {
+    <span class="highlight">outDir: '../build',</span>       // ← LINE 12: Must be '../build'
+    sourcemap: true,
+    emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'src/index.html')
+      }
+    }
+  },
+  <span class="highlight">publicDir: 'public',</span>        // ← LINE 21: Just 'public'
+  server: {
+    port: 3000,
+  },
+  base: '/',</pre>
+  </div>
+
+  <div class="section warning">
+    <h2>🔧 SIMPLE FIX: Just Copy-Paste</h2>
+    
+    <div class="step">
+      <span class="step-number">1</span>
+      <a href="https://raw.githubusercontent.com/shanelong89-rgb/Adorasai/main/vite.config.ts" target="_blank" class="big-button">
+        📄 View Raw vite.config.ts
+      </a>
+      <br><br>
+      <p>This shows the ACTUAL file on GitHub right now. Check if it has <code>root: './src'</code> on line 10.</p>
+    </div>
+
+    <div class="step">
+      <span class="step-number">2</span>
+      <strong>If it's WRONG, edit it:</strong>
+      <br><br>
+      <a href="https://github.com/shanelong89-rgb/Adorasai/edit/main/vite.config.ts" target="_blank" class="big-button">
+        ✏️ Edit vite.config.ts on GitHub
+      </a>
+      <br><br>
+      <p>Make these THREE changes:</p>
+      <ul>
+        <li><strong>Line 10:</strong> Add <code>root: './src',</code></li>
+        <li><strong>Line 12:</strong> Change <code>outDir: 'build'</code> to <code>outDir: '../build'</code></li>
+        <li><strong>Line 21:</strong> Change <code>publicDir: 'src/public'</code> to <code>publicDir: 'public'</code></li>
+      </ul>
+      <p><strong>Click "Commit changes" button at bottom!</strong></p>
+    </div>
+
+    <div class="step">
+      <span class="step-number">3</span>
+      <strong>After committing, wait 3 minutes, then check:</strong>
+      <br><br>
+      <a href="https://vercel.com/shanelong89-rgbs-projects/adorasai" target="_blank" class="big-button">
+        📊 Check Vercel Deployment
+      </a>
+      <br><br>
+      <p>Look for this in the build log:</p>
+      <pre>build/index.html          ← ✅ CORRECT!
+build/assets/main-xxx.css
+build/assets/main-xxx.js</pre>
+      <p><strong>NOT THIS:</strong></p>
+      <pre>build/src/index.html      ← ❌ WRONG!</pre>
+    </div>
+  </div>
+
+  <div class="section error">
+    <h2>🚨 If It STILL Doesn't Work...</h2>
+    <p>There might be a simpler solution: <strong>Move your files OUT of /src folder on GitHub</strong></p>
+    
+    <p>Your Figma Make workspace has files at root level:</p>
+    <ul>
+      <li>✅ <code>/index.html</code></li>
+      <li>✅ <code>/main.tsx</code></li>
+      <li>✅ <code>/public/sw.js</code></li>
+    </ul>
+
+    <p>But your GitHub has files in <code>/src</code>:</p>
+    <ul>
+      <li>❌ <code>/src/index.html</code></li>
+      <li>❌ <code>/src/main.tsx</code></li>
+      <li>❌ <code>/src/public/sw.js</code></li>
+    </ul>
+
+    <p><strong>Option:</strong> Move all files from <code>/src</code> to root on GitHub, then you won't need to change vite.config.ts at all!</p>
+  </div>
+
+  <div class="section success">
+    <h2>📞 Need Help?</h2>
+    <p>After checking GitHub, report back with:</p>
+    <ol>
+      <li>What does line 10 say in your GitHub vite.config.ts?</li>
+      <li>What does line 12 say?</li>
+      <li>What does line 21 say?</li>
+    </ol>
+    <p>This will help diagnose why the changes aren't working!</p>
+  </div>
+</body>
+</html>

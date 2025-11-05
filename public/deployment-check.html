@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deployment Verification - Adoras</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #f5f9e9;
+      line-height: 1.6;
+    }
+    .check { margin: 15px 0; padding: 15px; border-radius: 8px; background: white; }
+    .success { border-left: 5px solid #22c55e; }
+    .error { border-left: 5px solid #ef4444; }
+    .warning { border-left: 5px solid #f59e0b; }
+    pre { 
+      background: #1e1e1e; 
+      color: #d4d4d4; 
+      padding: 15px; 
+      border-radius: 8px; 
+      overflow-x: auto;
+      font-size: 13px;
+    }
+    code { 
+      background: #f1f1f1; 
+      padding: 2px 6px; 
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    h1 { color: rgb(54, 69, 59); margin-bottom: 10px; }
+    h2 { color: rgb(54, 69, 59); margin-top: 30px; border-bottom: 2px solid rgb(54, 69, 59); padding-bottom: 5px; }
+    button {
+      background: rgb(54, 69, 59);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 5px 10px 0;
+    }
+    button:hover { opacity: 0.9; }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .badge-success { background: #dcfce7; color: #166534; }
+    .badge-error { background: #fee2e2; color: #991b1b; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Adoras Deployment Verification</h1>
+  <p>This page checks if your GitHub changes were successfully deployed to Vercel.</p>
+
+  <div id="results"></div>
+
+  <h2>📋 Manual Checks</h2>
+  <button onclick="checkAllFiles()">Run All Checks</button>
+  <button onclick="checkIndexHTML()">Check index.html</button>
+  <button onclick="checkViteConfig()">Check vite.config.ts</button>
+  <button onclick="checkServiceWorker()">Check Service Worker</button>
+
+  <script>
+    const results = document.getElementById('results');
+
+    function addResult(html, type = 'check') {
+      const div = document.createElement('div');
+      div.className = `check ${type}`;
+      div.innerHTML = html;
+      results.appendChild(div);
+    }
+
+    function badge(text, type) {
+      return `<span class="status-badge badge-${type}">${text}</span>`;
+    }
+
+    async function checkIndexHTML() {
+      addResult('<h2>📄 Checking index.html...</h2>');
+      
+      try {
+        const response = await fetch('/');
+        const html = await response.text();
+        
+        // Check what the script src is
+        const scriptMatch = html.match(/<script type="module" src="([^"]+)"><\\/script>/);
+        
+        if (scriptMatch) {
+          const src = scriptMatch[1];
+          
+          if (src === '/src/main.tsx') {
+            addResult(`
+              <strong>index.html Script Tag</strong> ${badge('CORRECT FOR GITHUB /src STRUCTURE', 'success')}
+              <br><code><script type="module" src="${src}"></script></code>
+              <br><small>✅ Points to /src/main.tsx (GitHub structure)</small>
+            `, 'success');
+          } else if (src === '/main.tsx') {
+            addResult(`
+              <strong>index.html Script Tag</strong> ${badge('CORRECT FOR ROOT STRUCTURE', 'warning')}
+              <br><code><script type="module" src="${src}"></script></code>
+              <br><small>⚠️ Points to /main.tsx (Figma Make structure)</small>
+              <br><small>🔧 If files are in /src on GitHub, change this to: <code>/src/main.tsx</code></small>
+            `, 'warning');
+          } else {
+            addResult(`
+              <strong>index.html Script Tag</strong> ${badge('UNEXPECTED', 'error')}
+              <br><code><script type="module" src="${src}"></script></code>
+            `, 'error');
+          }
+        } else {
+          addResult(`
+            <strong>index.html Script Tag</strong> ${badge('NOT FOUND', 'error')}
+            <br><small>❌ Could not find script tag in HTML!</small>
+          `, 'error');
+        }
+
+        // Check for manifest
+        if (html.includes('rel="manifest"')) {
+          addResult(`<strong>Manifest Link</strong> ${badge('FOUND', 'success')}`, 'success');
+        } else {
+          addResult(`<strong>Manifest Link</strong> ${badge('MISSING', 'error')}`, 'error');
+        }
+
+        // Check for apple-touch-icon
+        if (html.includes('apple-touch-icon')) {
+          addResult(`<strong>Apple Touch Icons</strong> ${badge('FOUND', 'success')}`, 'success');
+        } else {
+          addResult(`<strong>Apple Touch Icons</strong> ${badge('MISSING', 'warning')}`, 'warning');
+        }
+
+      } catch (error) {
+        addResult(`<strong>Error checking index.html:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    async function checkServiceWorker() {
+      addResult('<h2>⚙️ Checking Service Worker...</h2>');
+
+      // Test 1: Check if sw.js file exists
+      try {
+        const response = await fetch('/sw.js');
+        
+        if (response.ok) {
+          const text = await response.text();
+          const size = (text.length / 1024).toFixed(2);
+          const firstLine = text.split('\\n')[0];
+          
+          addResult(`
+            <strong>/sw.js File</strong> ${badge('EXISTS', 'success')}
+            <br><strong>Size:</strong> ${size} KB
+            <br><strong>Status:</strong> ${response.status} ${response.statusText}
+            <br><strong>First line:</strong> <code>${firstLine}</code>
+          `, 'success');
+
+          // Check if it's the correct file
+          if (text.includes('Adoras Service Worker')) {
+            addResult(`<strong>Service Worker Content</strong> ${badge('VALID', 'success')}`, 'success');
+          } else {
+            addResult(`<strong>Service Worker Content</strong> ${badge('UNEXPECTED CONTENT', 'warning')}`, 'warning');
+          }
+        } else {
+          addResult(`
+            <strong>/sw.js File</strong> ${badge('NOT FOUND', 'error')}
+            <br><strong>Status:</strong> ${response.status} ${response.statusText}
+            <br><br>
+            <strong>🔧 Fix Required:</strong>
+            <br>Your vite.config.ts needs to point to the correct publicDir!
+            <br><br>
+            <strong>If files are in /src on GitHub:</strong>
+            <br><code>publicDir: 'src/public'</code>
+            <br><br>
+            <strong>If files are at root on GitHub:</strong>
+            <br><code>publicDir: 'public'</code>
+          `, 'error');
+        }
+      } catch (error) {
+        addResult(`
+          <strong>Error checking /sw.js:</strong> ${badge('NETWORK ERROR', 'error')}
+          <br>${error.message}
+        `, 'error');
+      }
+
+      // Test 2: Check if manifest exists
+      try {
+        const response = await fetch('/manifest.json');
+        if (response.ok) {
+          const manifest = await response.json();
+          addResult(`
+            <strong>/manifest.json File</strong> ${badge('EXISTS', 'success')}
+            <br><strong>App Name:</strong> ${manifest.name}
+            <br><strong>Icons:</strong> ${manifest.icons?.length || 0} found
+          `, 'success');
+        } else {
+          addResult(`<strong>/manifest.json File</strong> ${badge('NOT FOUND', 'error')}`, 'error');
+        }
+      } catch (error) {
+        addResult(`<strong>/manifest.json:</strong> ${error.message}`, 'error');
+      }
+
+      // Test 3: Try to register the service worker
+      if ('serviceWorker' in navigator) {
+        try {
+          addResult(`<strong>Service Worker API</strong> ${badge('SUPPORTED', 'success')}`, 'success');
+          
+          const registration = await navigator.serviceWorker.register('/sw.js');
+          
+          addResult(`
+            <strong>Service Worker Registration</strong> ${badge('SUCCESS', 'success')}
+            <br><strong>Scope:</strong> ${registration.scope}
+            <br><strong>Installing:</strong> ${!!registration.installing}
+            <br><strong>Waiting:</strong> ${!!registration.waiting}
+            <br><strong>Active:</strong> ${!!registration.active}
+          `, 'success');
+
+          // Wait a moment and check if it activated
+          setTimeout(async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg?.active) {
+              addResult(`<strong>Service Worker Status</strong> ${badge('ACTIVE ✓', 'success')}`, 'success');
+            } else {
+              addResult(`<strong>Service Worker Status</strong> ${badge('NOT ACTIVE', 'warning')}`, 'warning');
+            }
+          }, 2000);
+
+        } catch (error) {
+          addResult(`
+            <strong>Service Worker Registration</strong> ${badge('FAILED', 'error')}
+            <br><strong>Error:</strong> ${error.message}
+            <br><strong>Error Name:</strong> ${error.name}
+          `, 'error');
+        }
+      } else {
+        addResult(`<strong>Service Worker API</strong> ${badge('NOT SUPPORTED', 'error')}`, 'error');
+      }
+    }
+
+    async function checkViteConfig() {
+      addResult('<h2>⚙️ Checking Build Configuration...</h2>');
+      
+      addResult(`
+        <strong>Note:</strong> vite.config.ts is a build-time file and cannot be checked from the browser.
+        <br><br>
+        <strong>To verify on GitHub:</strong>
+        <ol>
+          <li>Go to: <a href="https://github.com/shanelong89-rgb/Adorasai/blob/main/vite.config.ts" target="_blank">vite.config.ts</a></li>
+          <li>Check line ~21 for <code>publicDir</code> setting</li>
+          <li>If files are in <code>/src</code>, it should be: <code>publicDir: 'src/public'</code></li>
+          <li>If files are at root, it should be: <code>publicDir: 'public'</code></li>
+        </ol>
+        <br>
+        <strong>To verify file structure on GitHub:</strong>
+        <ol>
+          <li>Check if <code>/src/public/sw.js</code> exists OR <code>/public/sw.js</code> exists</li>
+          <li>Check if <code>/src/main.tsx</code> exists OR <code>/main.tsx</code> exists</li>
+          <li>Match the <code>publicDir</code> setting to your actual structure</li>
+        </ol>
+      `);
+    }
+
+    async function checkAllFiles() {
+      results.innerHTML = '';
+      addResult(`
+        <h2>🚀 Running Complete Deployment Check...</h2>
+        <p>Checking what's actually deployed on Vercel right now...</p>
+      `);
+
+      await checkIndexHTML();
+      await checkServiceWorker();
+      await checkViteConfig();
+
+      addResult(`
+        <h2>✅ Check Complete!</h2>
+        <p>Review the results above to see what needs to be fixed.</p>
+      `);
+    }
+
+    // Auto-run on page load
+    window.addEventListener('load', () => {
+      setTimeout(checkAllFiles, 500);
+    });
+  </script>
+</body>
+</html>
