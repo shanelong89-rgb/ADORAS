@@ -1,14 +1,14 @@
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
-import * as kv from "./kv_store.ts";
-import * as auth from "./auth.ts";
-import * as invitations from "./invitations.ts";
-import * as memories from "./memories.ts";
-import ai from "./ai.ts";
-import notifications from "./notifications.ts";
-import icons from "./icons.ts";
-import * as testSetup from "./setup_test_invitation.ts";
+import * as kv from "./kv_store.tsx";
+import * as auth from "./auth.tsx";
+import * as invitations from "./invitations.tsx";
+import * as memories from "./memories.tsx";
+import ai from "./ai.tsx";
+import notifications from "./notifications.tsx";
+import icons from "./icons.tsx";
+import * as testSetup from "./setup_test_invitation.tsx";
 
 // Adoras Server - Ultra-responsive scroll detection update
 const app = new Hono();
@@ -505,21 +505,34 @@ app.delete("/make-server-deded1eb/invitations/:code", async (c) => {
  */
 app.get("/make-server-deded1eb/connection-requests", async (c) => {
   try {
-    const accessToken = c.req.header("Authorization")?.split(" ")[1];
+    const authHeader = c.req.header("Authorization");
+    console.log("[connection-requests] Auth header present:", !!authHeader);
+    
+    const accessToken = authHeader?.split(" ")[1];
     if (!accessToken) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
+      console.log("[connection-requests] No access token in header");
+      return c.json({ success: false, error: "Unauthorized - No token" }, 401);
     }
 
+    console.log("[connection-requests] Verifying token...");
     const verifyResult = await auth.verifyToken(accessToken);
+    console.log("[connection-requests] Verify result:", { 
+      success: verifyResult.success, 
+      hasUserId: !!verifyResult.userId,
+      error: verifyResult.error 
+    });
+    
     if (!verifyResult.success || !verifyResult.userId) {
-      return c.json({ success: false, error: "Unauthorized" }, 401);
+      console.log("[connection-requests] Token verification failed:", verifyResult.error);
+      return c.json({ success: false, error: verifyResult.error || "Unauthorized" }, 401);
     }
 
+    console.log("[connection-requests] Getting requests for user:", verifyResult.userId);
     const result = await invitations.getConnectionRequests(verifyResult.userId);
 
     return c.json(result, result.success ? 200 : 400);
   } catch (error) {
-    console.error("Get connection requests error:", error);
+    console.error("[connection-requests] Unexpected error:", error);
     return c.json({ 
       success: false, 
       error: error instanceof Error ? error.message : "Failed to get connection requests" 
