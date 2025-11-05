@@ -169,22 +169,6 @@ export function Dashboard({
       return isFromPartner && isMessage && isUnread;
     }).length;
     
-    // DEBUG: Log details for troubleshooting
-    if (connectionMemories.length > 0) {
-      console.log(`🔔 Notification check for connection ${connectionId}:`, {
-        totalMemories: connectionMemories.length,
-        lastReadTimestamp: new Date(connectionLastRead).toISOString(),
-        unreadCount,
-        recentMessages: connectionMemories.slice(-3).map(m => ({
-          type: m.type,
-          sender: m.sender,
-          timestamp: m.timestamp.toISOString(),
-          isFromPartner: m.sender !== userType,
-          isUnread: m.timestamp.getTime() > connectionLastRead,
-        })),
-      });
-    }
-    
     return unreadCount;
   }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper]);
 
@@ -202,10 +186,8 @@ export function Dashboard({
       totalUnread += getUnreadCountForConnection(connectionId);
     });
     
-    console.log(`📊 Total unread messages across all connections: ${totalUnread}`);
-    
     return totalUnread;
-  }, [userType, memoriesByStoryteller, memoriesByLegacyKeeper, getUnreadCountForConnection]);
+  }, [userType, memoriesByStoryteller, memoriesByLegacyKeeper, getUnreadCountForConnection, lastChatReadTimestamp]);
 
   // Load pending connection requests count
   const loadPendingRequestsCount = React.useCallback(async () => {
@@ -243,8 +225,6 @@ export function Dashboard({
     if (activeTab === 'chat') {
       const timer = setTimeout(() => {
         const now = Date.now();
-        setLastChatReadTimestamp(now);
-        localStorage.setItem(`lastChatRead_${userProfile.id}`, now.toString());
         
         // Also mark messages as read for the currently active connection
         const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
@@ -252,6 +232,10 @@ export function Dashboard({
           localStorage.setItem(`lastChatRead_${userProfile.id}_${activeConnectionId}`, now.toString());
           console.log(`✅ Marked messages as read for connection: ${activeConnectionId}`);
         }
+        
+        // Update global timestamp LAST to trigger re-render
+        localStorage.setItem(`lastChatRead_${userProfile.id}`, now.toString());
+        setLastChatReadTimestamp(now); // This triggers unreadMessageCount recalculation
       }, 2000); // 2 second delay to let user see notification badge first
       
       return () => clearTimeout(timer);
@@ -502,7 +486,7 @@ export function Dashboard({
       {/* Extended background container that goes behind notch */}
       <div className="fixed inset-0 -top-20 -z-10" style={{ backgroundColor: 'rgb(245, 249, 233)' }}></div>
       
-      <div className="min-h-screen bg-transparent animate-fade-in flex flex-col">
+      <div className="h-full w-full animate-fade-in flex flex-col overflow-hidden" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
         {/* Safari Install Banner - Shows on iOS Safari when not installed */}
         <SafariInstallBanner />
         
@@ -913,9 +897,10 @@ export function Dashboard({
         {/* End Unified Header + Tabs Sticky Container */}
 
         {/* Tab Content */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {activeTab === 'prompts' && (
-            <div className="pt-4 px-4 pb-6 sm:pt-6 sm:px-6 sm:pb-8 flex-1">
+            <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-4 sm:pb-6">
               <PromptsTab 
                 userType={userType}
                 partnerName={partnerProfile?.name}
@@ -923,6 +908,7 @@ export function Dashboard({
                 memories={validatedMemories}
                 onNavigateToChat={handleNavigateToChat}
               />
+              </div>
             </div>
           )}
           
@@ -951,15 +937,17 @@ export function Dashboard({
           )}
           
           {activeTab === 'media' && (
-            <div className="pt-4 px-4 pb-6 sm:pt-6 sm:px-6 sm:pb-8 flex-1">
-              <MediaLibraryTab 
-                memories={validatedMemories}
-                userType={userType}
-                userAge={userProfile.age || 20}
-                partnerBirthday={partnerProfile?.birthday}
-                onEditMemory={onEditMemory}
-                onDeleteMemory={onDeleteMemory}
-              />
+            <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-4 sm:pb-6">
+                <MediaLibraryTab 
+                  memories={validatedMemories}
+                  userType={userType}
+                  userAge={userProfile.age || 20}
+                  partnerBirthday={partnerProfile?.birthday}
+                  onEditMemory={onEditMemory}
+                  onDeleteMemory={onDeleteMemory}
+                />
+              </div>
             </div>
           )}
         </div>
