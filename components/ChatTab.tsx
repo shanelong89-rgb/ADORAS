@@ -545,7 +545,7 @@ export function ChatTab({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [showScrollToTop]);
+  }, []); // No dependencies - set up once on mount
 
   // Auto-scroll to bottom when messages change or component loads
   useEffect(() => {
