@@ -167,8 +167,7 @@ export default function App() {
     return (
       <ErrorBoundary>
         <div style={{ 
-          minHeight: '100vh',
-          minHeight: '-webkit-fill-available',
+          minHeight: 'var(--vh, 100vh)',
           backgroundColor: 'rgb(245, 249, 233)'
         }}>
           <ChromeLoginFix />
@@ -191,8 +190,7 @@ export default function App() {
     return (
       <ErrorBoundary>
         <div style={{ 
-          minHeight: '100vh',
-          minHeight: '-webkit-fill-available',
+          minHeight: 'var(--vh, 100vh)',
           backgroundColor: 'rgb(245, 249, 233)'
         }}>
           <MobileAuthDiagnostic />
