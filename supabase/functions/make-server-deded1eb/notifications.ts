@@ -1,6 +1,6 @@
 /**
- * Push Notifications Service - Phase 4d
- * Manages web push notification subscriptions and delivery
+ * Push Notifications Service - Optimized for Production
+ * Manages web push notification subscriptions and delivery with performance optimizations
  */
 
 import { Hono } from 'npm:hono';
@@ -14,15 +14,61 @@ import * as kv from './kv_store.tsx';
 // @ts-ignore: Deno global augmentation
 globalThis.Buffer = Buffer;
 
-// Deno-compatible base64 encoding function (replaces Buffer for our code)
+// Production mode - disable verbose logging
+const IS_PRODUCTION = Deno.env.get('DENO_ENV') === 'production' || true; // Enable by default
+const DEBUG = !IS_PRODUCTION;
+
+// Performance logging helper (only logs in debug mode)
+function debugLog(...args: any[]) {
+  if (DEBUG) {
+    console.log(...args);
+  }
+}
+
+// Error logging (always logs)
+function errorLog(...args: any[]) {
+  console.error(...args);
+}
+
+// Deno-compatible base64 encoding function (optimized)
 function base64Encode(str: string): string {
   const encoder = new TextEncoder();
   const data = encoder.encode(str);
   let binary = '';
-  for (let i = 0; i < data.length; i++) {
+  const len = data.length;
+  for (let i = 0; i < len; i++) {
     binary += String.fromCharCode(data[i]);
   }
   return btoa(binary);
+}
+
+// Cache for VAPID configuration (avoid repeated env reads)
+let vapidConfigCache: {
+  publicKey: string;
+  privateKey: string;
+  subject: string;
+  timestamp: number;
+} | null = null;
+
+const VAPID_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+function getVapidConfig() {
+  const now = Date.now();
+  
+  if (vapidConfigCache && (now - vapidConfigCache.timestamp) < VAPID_CACHE_TTL) {
+    return vapidConfigCache;
+  }
+  
+  const publicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+  const privateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+  const subject = Deno.env.get('VAPID_SUBJECT') || 'mailto:noreply@adoras.app';
+  
+  if (!publicKey || !privateKey) {
+    return null;
+  }
+  
+  vapidConfigCache = { publicKey, privateKey, subject, timestamp: now };
+  return vapidConfigCache;
 }
 
 const notifications = new Hono();
@@ -35,31 +81,38 @@ notifications.use('*', cors({
 }));
 
 /**
- * Send a Web Push notification using the web-push library
+ * Send a Web Push notification using the web-push library (Optimized)
  */
 async function sendWebPushNotification(
   subscription: PushSubscription,
   payload: any,
-  vapidPublicKey: string,
-  vapidPrivateKey: string
+  vapidConfig: { publicKey: string; privateKey: string; subject: string }
 ): Promise<void> {
   try {
-    const vapidSubject = Deno.env.get('VAPID_SUBJECT') || 'mailto:noreply@adoras.app';
-    
-    // Configure VAPID details
+    // Configure VAPID details (cached)
     webpush.setVapidDetails(
-      vapidSubject,
-      vapidPublicKey,
-      vapidPrivateKey
+      vapidConfig.subject,
+      vapidConfig.publicKey,
+      vapidConfig.privateKey
     );
     
-    // Send the notification
+    // Send the notification with timeout
     const payloadString = JSON.stringify(payload);
-    await webpush.sendNotification(subscription, payloadString);
     
-    console.log('✅ Push notification delivered successfully');
+    // Add timeout for push notification (5 seconds max)
+    await Promise.race([
+      webpush.sendNotification(subscription, payloadString),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Push notification timeout')), 5000)
+      )
+    ]);
+    
+    debugLog('✅ Push notification delivered successfully');
   } catch (error) {
-    console.error('❌ Error sending web push:', error);
+    // Only log errors in debug mode or for critical errors
+    if (DEBUG || error.statusCode === 404 || error.statusCode === 410) {
+      errorLog('❌ Error sending web push:', error);
+    }
     
     // If subscription is invalid (404, 410), throw specific error
     if (error.statusCode === 404 || error.statusCode === 410) {
@@ -103,24 +156,26 @@ interface NotificationPreferences {
 }
 
 /**
- * Get VAPID public key for client subscription
+ * Get VAPID public key for client subscription (Cached)
  * GET /make-server-deded1eb/notifications/vapid-public-key
  */
 notifications.get('/make-server-deded1eb/notifications/vapid-public-key', async (c) => {
   try {
-    const publicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+    const config = getVapidConfig();
     
-    if (!publicKey) {
-      console.error('VAPID_PUBLIC_KEY not configured');
+    if (!config) {
+      errorLog('VAPID_PUBLIC_KEY not configured');
       return c.json({ 
         error: 'Push notifications not configured',
         needsSetup: true 
       }, 503);
     }
 
-    return c.json({ publicKey });
+    // Cache response for 1 hour
+    c.header('Cache-Control', 'public, max-age=3600');
+    return c.json({ publicKey: config.publicKey });
   } catch (error) {
-    console.error('Error getting VAPID public key:', error);
+    errorLog('Error getting VAPID public key:', error);
     return c.json({ error: 'Failed to get VAPID key' }, 500);
   }
 });
@@ -143,7 +198,16 @@ notifications.post('/make-server-deded1eb/notifications/subscribe', async (c) =>
       return c.json({ error: 'userId and subscription are required' }, 400);
     }
 
-    console.log('Subscribing user to push notifications:', userId);
+    debugLog('Subscribing user to push notifications:', userId);
+
+    // Generate subscription key once
+    const key = `push_sub:${userId}:${base64Encode(subscription.endpoint).substring(0, 32)}`;
+    const userSubsKey = `push_subs_list:${userId}`;
+
+    // Batch database operations for better performance
+    const [existingSubs] = await Promise.all([
+      kv.get(userSubsKey)
+    ]);
 
     // Store subscription in KV store
     const subscriptionData: NotificationSubscriptionData = {
@@ -154,21 +218,20 @@ notifications.post('/make-server-deded1eb/notifications/subscribe', async (c) =>
       updatedAt: new Date().toISOString(),
     };
 
-    // Use endpoint as unique key (using Deno-compatible encoding)
-    const key = `push_sub:${userId}:${base64Encode(subscription.endpoint).substring(0, 32)}`;
-    await kv.set(key, subscriptionData);
-
-    // Store in user's subscription list
-    const userSubsKey = `push_subs_list:${userId}`;
-    const existingSubs = await kv.get(userSubsKey) || { subscriptions: [] };
+    // Prepare batch operations
+    const operations = [kv.set(key, subscriptionData)];
     
     // Add new subscription if not already present
-    if (!existingSubs.subscriptions.includes(key)) {
-      existingSubs.subscriptions.push(key);
-      await kv.set(userSubsKey, existingSubs);
+    const subsList = existingSubs || { subscriptions: [] };
+    if (!subsList.subscriptions.includes(key)) {
+      subsList.subscriptions.push(key);
+      operations.push(kv.set(userSubsKey, subsList));
     }
 
-    console.log('Push subscription saved:', key);
+    // Execute all operations in parallel
+    await Promise.all(operations);
+
+    debugLog('Push subscription saved:', key);
 
     return c.json({ 
       success: true,
@@ -176,7 +239,7 @@ notifications.post('/make-server-deded1eb/notifications/subscribe', async (c) =>
     });
 
   } catch (error) {
-    console.error('Error subscribing to push notifications:', error);
+    errorLog('Error subscribing to push notifications:', error);
     return c.json({ 
       error: 'Failed to subscribe',
       details: error.message 
@@ -201,21 +264,24 @@ notifications.post('/make-server-deded1eb/notifications/unsubscribe', async (c) 
       return c.json({ error: 'userId and endpoint are required' }, 400);
     }
 
-    console.log('Unsubscribing user from push notifications:', userId);
+    debugLog('Unsubscribing user from push notifications:', userId);
 
     // Generate subscription key (using Deno-compatible encoding)
     const key = `push_sub:${userId}:${base64Encode(endpoint).substring(0, 32)}`;
+    const userSubsKey = `push_subs_list:${userId}`;
     
-    // Delete subscription
-    await kv.del(key);
+    // Batch operations
+    const [existingSubs] = await Promise.all([
+      kv.get(userSubsKey),
+      kv.del(key)
+    ]);
 
     // Remove from user's subscription list
-    const userSubsKey = `push_subs_list:${userId}`;
-    const existingSubs = await kv.get(userSubsKey) || { subscriptions: [] };
-    existingSubs.subscriptions = existingSubs.subscriptions.filter((sub: string) => sub !== key);
-    await kv.set(userSubsKey, existingSubs);
+    const subsList = existingSubs || { subscriptions: [] };
+    subsList.subscriptions = subsList.subscriptions.filter((sub: string) => sub !== key);
+    await kv.set(userSubsKey, subsList);
 
-    console.log('Push subscription removed:', key);
+    debugLog('Push subscription removed:', key);
 
     return c.json({ 
       success: true,
@@ -223,7 +289,7 @@ notifications.post('/make-server-deded1eb/notifications/unsubscribe', async (c) 
     });
 
   } catch (error) {
-    console.error('Error unsubscribing from push notifications:', error);
+    errorLog('Error unsubscribing from push notifications:', error);
     return c.json({ 
       error: 'Failed to unsubscribe',
       details: error.message 
@@ -263,13 +329,13 @@ notifications.get('/make-server-deded1eb/notifications/preferences/:userId', asy
     return c.json(preferences);
 
   } catch (error) {
-    console.error('Error getting notification preferences:', error);
+    errorLog('Error getting notification preferences:', error);
     return c.json({ error: 'Failed to get preferences' }, 500);
   }
 });
 
 /**
- * Update notification preferences
+ * Update notification preferences (Optimized)
  * PUT /make-server-deded1eb/notifications/preferences
  * 
  * Body: NotificationPreferences
@@ -282,12 +348,12 @@ notifications.put('/make-server-deded1eb/notifications/preferences', async (c) =
       return c.json({ error: 'userId is required' }, 400);
     }
 
-    console.log('Updating notification preferences for user:', preferences.userId);
+    debugLog('Updating notification preferences for user:', preferences.userId);
 
     const key = `notif_prefs:${preferences.userId}`;
     await kv.set(key, preferences);
 
-    console.log('Notification preferences updated');
+    debugLog('Notification preferences updated');
 
     return c.json({ 
       success: true,
@@ -295,7 +361,7 @@ notifications.put('/make-server-deded1eb/notifications/preferences', async (c) =
     });
 
   } catch (error) {
-    console.error('Error updating notification preferences:', error);
+    errorLog('Error updating notification preferences:', error);
     return c.json({ 
       error: 'Failed to update preferences',
       details: error.message 
@@ -325,33 +391,34 @@ notifications.post('/make-server-deded1eb/notifications/send', async (c) => {
       return c.json({ error: 'userId, title, and body are required' }, 400);
     }
 
-    // Get VAPID keys
-    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
-    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+    // Get VAPID config from cache
+    const vapidConfig = getVapidConfig();
 
-    if (!vapidPublicKey || !vapidPrivateKey) {
+    if (!vapidConfig) {
       return c.json({ 
         error: 'Push notifications not configured',
         needsSetup: true 
       }, 503);
     }
 
-    console.log('📱 [SEND] Sending push notification to user:', userId);
+    debugLog('📱 [SEND] Sending push notification to user:', userId);
 
-    // Get user's subscriptions
+    // Batch fetch subscriptions and preferences in parallel
     const userSubsKey = `push_subs_list:${userId}`;
-    const userSubs = await kv.get(userSubsKey);
+    const prefsKey = `notif_prefs:${userId}`;
+    
+    const [userSubs, preferences] = await Promise.all([
+      kv.get(userSubsKey),
+      kv.get(prefsKey)
+    ]);
 
-    console.log('📱 [SEND] User subscriptions lookup:', {
+    debugLog('📱 [SEND] User subscriptions:', {
       userId,
-      userSubsKey,
-      hasUserSubs: !!userSubs,
       subsCount: userSubs?.subscriptions?.length || 0,
-      subscriptions: userSubs?.subscriptions || [],
     });
 
     if (!userSubs || !userSubs.subscriptions || userSubs.subscriptions.length === 0) {
-      console.warn('⚠️ [SEND] No active subscriptions for user:', userId);
+      debugLog('⚠️ [SEND] No active subscriptions for user:', userId);
       return c.json({ 
         success: true,
         message: 'No active subscriptions',
@@ -359,11 +426,7 @@ notifications.post('/make-server-deded1eb/notifications/send', async (c) => {
       });
     }
 
-    // Check notification preferences
-    const prefsKey = `notif_prefs:${userId}`;
-    const preferences = await kv.get(prefsKey);
-
-    // Check quiet hours
+    // Check quiet hours (quick exit)
     if (preferences?.quietHoursStart && preferences?.quietHoursEnd) {
       const now = new Date();
       const currentHour = now.getHours();
@@ -371,7 +434,7 @@ notifications.post('/make-server-deded1eb/notifications/send', async (c) => {
       const quietEnd = parseInt(preferences.quietHoursEnd.split(':')[0]);
 
       if (currentHour >= quietStart || currentHour < quietEnd) {
-        console.log('Notification suppressed due to quiet hours');
+        debugLog('Notification suppressed due to quiet hours');
         return c.json({ 
           success: true,
           message: 'Notification suppressed (quiet hours)',
@@ -380,7 +443,7 @@ notifications.post('/make-server-deded1eb/notifications/send', async (c) => {
       }
     }
 
-    // Build notification payload
+    // Build notification payload once
     const notificationPayload = {
       title,
       body,
@@ -392,47 +455,56 @@ notifications.post('/make-server-deded1eb/notifications/send', async (c) => {
       requireInteraction: false,
     };
 
-    // Send to all subscriptions (use web-push library in production)
+    // Fetch all subscriptions in parallel (batch optimization)
+    const subDataPromises = userSubs.subscriptions.map((subKey: string) => 
+      kv.get(subKey).then(data => ({ subKey, data }))
+    );
+    const allSubData = await Promise.all(subDataPromises);
+
+    // Send to all subscriptions in parallel with Promise.allSettled
+    const sendPromises = allSubData
+      .filter(({ data }) => data && data.subscription)
+      .map(({ subKey, data }) => 
+        sendWebPushNotification(
+          data.subscription,
+          notificationPayload,
+          vapidConfig
+        ).then(() => ({ success: true, subKey }))
+          .catch(error => ({ success: false, subKey, error }))
+      );
+
+    const results = await Promise.allSettled(sendPromises);
+
+    // Process results
     let successCount = 0;
     const failedSubscriptions: string[] = [];
+    const deletePromises: Promise<any>[] = [];
 
-    for (const subKey of userSubs.subscriptions) {
-      try {
-        const subData = await kv.get(subKey);
-        
-        if (!subData || !subData.subscription) {
-          console.warn('Invalid subscription data for key:', subKey);
-          continue;
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        const { success, subKey, error } = result.value;
+        if (success) {
+          successCount++;
+        } else {
+          debugLog('Failed to send notification:', subKey, error);
+          failedSubscriptions.push(subKey);
+          deletePromises.push(kv.del(subKey));
         }
-
-        // Send actual push notification using Web Push Protocol
-        await sendWebPushNotification(
-          subData.subscription,
-          notificationPayload,
-          vapidPublicKey,
-          vapidPrivateKey
-        );
-        
-        console.log('✅ Notification sent to:', subData.subscription.endpoint.substring(0, 50) + '...');
-        successCount++;
-      } catch (error) {
-        console.error('Failed to send notification to subscription:', subKey, error);
-        failedSubscriptions.push(subKey);
-        
-        // Remove invalid subscription
-        await kv.del(subKey);
       }
     }
 
-    // Update user's subscription list
-    if (failedSubscriptions.length > 0) {
+    // Batch delete invalid subscriptions
+    if (deletePromises.length > 0) {
+      await Promise.all(deletePromises);
+      
+      // Update user's subscription list
       userSubs.subscriptions = userSubs.subscriptions.filter(
         (sub: string) => !failedSubscriptions.includes(sub)
       );
       await kv.set(userSubsKey, userSubs);
     }
 
-    console.log(`Notification sent to ${successCount} subscriptions`);
+    debugLog(`Notification sent to ${successCount} subscriptions`);
 
     return c.json({ 
       success: true,
@@ -441,7 +513,7 @@ notifications.post('/make-server-deded1eb/notifications/send', async (c) => {
     });
 
   } catch (error) {
-    console.error('Error sending push notification:', error);
+    errorLog('Error sending push notification:', error);
     return c.json({ 
       error: 'Failed to send notification',
       details: error.message 
