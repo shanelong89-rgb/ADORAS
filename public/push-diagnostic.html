@@ -174,7 +174,7 @@
     
     // Console logging
     function log(message, type = 'info') {
-      const console = document.getElementById('console');
+      const consoleDiv = document.getElementById('console');
       const time = new Date().toLocaleTimeString();
       const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
       const div = document.createElement('div');
@@ -183,9 +183,10 @@
       div.style.background = type === 'success' ? '#d4edda' : type === 'error' ? '#f8d7da' : type === 'warning' ? '#fff3cd' : '#e9ecef';
       div.style.borderRadius = '4px';
       div.innerHTML = `<strong>${time}</strong> ${icon} ${message}`;
-      console.appendChild(div);
-      console.scrollTop = console.scrollHeight;
-      console.log(`[${time}] ${icon} ${message}`);
+      consoleDiv.appendChild(div);
+      consoleDiv.scrollTop = consoleDiv.scrollHeight;
+      // Use window.console to access the browser console, not the DOM element
+      window.console.log(`[${time}] ${icon} ${message}`);
     }
     
     // Update status display
@@ -508,7 +509,7 @@
         log('='.repeat(50), 'success');
       } catch (error) {
         log(`❌ Unexpected error during diagnostic: ${error.message}`, 'error');
-        console.error('Diagnostic error:', error);
+        window.console.error('Diagnostic error:', error);
       }
     }
     
