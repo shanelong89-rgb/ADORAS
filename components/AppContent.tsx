@@ -482,7 +482,7 @@ export function AppContent() {
         const isSubscribed = await isPushSubscribed();
         
         if (!isSubscribed) {
-          // Request permission and subscribe
+          // Request permission and subscribe (first-time user experience)
           const success = await subscribeToPushNotifications(user.id);
           
           if (success) {
