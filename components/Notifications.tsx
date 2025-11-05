@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Bell } from 'lucide-react';
-import { NotificationSettings } from './NotificationSettings';
+import { NotificationSettingsSafe } from './NotificationSettingsSafe';
 
 interface NotificationsProps {
   isOpen: boolean;
@@ -31,9 +31,9 @@ export function Notifications({ isOpen, onClose, userId }: NotificationsProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* The complete NotificationSettings component with all iOS fixes and diagnostics */}
+          {/* SAFE MODE: Using simplified component to diagnose crash */}
           {userId ? (
-            <NotificationSettings userId={userId} />
+            <NotificationSettingsSafe userId={userId} />
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               <p>Please log in to configure notifications</p>
