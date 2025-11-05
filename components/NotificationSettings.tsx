@@ -336,7 +336,7 @@ export function NotificationSettings({
         });
         setIsSubscribed(false);
 
-        toast.error("❌ Push notification setup failed'", {
+        toast.error("❌ Push notification setup failed", {
           duration: 10000,
           description:
             "Use the diagnostic tool to find the exact issue",
