@@ -1835,6 +1835,20 @@ export function ChatTab({
     }
   }, [chatMessages]);
 
+  // Handle explicit scroll-to-bottom request from parent (e.g., from notifications)
+  useEffect(() => {
+    if (shouldScrollToBottom) {
+      console.log('📜 Scrolling to bottom on demand from notification click');
+      // Scroll to the end of messages to show the latest
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        // Notify parent that scroll is complete
+        onScrollToBottomComplete?.();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldScrollToBottom, onScrollToBottomComplete]);
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
