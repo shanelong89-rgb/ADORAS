@@ -21,7 +21,11 @@ export function useChatScrollDetection({
   const isProcessingTouch = useRef(false);
 
   useEffect(() => {
-    if (!onScrollUp || !onScrollDown) return;
+    // Defensive: Don't setup if no callbacks or no ref
+    if (!onScrollUp || !onScrollDown || !scrollContainerRef) return;
+    
+    // Wrap everything in try-catch to prevent crashes
+    try {
 
     let cleanupFn: (() => void) | null = null;
     let attemptCount = 0;
@@ -127,12 +131,17 @@ export function useChatScrollDetection({
       };
     };
 
-    // Start trying to attach listeners
-    tryAttachListeners();
+      // Start trying to attach listeners
+      tryAttachListeners();
 
-    // Cleanup on unmount
-    return () => {
-      if (cleanupFn) cleanupFn();
-    };
+      // Cleanup on unmount
+      return () => {
+        if (cleanupFn) cleanupFn();
+      };
+    } catch (error) {
+      // Silently fail to prevent crashes
+      console.error('[ScrollDetection] Setup failed:', error);
+      return () => {}; // No-op cleanup
+    }
   }, [onScrollUp, onScrollDown, scrollContainerRef]);
 }
