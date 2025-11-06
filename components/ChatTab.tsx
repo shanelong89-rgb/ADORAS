@@ -2042,9 +2042,12 @@ export function ChatTab({
 
   return (
     <div 
-      className="flex flex-col h-full relative" 
+      className="flex flex-col relative" 
       style={{ 
-        backgroundColor: 'rgb(245, 249, 233)'
+        backgroundColor: 'rgb(245, 249, 233)',
+        flex: 1,
+        minHeight: 0,
+        overflow: 'hidden'
       }}
     >
       {/* Hidden file inputs - always in DOM so they can be triggered from anywhere */}
@@ -2214,12 +2217,14 @@ export function ChatTab({
 
       {/* Messages Area - Scrollable flex-1 container */}
       <div 
-        className="flex-1 overflow-y-auto overscroll-contain"
+        className="overflow-y-auto overscroll-contain"
         ref={scrollAreaRef}
         style={{ 
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
-          paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0))'
+          paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0))',
+          flex: '1 1 0',
+          minHeight: 0
         }}
       >
         <div 
