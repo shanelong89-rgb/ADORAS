@@ -2039,7 +2039,14 @@ export function ChatTab({
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+    <div 
+      className="flex flex-col h-full overflow-y-auto overflow-x-hidden" 
+      style={{ 
+        backgroundColor: 'rgb(245, 249, 233)',
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y'
+      }}
+    >
       {/* Hidden file inputs - always in DOM so they can be triggered from anywhere */}
       <input
         ref={fileInputRef}
