@@ -211,10 +211,14 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div 
-        className="min-h-full w-full flex flex-col overflow-y-auto overflow-x-hidden"
+        className="min-h-full w-full flex flex-col overflow-x-hidden"
         style={{
           WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y'
+          touchAction: 'pan-y',
+          paddingTop: 'max(4rem, calc(env(safe-area-inset-top) + 3rem))',
+          paddingBottom: 'env(safe-area-inset-bottom, 0)',
+          minHeight: '-webkit-fill-available',
+          overflow: 'hidden'
         }}
       >
         <AuthProvider>
