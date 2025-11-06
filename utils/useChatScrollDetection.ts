@@ -64,53 +64,81 @@ export function useChatScrollDetection({
       scrollViewportRef.current = scrollViewport;
       lastScrollY.current = scrollViewport.scrollTop;
 
-      // DESKTOP: Scroll handler - OPTIMIZED with throttle
+      // DESKTOP: Scroll handler - INSTANT response, no throttle for upward scroll
       let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
       const handleScroll = () => {
-        if (scrollTimeout) return; // Throttle
-        
-        scrollTimeout = setTimeout(() => {
+        try {
           if (!scrollViewportRef.current) return;
           
           const currentScrollY = scrollViewportRef.current.scrollTop;
           const delta = currentScrollY - lastScrollY.current;
           
-          // IMMEDIATE header show on ANY upward scroll
-          if (delta < -5) { // Small threshold for instant response
+          // INSTANT header show on ANY upward scroll (no throttle, no threshold)
+          if (delta < 0) { // ANY upward scroll = instant header show
+            if (scrollTimeout) clearTimeout(scrollTimeout);
             onScrollUp?.();
-          } else if (delta > 20) {
-            onScrollDown?.();
+            lastScrollY.current = currentScrollY;
+            return;
           }
           
-          lastScrollY.current = currentScrollY;
-          scrollTimeout = null;
-        }, 50); // 50ms throttle
+          // Throttle ONLY for downward scroll
+          if (scrollTimeout) return;
+          
+          scrollTimeout = setTimeout(() => {
+            if (!scrollViewportRef.current) return;
+            
+            const newScrollY = scrollViewportRef.current.scrollTop;
+            const newDelta = newScrollY - lastScrollY.current;
+            
+            if (newDelta > 20) {
+              onScrollDown?.();
+            }
+            
+            lastScrollY.current = newScrollY;
+            scrollTimeout = null;
+          }, 50);
+        } catch (error) {
+          // Prevent crashes - silently fail
+          console.error('[ScrollDetection] Scroll handler error:', error);
+        }
       };
 
-      // MOBILE: Touch handlers - OPTIMIZED
+      // MOBILE: Touch handlers - INSTANT response for scroll up
       const handleTouchStart = (e: TouchEvent) => {
-        touchStartY.current = e.touches[0].clientY;
-        isProcessingTouch.current = false;
+        try {
+          touchStartY.current = e.touches[0].clientY;
+          isProcessingTouch.current = false;
+        } catch (error) {
+          console.error('[ScrollDetection] Touch start error:', error);
+        }
       };
 
       const handleTouchMove = (e: TouchEvent) => {
-        if (isProcessingTouch.current) return;
-        
-        const touchY = e.touches[0].clientY;
-        const deltaY = touchStartY.current - touchY;
-        
-        // IMMEDIATE header show on swipe down
-        if (deltaY < -30) { // Swipe down = scroll up
-          isProcessingTouch.current = true;
-          onScrollUp?.();
-        } else if (deltaY > 50) { // Swipe up = scroll down
-          isProcessingTouch.current = true;
-          onScrollDown?.();
+        try {
+          if (isProcessingTouch.current) return;
+          
+          const touchY = e.touches[0].clientY;
+          const deltaY = touchStartY.current - touchY;
+          
+          // INSTANT header show on ANY swipe down (reduced threshold)
+          if (deltaY < -10) { // Swipe down = scroll up (INSTANT!)
+            isProcessingTouch.current = true;
+            onScrollUp?.();
+          } else if (deltaY > 50) { // Swipe up = scroll down
+            isProcessingTouch.current = true;
+            onScrollDown?.();
+          }
+        } catch (error) {
+          console.error('[ScrollDetection] Touch move error:', error);
         }
       };
 
       const handleTouchEnd = () => {
-        isProcessingTouch.current = false;
+        try {
+          isProcessingTouch.current = false;
+        } catch (error) {
+          console.error('[ScrollDetection] Touch end error:', error);
+        }
       };
 
       // Attach listeners
