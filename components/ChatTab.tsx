@@ -229,18 +229,8 @@ export function ChatTab({
 
   // Helper function to find chat scroll viewport (consistent across all scroll logic)
   const findChatScrollViewport = useCallback((): Element | null => {
-    const scrollViewports = document.querySelectorAll('[data-radix-scroll-area-viewport]');
-    let chatViewport: Element | null = null;
-    
-    scrollViewports.forEach(viewport => {
-      // Identify chat viewport by looking for message container or empty state
-      if (viewport.querySelector('[class*="space-y-4"]') || 
-          viewport.textContent?.includes('Start the conversation')) {
-        chatViewport = viewport;
-      }
-    });
-    
-    return chatViewport;
+    // Return the scroll container ref directly
+    return scrollAreaRef.current;
   }, []);
 
   // CRITICAL: Setup scroll detection to show/hide dashboard header (SINGLE CALL ONLY)
@@ -280,21 +270,34 @@ export function ChatTab({
   useEffect(() => {
     if (memories.length === 0) return;
     
-    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-    if (!scrollViewport) return;
+    const scrollContainer = scrollAreaRef.current;
+    if (!scrollContainer) return;
     
     // Calculate distance from bottom
-    const distanceFromBottom = scrollViewport.scrollHeight - scrollViewport.scrollTop - scrollViewport.clientHeight;
+    const distanceFromBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
     const isNearBottom = distanceFromBottom < 200;
     
     // Only auto-scroll if user is near bottom
     if (isNearBottom) {
       setTimeout(() => {
-        if (!scrollViewport) return;
-        scrollViewport.scrollTop = scrollViewport.scrollHeight;
+        if (!scrollContainer) return;
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }, 100);
     }
   }, [memories.length]);
+
+  // Enable touch scrolling for iOS PWA
+  useEffect(() => {
+    const handleTouchMove = (e: TouchEvent) => {
+      // Allow default touch behavior for smooth scrolling
+    };
+    
+    document.body.addEventListener('touchmove', handleTouchMove, { passive: true });
+    
+    return () => {
+      document.body.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, []);
 
   // Check microphone permission status on mount
   useEffect(() => {
@@ -324,28 +327,28 @@ export function ChatTab({
   // Setup "Scroll to Top" button visibility detection
   useEffect(() => {
     const timer = setTimeout(() => {
-      const viewport = findChatScrollViewport();
+      const scrollContainer = scrollAreaRef.current;
       
-      if (!viewport) {
+      if (!scrollContainer) {
         return;
       }
 
       console.log('✅ ChatTab: Setting up scroll-to-top button detection');
 
       const handleScroll = () => {
-        const shouldShow = viewport.scrollTop > 300;
+        const shouldShow = scrollContainer.scrollTop > 300;
         setShowScrollToTop(shouldShow);
       };
 
-      viewport.addEventListener('scroll', handleScroll, { passive: true });
+      scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
       
       return () => {
-        viewport.removeEventListener('scroll', handleScroll);
+        scrollContainer.removeEventListener('scroll', handleScroll);
       };
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [findChatScrollViewport]); // Set up once with consistent viewport finder
+  }, []); // Set up once
 
   // Get all unique past prompts from memories
   const pastPrompts = React.useMemo(() => {
@@ -380,10 +383,9 @@ export function ChatTab({
   };
 
   const handleScrollToTop = () => {
-    // Scroll the ScrollArea viewport to top
-    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
-    if (scrollViewport) {
-      scrollViewport.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll the messages container to top
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
     }
     
     // Also scroll window to top to show the dashboard header
@@ -2040,12 +2042,9 @@ export function ChatTab({
 
   return (
     <div 
-      className="flex flex-col h-full overflow-y-auto overflow-x-hidden" 
+      className="flex flex-col h-full relative" 
       style={{ 
-        backgroundColor: 'rgb(245, 249, 233)',
-        WebkitOverflowScrolling: 'touch',
-        touchAction: 'pan-y',
-        paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))'
+        backgroundColor: 'rgb(245, 249, 233)'
       }}
     >
       {/* Hidden file inputs - always in DOM so they can be triggered from anywhere */}
@@ -2213,18 +2212,22 @@ export function ChatTab({
         </div>
       )}
 
-      {/* Messages Area - Flex container that stops BEFORE input box */}
-      <ScrollArea 
+      {/* Messages Area - Scrollable flex-1 container */}
+      <div 
+        className="flex-1 overflow-y-auto overscroll-contain"
         ref={scrollAreaRef}
-        className={`h-full w-full overflow-y-auto ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
         style={{ 
-          padding: 0,
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain'
+          paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0))'
         }}
       >
-        <div className="space-y-4 max-w-full pb-4 px-3">
+        <div 
+          className={`space-y-4 max-w-full px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`}
+          style={{ 
+            overflow: 'visible'
+          }}
+        >
           {memories.length === 0 ? (
             <div className="text-center py-8 space-y-2">
               <div className="text-4xl">💬</div>
@@ -2265,19 +2268,18 @@ export function ChatTab({
           )}
           <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+      </div>
 
-      {/* Input Area - Fixed at bottom of screen */}
+      {/* Input Box Area - Fixed at bottom above tab bar */}
       <div 
-        className="flex-shrink-0 border-t shadow-lg" 
+        className="bg-white border-t shadow-lg flex-shrink-0" 
         style={{ 
           position: 'fixed',
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: 'white',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          zIndex: 40
+          paddingBottom: 'env(safe-area-inset-bottom, 0)',
+          zIndex: 60
         }}
       >
         {/* Recording Indicator */}
@@ -2348,7 +2350,6 @@ export function ChatTab({
             </Sheet>
           </div>
         )}
-
         {/* Live Transcription Display (only show when recording) */}
         {isRecording && (
           <div className="bg-gradient-to-r from-red-50 to-orange-50 border-b border-red-200 px-3 sm:px-4 py-3 sm:py-4 shadow-lg animate-fade-in">
@@ -2523,7 +2524,7 @@ export function ChatTab({
           onClick={handleScrollToTop}
           className="fixed right-4 sm:right-6 z-[100] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground animate-fade-in border-2 border-white"
           style={{
-            bottom: 'calc(110px + env(safe-area-inset-bottom, 0px))'
+            bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))'
           }}
           size="icon"
         >
