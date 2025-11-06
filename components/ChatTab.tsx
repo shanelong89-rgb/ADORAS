@@ -152,13 +152,12 @@ export function ChatTab({
   useEffect(() => {
     isMountedRef.current = true;
     
-    // Wait 300ms before rendering content to prevent race conditions
+    // Wait 200ms before rendering content to prevent race conditions
     const loadTimer = setTimeout(() => {
       if (isMountedRef.current) {
         setIsFullyLoaded(true);
-        console.log('✅ ChatTab fully loaded and ready');
       }
-    }, 300);
+    }, 200);
 
     return () => {
       isMountedRef.current = false;
@@ -276,32 +275,26 @@ export function ChatTab({
   }, [memories, isFullyLoaded]);
 
   // ========================================================================
-  // 🎯 CRITICAL FIX: AUTO-SCROLL TO NEW MESSAGES
+  // 🎯 AUTO-SCROLL TO NEW MESSAGES
   // ========================================================================
-  // This is the ONLY auto-scroll effect for new messages - no duplicates!
   useEffect(() => {
-    // Skip if no messages
     if (memories.length === 0) return;
     
-    // Find the scroll viewport using consistent selector
     const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
     if (!scrollViewport) return;
     
     // Calculate distance from bottom
     const distanceFromBottom = scrollViewport.scrollHeight - scrollViewport.scrollTop - scrollViewport.clientHeight;
-    const isNearBottom = distanceFromBottom < 300; // Increased from 200px to 300px (accounts for prompt headers)
+    const isNearBottom = distanceFromBottom < 200;
     
-    // Only auto-scroll if user is near bottom (doesn't interrupt reading old messages)
+    // Only auto-scroll if user is near bottom
     if (isNearBottom) {
-      // FIXED: Use direct scrollTop instead of scrollIntoView to avoid input box overlap
       setTimeout(() => {
         if (!scrollViewport) return;
-        // Scroll to ABSOLUTE bottom - scrollTop = scrollHeight ensures message is fully visible above input
         scrollViewport.scrollTop = scrollViewport.scrollHeight;
-        console.log('📜 Auto-scrolled to bottom (new message)');
-      }, 150);
+      }, 100);
     }
-  }, [memories.length]); // Trigger when memory count changes (new message added)
+  }, [memories.length]);
 
   // Check microphone permission status on mount
   useEffect(() => {
@@ -1531,41 +1524,33 @@ export function ChatTab({
   // Initial mount: ALWAYS scroll to bottom to show latest messages
   useEffect(() => {
     if (!hasScrolledInitiallyRef.current && chatMessages.length > 0) {
-      // Multiple attempts to ensure scroll happens - EXTENDED for reliability
       const timer1 = setTimeout(() => scrollToBottom('auto'), 100);
-      const timer2 = setTimeout(() => scrollToBottom('auto'), 300);
-      const timer3 = setTimeout(() => scrollToBottom('auto'), 500);
-      const timer4 = setTimeout(() => {
+      const timer2 = setTimeout(() => scrollToBottom('auto'), 250);
+      const timer3 = setTimeout(() => {
         scrollToBottom('auto');
         prevMessageCountRef.current = chatMessages.length;
         hasScrolledInitiallyRef.current = true;
-        console.log('✅ ChatTab: Initial scroll to bottom complete');
-      }, 800); // Extended final scroll
+      }, 500);
       
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
         clearTimeout(timer3);
-        clearTimeout(timer4);
       };
     }
   }, [chatMessages.length, scrollToBottom]);
 
-  // FIXED: Scroll to bottom when tab becomes visible or shouldScrollToBottom prop changes
+  // Scroll to bottom when tab becomes visible
   useEffect(() => {
     if (shouldScrollToBottom) {
-      // Multiple attempts for reliability - works even before initial scroll
       const timer1 = setTimeout(() => scrollToBottom('auto'), 50);
-      const timer2 = setTimeout(() => scrollToBottom('auto'), 150);
-      const timer3 = setTimeout(() => {
+      const timer2 = setTimeout(() => {
         scrollToBottom('auto');
         onScrollToBottomComplete?.();
-        console.log('✅ ChatTab: Scrolled to bottom (tab became visible)');
-      }, 300);
+      }, 200);
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
-        clearTimeout(timer3);
       };
     }
   }, [shouldScrollToBottom, scrollToBottom, onScrollToBottomComplete]);
@@ -2054,7 +2039,7 @@ export function ChatTab({
   }
 
   return (
-    <div className="flex flex-col h-full relative" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+    <div className="flex flex-col h-full overflow-hidden" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
       {/* Hidden file inputs - always in DOM so they can be triggered from anywhere */}
       <input
         ref={fileInputRef}
@@ -2220,19 +2205,18 @@ export function ChatTab({
         </div>
       )}
 
-      {/* Messages Area - MAXIMUM bottom padding to prevent hiding under input */}
+      {/* Messages Area - Flex container that stops BEFORE input box */}
       <ScrollArea 
         ref={scrollAreaRef}
         className={`flex-1 px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
         style={{ 
-          paddingBottom: 'calc(240px + env(safe-area-inset-bottom, 0px))', // Increased from 180px to 240px (ensures messages never hidden)
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
         }}
       >
-        <div className="space-y-4 max-w-full">
-          {chatMessages.length === 0 ? (
+        <div className="space-y-4 max-w-full pb-4">
+          {memories.length === 0 ? (
             <div className="text-center py-8 space-y-2">
               <div className="text-4xl">💬</div>
               <h3 className="font-semibold">Start the conversation</h3>
@@ -2241,8 +2225,8 @@ export function ChatTab({
               </p>
             </div>
           ) : (
-            chatMessages.map((message, index) => {
-              const prevMessage = index > 0 ? chatMessages[index - 1] : null;
+            memories.map((message, index) => {
+              const prevMessage = index > 0 ? memories[index - 1] : null;
               // Show prompt header when a new prompt question appears
               // This displays for BOTH Legacy Keepers and Storytellers so everyone knows the topic
               const showPromptHeader = message.promptQuestion && 
@@ -2274,12 +2258,12 @@ export function ChatTab({
         </div>
       </ScrollArea>
 
-      {/* Input Area - Truly FIXED at bottom with NO beige gap */}
+      {/* Input Area - Flex item at bottom (NOT fixed) */}
       <div 
-        className="fixed bottom-0 left-0 right-0 z-50 border-t shadow-lg" 
+        className="flex-shrink-0 border-t shadow-lg" 
         style={{ 
-          backgroundColor: 'white', // WHITE background (no beige below)
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)' // Only safe area, NO extra 16px padding
+          backgroundColor: 'white',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}
       >
         {/* Recording Indicator */}
