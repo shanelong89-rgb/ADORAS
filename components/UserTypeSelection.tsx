@@ -12,31 +12,6 @@ interface UserTypeSelectionProps {
 export function UserTypeSelection({ onSelect, onBack }: UserTypeSelectionProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 animate-fade-in relative" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
-      {/* Logo in top left corner */}
-      <div className="absolute top-4 sm:top-8 left-4 sm:left-8 md:left-12 flex items-center gap-3 z-10">
-        <div className="w-24 h-24 sm:w-30 sm:h-30 md:w-36 md:h-36 flex items-center justify-center mt-[-9px]">
-          <svg viewBox="0 0 100 100" className="w-full h-full">
-            <circle cx="50" cy="50" r="45" fill="rgb(245, 249, 233)" opacity="0.9"/>
-            <text x="50" y="60" fontSize="36" fontWeight="700" fill="rgb(54, 69, 59)" textAnchor="middle" fontFamily="Archivo">A</text>
-          </svg>
-        </div>
-      </div>
-
-      {/* Back Button - positioned under logo */}
-      {onBack && (
-        <div className="absolute top-32 sm:top-36 md:top-40 left-4 sm:left-8 md:left-12 z-10">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm" style={{ fontFamily: 'Inter', letterSpacing: '-0.02em' }}>
-              Back
-            </span>
-          </button>
-        </div>
-      )}
-
       {/* Timeline at the top */}
       <div className="absolute top-4 sm:top-8 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-[90vw] md:max-w-none md:w-auto">
         <div className="flex items-start justify-between md:gap-1">
@@ -67,6 +42,32 @@ export function UserTypeSelection({ onSelect, onBack }: UserTypeSelectionProps) 
           ))}
         </div>
       </div>
+
+      {/* Logo - positioned below timeline */}
+      <div className="absolute top-16 sm:top-20 md:top-24 left-4 sm:left-8 md:left-12 flex items-center gap-3 z-10">
+        <div className="w-full max-w-[60px] sm:max-w-[75px] md:max-w-[90px]">
+          <img 
+            src="https://cdn.shopify.com/s/files/1/0504/5963/9996/files/ADORASLogo-1-white.png?v=1762417593" 
+            alt="Adoras Logo" 
+            className="w-full h-auto object-contain"
+          />
+        </div>
+      </div>
+
+      {/* Back Button - positioned under logo */}
+      {onBack && (
+        <div className="absolute top-32 sm:top-36 md:top-40 left-4 sm:left-8 md:left-12 z-10">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="text-sm" style={{ fontFamily: 'Inter', letterSpacing: '-0.02em' }}>
+              Back
+            </span>
+          </button>
+        </div>
+      )}
 
       <Card className="w-full max-w-2xl space-y-6 sm:space-y-10 animate-slide-up shadow-lg border-border/30 backdrop-blur-sm bg-transparent p-6 sm:p-[40px] m-0">
         <div className="text-center space-y-2 sm:space-y-4">
