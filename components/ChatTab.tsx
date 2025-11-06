@@ -142,6 +142,33 @@ export function ChatTab({
   shouldScrollToBottom,
   onScrollToBottomComplete
 }: ChatTabProps) {
+  // ========================================================================
+  // CRASH GUARD: Mount protection to prevent tab-switch crashes
+  // Prevents operations during component mount (e.g., video loading, scroll detection)
+  // ========================================================================
+  const isMountedRef = useRef(false);
+  const [isFullyLoaded, setIsFullyLoaded] = useState(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Wait 300ms before rendering content to prevent race conditions
+    const loadTimer = setTimeout(() => {
+      if (isMountedRef.current) {
+        setIsFullyLoaded(true);
+        console.log('✅ ChatTab fully loaded and ready');
+      }
+    }, 300);
+
+    return () => {
+      isMountedRef.current = false;
+      clearTimeout(loadTimer);
+    };
+  }, []);
+
+  // ========================================================================
+  // STATE: Existing state variables
+  // ========================================================================
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -227,13 +254,15 @@ export function ChatTab({
   // Debug: Log connection and memories on load
   useEffect(() => {
     // Only log when there are memories - reduces console noise during loading
-    if (memories.length > 0) {
+    if (memories.length > 0 && isFullyLoaded) {
       console.log(`💬 ChatTab loaded - ${memories.length} memories for ${partnerProfile?.name}`);
     }
-  }, [memories.length, partnerProfile?.name]);
+  }, [memories.length, partnerProfile?.name, isFullyLoaded]);
 
-  // Debug: Log video memories
+  // Debug: Log video memories (ONLY when fully loaded to prevent crashes)
   useEffect(() => {
+    if (!isFullyLoaded || !isMountedRef.current) return;
+    
     const videoMemories = memories.filter(m => m.type === 'video');
     if (videoMemories.length > 0) {
       console.log('📹 Video memories in ChatTab:', videoMemories.map(m => ({
@@ -244,7 +273,7 @@ export function ChatTab({
         timestamp: m.timestamp
       })));
     }
-  }, [memories]);
+  }, [memories, isFullyLoaded]);
 
   // ========================================================================
   // 🎯 CRITICAL FIX: AUTO-SCROLL TO NEW MESSAGES
@@ -1773,14 +1802,18 @@ export function ChatTab({
                         crossOrigin="anonymous"
                         onLoadedMetadata={(e) => {
                           // Video loaded successfully - can be played
-                          console.log('✅ Video loaded:', memory.content, 'URL:', memory.videoUrl);
+                          if (isFullyLoaded) {
+                            console.log('✅ Video loaded:', memory.content, 'URL:', memory.videoUrl);
+                          }
                         }}
                         onLoadStart={() => {
-                          console.log('🎬 Video loading started:', {
-                            memoryId: memory.id,
-                            content: memory.content,
-                            videoUrl: memory.videoUrl?.substring(0, 100)
-                          });
+                          if (isFullyLoaded) {
+                            console.log('🎬 Video loading started:', {
+                              memoryId: memory.id,
+                              content: memory.content,
+                              videoUrl: memory.videoUrl?.substring(0, 100)
+                            });
+                          }
                         }}
                         onError={(e) => {
                           const target = e.target as HTMLVideoElement;
@@ -1980,6 +2013,18 @@ export function ChatTab({
           <UserPlus className="w-4 h-4" />
           Connect Now
         </Button>
+      </div>
+    );
+  }
+
+  // CRASH GUARD: Show loading spinner until fully mounted
+  if (!isFullyLoaded) {
+    return (
+      <div className="flex items-center justify-center h-full" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-sm text-muted-foreground font-medium">Loading chat...</p>
+        </div>
       </div>
     );
   }
