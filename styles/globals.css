@@ -127,15 +127,16 @@
     color: rgb(54, 69, 59);
   }
   
-  /* iOS PWA Fullscreen Support */
+  /* iOS PWA Fullscreen Support with Touch Scrolling */
   html {
     height: 100%;
     width: 100%;
     margin: 0;
     padding: 0;
-    /* Prevent pull-to-refresh and overscroll on iOS PWA */
-    overscroll-behavior: none;
-    touch-action: manipulation;
+    /* Prevent pull-to-refresh but allow vertical scrolling */
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: auto;
+    touch-action: pan-y pinch-zoom;
   }
   
   body {
@@ -143,23 +144,24 @@
     width: 100%;
     margin: 0;
     padding: 0;
-    overflow: hidden;
-    /* Prevent pull-to-refresh and overscroll on iOS PWA */
-    overscroll-behavior: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Enable smooth iOS scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent pull-to-refresh but allow vertical scrolling */
+    overscroll-behavior-x: none;
+    overscroll-behavior-y: auto;
   }
   
-  /* Ensure root element fills viewport */
+  /* Ensure root element fills viewport and allows scrolling */
   #root {
-    height: 100%;
+    min-height: 100%;
     width: 100%;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
+    -webkit-overflow-scrolling: touch;
   }
   
   /* iOS standalone mode specific styles */
