@@ -125,38 +125,24 @@ export function Dashboard({
   });
 
   // DEFENSIVE: Validate that memories match the active connection
-  // This prevents chat mixing if AppContent sends wrong data
+  // CRITICAL FIX: Always prefer global memories unless per-connection cache has MORE memories
   const validatedMemories = React.useMemo(() => {
     const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
     const expectedMemories = userType === 'keeper' 
       ? (memoriesByStoryteller[activeConnectionId] || [])
       : (memoriesByLegacyKeeper[activeConnectionId] || []);
     
-    // Compare memory arrays by IDs to detect mismatches
-    const memoriesIds = memories.map(m => m.id).sort().join(',');
-    const expectedIds = expectedMemories.map(m => m.id).sort().join(',');
-    
-    if (memoriesIds !== expectedIds) {
-      // MISMATCH DETECTED - This can happen during state transitions
-      // Only warn if it's been more than 2 seconds since last state change
-      const timeSinceChange = Date.now() - (window._lastMemoryStateChange || 0);
-      const shouldWarn = timeSinceChange > 2000;
-      
-      if (shouldWarn && expectedMemories.length > 0) {
-        // Only warn if we have expected memories (not during initial load)
-        console.warn(`⚠️ MEMORY MISMATCH DETECTED!`, {
-          activeConnectionId,
-          memoriesCount: memories.length,
-          expectedCount: expectedMemories.length,
-          timeSinceChange: `${timeSinceChange}ms`
-        });
-      }
-      
-      // If we have expected memories, use those; otherwise use global
-      return expectedMemories.length > 0 ? expectedMemories : memories;
+    // FIXED: If global memories has MORE items, it's more up-to-date (realtime updates hit global first)
+    // Only use expectedMemories if it has more than global (shouldn't happen, but defensive)
+    if (memories.length >= expectedMemories.length) {
+      // Global memories is authoritative
+      return memories;
     }
     
-    return memories;
+    // Edge case: Per-connection cache has more memories than global
+    // This can happen during rapid switching, use the one with more data
+    console.warn(`⚠️ Per-connection cache has more memories (${expectedMemories.length}) than global (${memories.length})`);
+    return expectedMemories;
   }, [memories, userType, activeStorytellerId, activeLegacyKeeperId, memoriesByStoryteller, memoriesByLegacyKeeper]);
 
   // Refs for tab content containers to handle scrolling
@@ -539,7 +525,7 @@ export function Dashboard({
         
         {/* Unified Header + Tabs Sticky Container */}
         <div 
-          className={`sticky top-0 z-50 transition-transform duration-100 ease-out ${
+          className={`sticky top-0 z-50 transition-transform duration-300 ease-out ${
             showHeader ? 'translate-y-0' : '-translate-y-full'
           }`}
         >
