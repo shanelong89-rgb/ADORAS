@@ -194,12 +194,30 @@ export function ChatTab({
   useEffect(() => {
     if (activePrompt) {
       setCurrentPromptContext(activePrompt);
-      // Note: Scroll behavior is now handled in the scroll effects section below (lines 1103+)
     }
   }, [activePrompt]);
 
-  // CRITICAL: Setup scroll detection to show/hide dashboard header
-  // This hook handles scroll events to show/hide the dashboard header
+  // ========================================================================
+  // CONSOLIDATED SCROLL MANAGEMENT - Single source of truth
+  // ========================================================================
+
+  // Helper function to find chat scroll viewport (consistent across all scroll logic)
+  const findChatScrollViewport = useCallback((): Element | null => {
+    const scrollViewports = document.querySelectorAll('[data-radix-scroll-area-viewport]');
+    let chatViewport: Element | null = null;
+    
+    scrollViewports.forEach(viewport => {
+      // Identify chat viewport by looking for message container or empty state
+      if (viewport.querySelector('[class*="space-y-4"]') || 
+          viewport.textContent?.includes('Start the conversation')) {
+        chatViewport = viewport;
+      }
+    });
+    
+    return chatViewport;
+  }, []);
+
+  // CRITICAL: Setup scroll detection to show/hide dashboard header (SINGLE CALL ONLY)
   useChatScrollDetection({
     onScrollUp: onScrollUp || (() => {}),
     onScrollDown: onScrollDown || (() => {}),
@@ -250,141 +268,34 @@ export function ChatTab({
     checkMicPermission();
   }, []);
 
-  // Use clean scroll detection hook for dashboard show/hide
-  useChatScrollDetection({
-    onScrollUp,
-    onScrollDown,
-    scrollContainerRef: scrollAreaRef
-  });
-
   // Deleted memories are removed from the database and won't appear in the memories array
   // No need to track them locally
 
-  // Scroll detection for showing "Scroll to Top" button
+  // Setup "Scroll to Top" button visibility detection
   useEffect(() => {
-    // Small delay to ensure ScrollArea is mounted
     const timer = setTimeout(() => {
-      // Find all scroll viewports and get the one in the chat tab
-      const scrollViewports = document.querySelectorAll('[data-slot="scroll-area-viewport"]');
-      let scrollViewport: Element | null = null;
+      const viewport = findChatScrollViewport();
       
-      // Find the viewport that's in the ChatTab (contains chat messages)
-      scrollViewports.forEach(viewport => {
-        if (viewport.querySelector('[class*="space-y-4"]') || viewport.textContent?.includes('Start the conversation')) {
-          scrollViewport = viewport;
-        }
-      });
-      
-      if (!scrollViewport) {
-        console.log('ChatTab ScrollArea viewport not found for scroll button');
+      if (!viewport) {
         return;
       }
 
-      console.log('Found ChatTab ScrollArea viewport, setting up scroll-to-top button detection');
+      console.log('✅ ChatTab: Setting up scroll-to-top button detection');
 
       const handleScroll = () => {
-        const scrollTop = scrollViewport!.scrollTop;
-        const shouldShow = scrollTop > 300;
+        const shouldShow = viewport.scrollTop > 300;
         setShowScrollToTop(shouldShow);
       };
 
-      scrollViewport.addEventListener('scroll', handleScroll, { passive: true });
+      viewport.addEventListener('scroll', handleScroll, { passive: true });
       
       return () => {
-        if (scrollViewport) {
-          scrollViewport.removeEventListener('scroll', handleScroll);
-        }
+        viewport.removeEventListener('scroll', handleScroll);
       };
     }, 500);
 
     return () => clearTimeout(timer);
-  }, []); // No dependencies - set up once on mount
-
-  // Auto-scroll to bottom when new messages are added
-  useEffect(() => {
-    if (memories.length === 0) return;
-    
-    const timer = setTimeout(() => {
-      // Find the ScrollArea viewport
-      const scrollViewports = document.querySelectorAll('[data-slot="scroll-area-viewport"]');
-      let scrollViewport: Element | null = null;
-      
-      // Find the viewport that's in the ChatTab
-      scrollViewports.forEach(viewport => {
-        if (viewport.querySelector('[class*="space-y-4"]') || viewport.textContent?.includes('Start the conversation')) {
-          scrollViewport = viewport;
-        }
-      });
-      
-      if (scrollViewport) {
-        // Check if user is near bottom (within 200px)
-        const isNearBottom = scrollViewport.scrollHeight - scrollViewport.scrollTop - scrollViewport.clientHeight < 200;
-        
-        // Only auto-scroll if user is already near the bottom (to not interrupt reading)
-        if (isNearBottom || scrollViewport.scrollTop === 0) {
-          scrollViewport.scrollTo({
-            top: scrollViewport.scrollHeight,
-            behavior: scrollViewport.scrollTop === 0 ? 'instant' : 'smooth'
-          });
-        }
-      }
-    }, 150);
-    
-    return () => clearTimeout(timer);
-  }, [memories]); // Trigger on any memory change, not just length
-
-  // Scroll to bottom on initial mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const scrollViewports = document.querySelectorAll('[data-slot="scroll-area-viewport"]');
-      let scrollViewport: Element | null = null;
-      
-      scrollViewports.forEach(viewport => {
-        if (viewport.querySelector('[class*="space-y-4"]') || viewport.textContent?.includes('Start the conversation')) {
-          scrollViewport = viewport;
-        }
-      });
-      
-      if (scrollViewport) {
-        scrollViewport.scrollTop = scrollViewport.scrollHeight;
-      }
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, []); // Empty dependency array = only run once on mount
-
-  // Handle external scroll to bottom trigger (from notifications/tab switch)
-  useEffect(() => {
-    if (shouldScrollToBottom) {
-      const timer = setTimeout(() => {
-        // Find the ScrollArea viewport
-        const scrollViewports = document.querySelectorAll('[data-slot=\"scroll-area-viewport\"]');
-        let scrollViewport: Element | null = null;
-        
-        // Find the viewport that's in the ChatTab
-        scrollViewports.forEach(viewport => {
-          if (viewport.querySelector('[class*=\"space-y-4\"]') || viewport.textContent?.includes('Start the conversation')) {
-            scrollViewport = viewport;
-          }
-        });
-        
-        if (scrollViewport) {
-          // Scroll to bottom smoothly
-          scrollViewport.scrollTo({
-            top: scrollViewport.scrollHeight,
-            behavior: 'smooth'
-          });
-          
-          // Notify parent that scroll is complete
-          if (onScrollToBottomComplete) {
-            setTimeout(() => onScrollToBottomComplete(), 300);
-          }
-        }
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [shouldScrollToBottom, onScrollToBottomComplete]);
+  }, [findChatScrollViewport]); // Set up once with consistent viewport finder
 
   // Get all unique past prompts from memories
   const pastPrompts = React.useMemo(() => {
@@ -420,7 +331,7 @@ export function ChatTab({
 
   const handleScrollToTop = () => {
     // Scroll the ScrollArea viewport to top
-    const scrollViewport = document.querySelector('[data-slot="scroll-area-viewport"]');
+    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
     if (scrollViewport) {
       scrollViewport.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -1586,7 +1497,7 @@ export function ChatTab({
     if (activePrompt && hasScrolledInitiallyRef.current) {
       const timer = setTimeout(() => {
         if (scrollAreaRef?.current) {
-          const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+          const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
           if (viewport && typeof viewport.scrollTo === 'function') {
             viewport.scrollTo({ top: 0, behavior: 'smooth' });
           }
