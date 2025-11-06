@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { PromptsTab } from './PromptsTab';
 import { ChatTab } from './ChatTab';
@@ -109,6 +109,15 @@ export function Dashboard({
   useEffect(() => {
     console.log(`🎯 Dashboard header visibility changed: ${showHeader ? 'VISIBLE' : 'HIDDEN'} (tab: ${activeTab})`);
   }, [showHeader, activeTab]);
+  
+  // Memoized scroll callbacks to prevent ChatTab from re-rendering constantly
+  const handleScrollUp = useCallback(() => {
+    setShowHeader(true);
+  }, []);
+  
+  const handleScrollDown = useCallback(() => {
+    setShowHeader(false);
+  }, []);
   const [lastChatReadTimestamp, setLastChatReadTimestamp] = useState<number>(() => {
     // Load from localStorage
     const stored = localStorage.getItem(`lastChatRead_${userProfile.id}`);
@@ -430,11 +439,9 @@ export function Dashboard({
       
       if (delta < 0) {
         // Scrolling up - show header
-        console.log(`📜 ${activeTab.toUpperCase()} tab: Scroll UP detected, showing header`);
         setShowHeader(true);
       } else if (delta > 0 && currentScrollY > 100) {
         // Scrolling down - hide header (only if scrolled past 100px)
-        console.log(`📜 ${activeTab.toUpperCase()} tab: Scroll DOWN detected, hiding header`);
         setShowHeader(false);
       }
       
@@ -460,11 +467,9 @@ export function Dashboard({
       if (Math.abs(touchDelta) > 3) {
         if (touchDelta > 0) {
           // Swiping down - show header
-          console.log(`👆 ${activeTab.toUpperCase()} tab: Touch SWIPE DOWN, showing header`);
           setShowHeader(true);
         } else if (window.scrollY > 100) {
           // Swiping up - hide header (only if scrolled past 100px)
-          console.log(`👇 ${activeTab.toUpperCase()} tab: Touch SWIPE UP, hiding header`);
           setShowHeader(false);
         }
         lastTouchY = currentTouchY;
@@ -966,14 +971,8 @@ export function Dashboard({
                 onClearPrompt={() => setActivePrompt(null)}
                 onEditMemory={onEditMemory}
                 onDeleteMemory={onDeleteMemory}
-                onScrollUp={() => {
-                  console.log('📱 CHAT: onScrollUp callback fired, showing header');
-                  setShowHeader(true);
-                }}
-                onScrollDown={() => {
-                  console.log('📱 CHAT: onScrollDown callback fired, hiding header');
-                  setShowHeader(false);
-                }}
+                onScrollUp={handleScrollUp}
+                onScrollDown={handleScrollDown}
                 shouldScrollToBottom={shouldScrollChatToBottom}
                 onScrollToBottomComplete={() => setShouldScrollChatToBottom(false)}
               />
