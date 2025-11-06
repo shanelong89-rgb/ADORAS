@@ -24,10 +24,12 @@ export function WelcomeScreen({ onNext, onLogin }: WelcomeScreenProps) {
 
   return (
     <div 
-      className="flex items-start justify-center relative overflow-hidden animate-fade-in bg-primary"
+      className="flex items-start justify-center relative overflow-y-auto overflow-x-hidden animate-fade-in bg-primary"
       style={{
         minHeight: '100svh',
-        height: '100svh'
+        height: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y'
       }}
     >
       {/* Extended background container that goes behind notch */}
