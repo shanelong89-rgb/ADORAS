@@ -1537,17 +1537,32 @@ export function ChatTab({
   // Helper function to scroll to bottom in the ScrollArea viewport
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'instant') => {
     try {
-      // Find the ScrollArea viewport
-      if (scrollAreaRef.current) {
-        const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
-        if (viewport) {
-          // Scroll to the very bottom
-          viewport.scrollTo({ top: viewport.scrollHeight, behavior });
-          console.log(`📜 Scrolled ScrollArea to bottom (${viewport.scrollHeight}px)`);
-        }
+      // Safety check: ensure ref exists
+      if (!scrollAreaRef?.current) {
+        console.log('📜 ScrollArea ref not ready yet, skipping scroll');
+        return;
       }
+
+      // Find the ScrollArea viewport
+      const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+      
+      if (!viewport) {
+        console.log('📜 ScrollArea viewport not found, skipping scroll');
+        return;
+      }
+
+      // Additional safety check
+      if (typeof viewport.scrollTo !== 'function') {
+        console.log('📜 scrollTo not available, skipping scroll');
+        return;
+      }
+
+      // Scroll to the very bottom
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior });
+      console.log(`📜 Scrolled ScrollArea to bottom (${viewport.scrollHeight}px)`);
     } catch (error) {
       console.error('Error scrolling to bottom:', error);
+      // Don't throw - just log and continue
     }
   }, []);
 
@@ -1557,15 +1572,21 @@ export function ChatTab({
       // Wait for messages to render, then scroll to bottom
       const timer = setTimeout(() => {
         try {
-          scrollToBottom('instant');
-          // Set initial count and mark as scrolled
-          prevMessageCountRef.current = chatMessages.length;
-          hasScrolledInitiallyRef.current = true;
-          console.log(`📜 Initial scroll completed, showing ${chatMessages.length} messages`);
+          // Double-check that we have a valid ref before scrolling
+          if (scrollAreaRef?.current) {
+            scrollToBottom('instant');
+            // Set initial count and mark as scrolled
+            prevMessageCountRef.current = chatMessages.length;
+            hasScrolledInitiallyRef.current = true;
+            console.log(`📜 Initial scroll completed, showing ${chatMessages.length} messages`);
+          } else {
+            console.log('📜 ScrollArea ref not ready for initial scroll, will retry on next render');
+          }
         } catch (error) {
           console.error('Error in initial scroll:', error);
+          // Don't re-throw - just log and continue
         }
-      }, 300); // Increased delay to ensure media loads
+      }, 500); // Increased delay to ensure DOM is ready
       return () => clearTimeout(timer);
     }
   }, [chatMessages.length, scrollToBottom]);
@@ -1574,13 +1595,18 @@ export function ChatTab({
   useEffect(() => {
     if (activePrompt && hasScrolledInitiallyRef.current) {
       const timer = setTimeout(() => {
-        // Scroll ScrollArea to top to show the activePrompt banner
-        if (scrollAreaRef.current) {
-          const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
-          if (viewport) {
-            viewport.scrollTo({ top: 0, behavior: 'smooth' });
-            console.log('📜 Scrolled to top to show prompt banner');
+        try {
+          // Scroll ScrollArea to top to show the activePrompt banner
+          if (scrollAreaRef?.current) {
+            const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+            if (viewport && typeof viewport.scrollTo === 'function') {
+              viewport.scrollTo({ top: 0, behavior: 'smooth' });
+              console.log('📜 Scrolled to top to show prompt banner');
+            }
           }
+        } catch (error) {
+          console.error('Error scrolling to show prompt:', error);
+          // Don't re-throw
         }
       }, 150);
       return () => clearTimeout(timer);
@@ -1596,9 +1622,12 @@ export function ChatTab({
         // Use a delay to ensure the message is fully rendered
         const timer = setTimeout(() => {
           try {
-            scrollToBottom('smooth');
+            if (scrollAreaRef?.current) {
+              scrollToBottom('smooth');
+            }
           } catch (error) {
             console.error('Error scrolling to new message:', error);
+            // Don't re-throw
           }
         }, 150);
         
@@ -1616,9 +1645,12 @@ export function ChatTab({
       // Scroll to the end of messages to show the latest
       const timer = setTimeout(() => {
         try {
-          scrollToBottom('smooth');
+          if (scrollAreaRef?.current) {
+            scrollToBottom('smooth');
+          }
         } catch (error) {
           console.error('Error scrolling to bottom on demand:', error);
+          // Don't re-throw
         }
         // Notify parent that scroll is complete
         onScrollToBottomComplete?.();
