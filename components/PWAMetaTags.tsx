@@ -22,8 +22,9 @@ export const PWAMetaTags: React.FC = () => {
       // Get the current origin
       const origin = window.location.origin;
 
-      // 1. iOS Web App Meta Tags (Enhanced for notifications)
+      // 1. iOS Web App Meta Tags (Enhanced for notifications and fullscreen)
       const metaTags = [
+        { name: 'viewport', content: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
         { name: 'apple-mobile-web-app-title', content: 'Adoras' },
@@ -31,8 +32,9 @@ export const PWAMetaTags: React.FC = () => {
         { name: 'theme-color', content: '#36453B' },
         { name: 'msapplication-TileColor', content: '#36453B' },
         { name: 'msapplication-navbutton-color', content: '#36453B' },
-        // iOS notification support
+        // iOS notification support and orientation
         { name: 'apple-mobile-web-app-orientations', content: 'portrait' },
+        { name: 'format-detection', content: 'telephone=no' },
       ];
 
       metaTags.forEach(({ name, content }) => {
