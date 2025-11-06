@@ -123,45 +123,55 @@
   }
 
   body {
-    background-color: rgb(245, 249, 233) !important;
+    background-color: #36453B !important;
     color: rgb(54, 69, 59) !important;
   }
   
   /* iOS PWA Fullscreen Support */
-  html, body {
+  html {
     height: 100%;
     width: 100%;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    
-    /* Prevent pull-to-refresh and overscroll on iOS PWA */
-    overscroll-behavior-y: contain;
-  }
-  
-  /* Support for iOS safe areas (notch, home indicator) */
-  body {
-    /* Safe area padding handled by individual components, not globally */
-    /* This prevents viewport compression issues on smaller devices like iPhone 13 mini */
-    padding: 0;
     margin: 0;
+    padding: 0;
+    background-color: #36453B;
+    /* Prevent pull-to-refresh and overscroll on iOS PWA */
+    overscroll-behavior: none;
+    touch-action: manipulation;
   }
   
-  /* Ensure root element fills viewport in standalone mode */
+  body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #36453B;
+    /* Prevent pull-to-refresh and overscroll on iOS PWA */
+    overscroll-behavior: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  
+  /* Ensure root element fills viewport */
   #root {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background-color: #36453B;
   }
   
   /* iOS standalone mode specific styles */
   @media all and (display-mode: standalone) {
     body {
-      /* Prevent any browser-like behaviors */
+      /* Prevent any browser-like behaviors in PWA mode */
       -webkit-touch-callout: none;
-    }
-    
-    html {
-      /* Ensure proper height calculation on iOS */
-      height: -webkit-fill-available;
+      -webkit-user-select: none;
+      user-select: none;
     }
   }
 }
