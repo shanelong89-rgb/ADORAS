@@ -211,19 +211,25 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div 
-        className="min-h-full w-full flex flex-col overflow-x-hidden"
+        className="w-full flex flex-col"
         style={{
-          WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y',
           paddingTop: 'max(4rem, calc(env(safe-area-inset-top) + 3rem))',
-          paddingBottom: 'env(safe-area-inset-bottom, 0)',
-          minHeight: '-webkit-fill-available',
-          overflow: 'hidden'
+          paddingBottom: 0,
+          minHeight: '100vh'
         }}
       >
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <div 
+          className="flex-1 overflow-y-auto"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y',
+            minHeight: '-webkit-fill-available'
+          }}
+        >
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </div>
         <PWAMetaTags />
         <DebugPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
         <ServerStatusBanner />
