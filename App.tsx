@@ -166,8 +166,9 @@ export default function App() {
   if (isChromeFixMode) {
     return (
       <ErrorBoundary>
-        <div style={{ 
-          minHeight: 'var(--vh, 100vh)',
+        <div className="fixed inset-0 overflow-y-auto" style={{ 
+          height: '100vh',
+          paddingTop: 'env(safe-area-inset-top)',
           backgroundColor: 'rgb(245, 249, 233)'
         }}>
           <ChromeLoginFix />
@@ -189,8 +190,9 @@ export default function App() {
   if (isDiagnosticMode) {
     return (
       <ErrorBoundary>
-        <div style={{ 
-          minHeight: 'var(--vh, 100vh)',
+        <div className="fixed inset-0 overflow-y-auto" style={{ 
+          height: '100vh',
+          paddingTop: 'env(safe-area-inset-top)',
           backgroundColor: 'rgb(245, 249, 233)'
         }}>
           <MobileAuthDiagnostic />
@@ -210,41 +212,53 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      {/* Root container - Fixed height with safe area support */}
       <div 
-        className="w-full flex flex-col"
+        className="w-full flex flex-col fixed inset-0"
         style={{
-          minHeight: '100vh'
+          height: '100vh',
+          maxHeight: '100vh',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: '0', // Bottom safe area handled by child components
+          backgroundColor: 'rgb(245, 249, 233)'
         }}
       >
+        {/* Main content area - Flexible scroll container */}
         <div 
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto overflow-x-hidden"
           style={{
             WebkitOverflowScrolling: 'touch',
             touchAction: 'pan-y',
-            minHeight: '-webkit-fill-available'
+            height: '100%'
           }}
         >
           <AuthProvider>
             <AppContent />
           </AuthProvider>
         </div>
-        <PWAMetaTags />
-        <DebugPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
-        <ServerStatusBanner />
-        {/* Groq API Key Setup - Will show when user gets API key errors */}
-        <GroqAPIKeySetup 
-          open={groqDialogOpen} 
-          onOpenChange={setGroqDialogOpen}
-        />
-        <Toaster 
-          position="top-center" 
-          richColors 
-          toastOptions={{
-            style: {
-              fontFamily: 'Inter, sans-serif',
-            },
-          }}
-        />
+
+        {/* Overlay components - Fixed positioning to not affect layout height */}
+        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 9999 }}>
+          <div className="pointer-events-auto">
+            <PWAMetaTags />
+            <DebugPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
+            <ServerStatusBanner />
+            {/* Groq API Key Setup - Will show when user gets API key errors */}
+            <GroqAPIKeySetup 
+              open={groqDialogOpen} 
+              onOpenChange={setGroqDialogOpen}
+            />
+            <Toaster 
+              position="top-center" 
+              richColors 
+              toastOptions={{
+                style: {
+                  fontFamily: 'Inter, sans-serif',
+                },
+              }}
+            />
+          </div>
+        </div>
       </div>
     </ErrorBoundary>
   );
