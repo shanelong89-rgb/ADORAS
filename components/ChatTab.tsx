@@ -2151,12 +2151,12 @@ export function ChatTab({
         </div>
       )}
 
-      {/* Messages Area - INCREASED bottom padding to prevent hiding under input */}
+      {/* Messages Area - MAXIMUM bottom padding to prevent hiding under input */}
       <ScrollArea 
         ref={scrollAreaRef}
         className={`flex-1 px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
         style={{ 
-          paddingBottom: 'calc(180px + env(safe-area-inset-bottom, 0px))', // Increased from 120px to 180px
+          paddingBottom: 'calc(240px + env(safe-area-inset-bottom, 0px))', // Increased from 180px to 240px (ensures messages never hidden)
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
@@ -2205,12 +2205,12 @@ export function ChatTab({
         </div>
       </ScrollArea>
 
-      {/* Input Area - Fixed to bottom of screen */}
+      {/* Input Area - Truly FIXED at bottom with NO beige gap */}
       <div 
         className="fixed bottom-0 left-0 right-0 z-50 border-t shadow-lg" 
         style={{ 
-          backgroundColor: 'rgb(245, 249, 233)',
-          paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))'
+          backgroundColor: 'white', // WHITE background (no beige below)
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)' // Only safe area, NO extra 16px padding
         }}
       >
         {/* Recording Indicator */}
