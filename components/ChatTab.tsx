@@ -1,10 +1,11 @@
+// ChatTab v2.0 - Scroll-to-top button completely removed
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Badge } from './ui/badge';
 import { Memory, UserProfile, UserType } from '../App';
-import { Send, Camera, Mic, Paperclip, Play, Pause, Smile, Plus, Languages, Video, BookOpen, MessageSquarePlus, X, Volume2, FileText, Quote, File, ScanText, Eye, EyeOff, UserPlus, MessageCircle, ArrowUp, ChevronUp } from 'lucide-react';
+import { Send, Camera, Mic, Paperclip, Play, Pause, Smile, Plus, Languages, Video, BookOpen, MessageSquarePlus, X, Volume2, FileText, Quote, File, ScanText, Eye, EyeOff, UserPlus, MessageCircle } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
@@ -19,7 +20,6 @@ import { AudioTranscriber } from '../utils/audioTranscriber';
 import { translateText } from '../utils/aiService';
 import { convertVideoToMP4, needsConversion, getVideoPlayabilityInfo } from '../utils/videoConverter';
 import { extractVideoThumbnail } from '../utils/videoThumbnail';
-import { useChatScrollDetection } from '../utils/useChatScrollDetection';
 import { MediaFullscreenPreview } from './MediaFullscreenPreview';
 
 // Natural language date parsing function
@@ -121,8 +121,6 @@ interface ChatTabProps {
   onDeleteMemory?: (memoryId: string) => void;
   activePrompt?: string | null;
   onClearPrompt?: () => void;
-  onScrollUp?: () => void; // Callback to notify parent when scrolling up in chat
-  onScrollDown?: () => void; // Callback to notify parent when scrolling down in chat
   shouldScrollToBottom?: boolean; // Trigger scroll to bottom
   onScrollToBottomComplete?: () => void; // Callback after scroll completes
 }
@@ -137,8 +135,6 @@ export function ChatTab({
   onDeleteMemory,
   activePrompt,
   onClearPrompt,
-  onScrollUp,
-  onScrollDown,
   shouldScrollToBottom,
   onScrollToBottomComplete
 }: ChatTabProps) {
@@ -189,7 +185,6 @@ export function ChatTab({
   const [documentStates, setDocumentStates] = useState<{[key: string]: {
     textShown: boolean;
   }}>({});
-  const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [fullscreenMedia, setFullscreenMedia] = useState<{ type: 'photo' | 'video'; url: string; title: string } | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -227,18 +222,8 @@ export function ChatTab({
   // CONSOLIDATED SCROLL MANAGEMENT - Single source of truth
   // ========================================================================
 
-  // Helper function to find chat scroll viewport (consistent across all scroll logic)
-  const findChatScrollViewport = useCallback((): Element | null => {
-    // Return the scroll container ref directly
-    return scrollAreaRef.current;
-  }, []);
-
-  // CRITICAL: Setup scroll detection to show/hide dashboard header (SINGLE CALL ONLY)
-  useChatScrollDetection({
-    onScrollUp: onScrollUp || (() => {}),
-    onScrollDown: onScrollDown || (() => {}),
-    scrollContainerRef: scrollAreaRef
-  });
+  // Track if this is the first load
+  const hasScrolledInitially = useRef(false);
 
   // Debug: Log connection and memories on load
   useEffect(() => {
@@ -265,26 +250,52 @@ export function ChatTab({
   }, [memories, isFullyLoaded]);
 
   // ========================================================================
-  // 🎯 AUTO-SCROLL TO NEW MESSAGES
+  // 🎯 AUTO-SCROLL TO BOTTOM ON FIRST LOAD & NEW MESSAGES
   // ========================================================================
   useEffect(() => {
+    if (!isFullyLoaded) return;
     if (memories.length === 0) return;
     
     const scrollContainer = scrollAreaRef.current;
     if (!scrollContainer) return;
     
-    // Calculate distance from bottom
+    // On first load, always scroll to bottom
+    if (!hasScrolledInitially.current) {
+      hasScrolledInitially.current = true;
+      setTimeout(() => {
+        if (!scrollContainer) return;
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }, 300); // Longer delay for initial load
+      return;
+    }
+    
+    // For subsequent updates, only auto-scroll if user is near bottom
     const distanceFromBottom = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight;
     const isNearBottom = distanceFromBottom < 200;
     
-    // Only auto-scroll if user is near bottom
     if (isNearBottom) {
       setTimeout(() => {
         if (!scrollContainer) return;
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }, 100);
     }
-  }, [memories.length]);
+  }, [memories.length, isFullyLoaded]);
+
+  // Handle explicit scroll to bottom request from parent
+  useEffect(() => {
+    if (shouldScrollToBottom) {
+      const scrollContainer = scrollAreaRef.current;
+      if (scrollContainer) {
+        setTimeout(() => {
+          if (!scrollContainer) return;
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          onScrollToBottomComplete?.();
+        }, 100);
+      } else {
+        onScrollToBottomComplete?.();
+      }
+    }
+  }, [shouldScrollToBottom, onScrollToBottomComplete]);
 
   // Enable touch scrolling for iOS PWA
   useEffect(() => {
@@ -324,32 +335,6 @@ export function ChatTab({
   // Deleted memories are removed from the database and won't appear in the memories array
   // No need to track them locally
 
-  // Setup "Scroll to Top" button visibility detection
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const scrollContainer = scrollAreaRef.current;
-      
-      if (!scrollContainer) {
-        return;
-      }
-
-      console.log('✅ ChatTab: Setting up scroll-to-top button detection');
-
-      const handleScroll = () => {
-        const shouldShow = scrollContainer.scrollTop > 300;
-        setShowScrollToTop(shouldShow);
-      };
-
-      scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-      
-      return () => {
-        scrollContainer.removeEventListener('scroll', handleScroll);
-      };
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, []); // Set up once
-
   // Get all unique past prompts from memories
   const pastPrompts = React.useMemo(() => {
     const uniquePrompts = new Map<string, Date>();
@@ -380,18 +365,6 @@ export function ChatTab({
   const handleClearPromptContext = () => {
     setCurrentPromptContext(null);
     toast.success('Cleared prompt context');
-  };
-
-  const handleScrollToTop = () => {
-    // Scroll the messages container to top
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    
-    // Also scroll window to top to show the dashboard header
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
   };
 
   const handleSendMessage = () => {
@@ -2275,7 +2248,7 @@ export function ChatTab({
         </div>
       </div>
 
-      {/* Input Box Area - Fixed at bottom above tab bar */}
+      {/* Input Box Area - Fixed at bottom, flush to screen edge */}
       <div 
         className="bg-white border-t shadow-lg flex-shrink-0" 
         style={{ 
@@ -2283,8 +2256,9 @@ export function ChatTab({
           bottom: 0,
           left: 0,
           right: 0,
-          paddingBottom: 'env(safe-area-inset-bottom, 0)',
-          zIndex: 60
+          paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0))',
+          zIndex: 60,
+          boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)'
         }}
       >
         {/* Recording Indicator */}
@@ -2522,20 +2496,6 @@ export function ChatTab({
         </div>
         </div>
       </div>
-
-      {/* Floating Scroll to Top Button - Shows when scrolled down */}
-      {showScrollToTop && (
-        <Button
-          onClick={handleScrollToTop}
-          className="fixed right-4 sm:right-6 z-[100] w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl bg-primary hover:bg-primary/90 text-primary-foreground animate-fade-in border-2 border-white"
-          style={{
-            bottom: 'calc(100px + env(safe-area-inset-bottom, 0px))'
-          }}
-          size="icon"
-        >
-          <ChevronUp className="w-6 h-6 sm:w-7 sm:h-7" />
-        </Button>
-      )}
 
       {/* Fullscreen Media Preview */}
       {fullscreenMedia && (
