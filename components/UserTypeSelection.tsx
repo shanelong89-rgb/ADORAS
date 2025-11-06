@@ -11,7 +11,15 @@ interface UserTypeSelectionProps {
 
 export function UserTypeSelection({ onSelect, onBack }: UserTypeSelectionProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-2 sm:p-4 animate-fade-in relative" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+    <div 
+      className="flex items-start justify-center p-2 sm:p-4 animate-fade-in relative" 
+      style={{ 
+        backgroundColor: 'rgb(245, 249, 233)',
+        minHeight: '100svh',
+        paddingTop: 'max(8rem, calc(env(safe-area-inset-top) + 6rem))',
+        paddingBottom: 'env(safe-area-inset-bottom, 1rem)'
+      }}
+    >
       {/* Timeline at the top */}
       <div className="absolute top-4 sm:top-8 left-1/2 transform -translate-x-1/2 z-10 w-full max-w-[90vw] md:max-w-none md:w-auto">
         <div className="flex items-start justify-between md:gap-1">
