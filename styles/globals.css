@@ -123,8 +123,8 @@
   }
 
   body {
-    background-color: #36453B !important;
-    color: rgb(54, 69, 59) !important;
+    background-color: rgb(245, 249, 233);
+    color: rgb(54, 69, 59);
   }
   
   /* iOS PWA Fullscreen Support */
@@ -133,7 +133,6 @@
     width: 100%;
     margin: 0;
     padding: 0;
-    background-color: #36453B;
     /* Prevent pull-to-refresh and overscroll on iOS PWA */
     overscroll-behavior: none;
     touch-action: manipulation;
@@ -145,7 +144,6 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background-color: #36453B;
     /* Prevent pull-to-refresh and overscroll on iOS PWA */
     overscroll-behavior: none;
     position: fixed;
@@ -162,7 +160,6 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background-color: #36453B;
   }
   
   /* iOS standalone mode specific styles */
