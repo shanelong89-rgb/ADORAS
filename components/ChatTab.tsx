@@ -242,263 +242,12 @@ export function ChatTab({
     checkMicPermission();
   }, []);
 
-  // Use clean scroll detection hook
+  // Use clean scroll detection hook for dashboard show/hide
   useChatScrollDetection({
     onScrollUp,
     onScrollDown,
     scrollContainerRef: scrollAreaRef
   });
-
-  // OLD SCROLL DETECTION CODE - DISABLED
-  // Replaced with useChatScrollDetection hook above
-  /*
-  useEffect(() => {
-    if (!onScrollUp) {
-      console.warn('⚠️ ChatTab: onScrollUp callback is NOT defined!');
-      return;
-    }
-    
-    console.log('✅ ChatTab: onScrollUp callback IS defined, setting up scroll detection...');
-
-    let scrollViewport: Element | null = null;
-    let handleScroll: (() => void) | null = null;
-    let handleTouchStart: ((e: TouchEvent) => void) | null = null;
-    let handleTouchMove: ((e: TouchEvent) => void) | null = null;
-    let touchStartY = 0;
-    let touchStartScrollTop = 0;
-
-    // Give ScrollArea time to mount and find its viewport
-    const timer = setTimeout(() => {
-      // Try multiple selectors to find the scroll viewport
-      scrollViewport = 
-        scrollAreaRef.current?.querySelector('[data-slot="scroll-area-viewport"]') ||
-        scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') ||
-        document.querySelector('[data-slot="scroll-area-viewport"]') ||
-        document.querySelector('[data-radix-scroll-area-viewport]');
-      
-      if (!scrollViewport) {
-        console.warn('❌ ChatTab: ScrollArea viewport not found for scroll detection');
-        console.log('ChatTab: scrollAreaRef.current:', scrollAreaRef.current);
-        console.log('ChatTab: Searching in document...');
-        console.log('ChatTab: All elements with data-slot:', document.querySelectorAll('[data-slot]'));
-        
-        // FALLBACK: Add detection to the entire chat container
-        if (scrollAreaRef.current) {
-          console.log('🔧 ChatTab: Using FALLBACK - attaching to scrollAreaRef.current');
-          const fallbackElement = scrollAreaRef.current;
-          
-          let fallbackTouchStartY = 0;
-          const fallbackTouchStart = (e: TouchEvent) => {
-            fallbackTouchStartY = e.touches[0].clientY;
-            console.log('🟢 FALLBACK TOUCHSTART:', fallbackTouchStartY);
-          };
-          
-          const fallbackTouchMove = (e: TouchEvent) => {
-            const touchY = e.touches[0].clientY;
-            const touchDelta = touchY - fallbackTouchStartY;
-            console.log('🔵 FALLBACK TOUCHMOVE:', { touchY, touchDelta, willShowDashboard: touchDelta > 0 });
-            
-            // ANY upward finger motion = show dashboard
-            if (touchDelta > 0) {
-              console.log('🎯 FALLBACK: Upward scroll detected, calling onScrollUp()');
-              if (onScrollUp) onScrollUp();
-            } else if (touchDelta < -10) {
-              console.log('⬇️ FALLBACK: Downward scroll detected, calling onScrollDown()');
-              if (onScrollDown) onScrollDown();
-            }
-            
-            fallbackTouchStartY = touchY; // Update for continuous tracking
-          };
-          
-          fallbackElement.addEventListener('touchstart', fallbackTouchStart, { passive: true, capture: true });
-          fallbackElement.addEventListener('touchmove', fallbackTouchMove, { passive: true, capture: true });
-          console.log('✅ FALLBACK: Event listeners attached to chat container');
-          
-          return () => {
-            fallbackElement.removeEventListener('touchstart', fallbackTouchStart, { capture: true } as any);
-            fallbackElement.removeEventListener('touchmove', fallbackTouchMove, { capture: true } as any);
-          };
-        }
-        
-        return;
-      }
-
-      console.log('✅ ChatTab: Scroll viewport FOUND:', scrollViewport);
-      console.log('✅ ChatTab: Viewport element:', scrollViewport.tagName, scrollViewport.className);
-      console.log('✅ ChatTab: Initial scrollTop:', scrollViewport.scrollTop);
-      console.log('✅ ChatTab: Scroll detection initialized successfully (scroll + touch)');
-
-      // Scroll handler - works for desktop AND mobile (mobile fires scroll after touch)
-      handleScroll = () => {
-        const currentScrollTop = scrollViewport!.scrollTop;
-        
-        console.log('📜 ChatTab SCROLL event:', {
-          currentScrollTop,
-          lastScrollTop: lastScrollTop.current,
-          delta: currentScrollTop - lastScrollTop.current,
-          isUpward: currentScrollTop < lastScrollTop.current,
-          isDownward: currentScrollTop > lastScrollTop.current
-        });
-        
-        // Instant response: ANY upward scroll motion shows dashboard immediately
-        if (currentScrollTop < lastScrollTop.current) {
-          console.log('🎯 ChatTab: Upward scroll detected (SCROLL EVENT), calling onScrollUp()');
-          if (onScrollUp) onScrollUp();
-        }
-        // Downward scroll hides dashboard
-        else if (currentScrollTop > lastScrollTop.current) {
-          console.log('⬇️ ChatTab: Downward scroll detected (SCROLL EVENT), calling onScrollDown()');
-          if (onScrollDown) onScrollDown();
-        }
-        
-        lastScrollTop.current = currentScrollTop;
-      };
-
-      // Mobile touch handlers - ULTRA SENSITIVE with EXTENSIVE DEBUG
-      handleTouchStart = (e: TouchEvent) => {
-        touchStartY = e.touches[0].clientY;
-        touchStartScrollTop = scrollViewport!.scrollTop;
-        console.log('🟢 ChatTab TOUCHSTART:', {
-          touchY: touchStartY,
-          scrollTop: touchStartScrollTop
-        });
-      };
-
-      handleTouchMove = (e: TouchEvent) => {
-        const touchY = e.touches[0].clientY;
-        const touchDelta = touchY - touchStartY; // Positive = finger moving down (scrolling up)
-        const currentScrollTop = scrollViewport!.scrollTop;
-        
-        console.log('🔵 ChatTab TOUCHMOVE:', {
-          touchY,
-          touchStartY,
-          touchDelta,
-          currentScrollTop,
-          touchStartScrollTop,
-          lastScrollTop: lastScrollTop.current,
-          willTriggerUp: touchDelta > 0 || currentScrollTop < lastScrollTop.current,
-          willTriggerDown: touchDelta < -5 || currentScrollTop > lastScrollTop.current + 5
-        });
-        
-        // HYPER-SENSITIVE: ANY upward scroll motion shows dashboard INSTANTLY
-        // Method 1: ANY downward finger movement (even 1px) = scrolling up content
-        if (touchDelta > 0) {
-          console.log('🎯 ChatTab: Upward scroll detected (finger moved down), calling onScrollUp()');
-          if (onScrollUp) onScrollUp();
-        }
-        // Downward finger movement (scrolling down content) hides dashboard
-        else if (touchDelta < -5) {  // Small threshold to avoid jitter
-          console.log('⬇️ ChatTab: Downward scroll detected (finger moved up), calling onScrollDown()');
-          if (onScrollDown) onScrollDown();
-        }
-        
-        // Method 2: ANY decrease in scrollTop position  
-        if (currentScrollTop < lastScrollTop.current) {
-          console.log('🎯 ChatTab: Upward scroll detected (scrollTop decreased), calling onScrollUp()');
-          if (onScrollUp) onScrollUp();
-        }
-        // Increase in scrollTop (scrolling down) hides dashboard
-        else if (currentScrollTop > lastScrollTop.current + 5) {  // Small threshold
-          console.log('⬇️ ChatTab: Downward scroll detected (scrollTop increased), calling onScrollDown()');
-          if (onScrollDown) onScrollDown();
-        }
-        
-        // Method 3: Scroll position changed from touch start
-        if (currentScrollTop < touchStartScrollTop) {
-          console.log('🎯 ChatTab: Upward scroll detected (vs touchStart position), calling onScrollUp()');
-          if (onScrollUp) onScrollUp();
-        }
-        else if (currentScrollTop > touchStartScrollTop + 5) {
-          console.log('⬇️ ChatTab: Downward scroll detected (vs touchStart position), calling onScrollDown()');
-          if (onScrollDown) onScrollDown();
-        }
-        
-        lastScrollTop.current = currentScrollTop;
-      };
-
-      // Add all event listeners - try BOTH bubble and capture phase
-      // Scroll events (bubble phase only)
-      scrollViewport.addEventListener('scroll', handleScroll, { passive: true });
-      
-      // Touch events - try CAPTURE phase first (intercepts before Radix can stop propagation)
-      scrollViewport.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
-      scrollViewport.addEventListener('touchmove', handleTouchMove, { passive: true, capture: true });
-      
-      console.log('✅ ChatTab: Event listeners ATTACHED (scroll + touch with CAPTURE)');
-      console.log('✅ ChatTab: Listeners on element:', scrollViewport);
-      console.log('✅ ChatTab: Ready to detect scroll/touch events');
-      
-      // Test if touch events work at all (both phases)
-      scrollViewport.addEventListener('touchstart', () => {
-        console.log('🧪 TEST: touchstart BUBBLE phase');
-      }, { passive: true, once: true });
-      
-      scrollViewport.addEventListener('touchstart', () => {
-        console.log('🧪 TEST: touchstart CAPTURE phase');
-      }, { passive: true, once: true, capture: true });
-    }, 100);
-
-    // Cleanup function - remove both capture and bubble listeners
-    return () => {
-      clearTimeout(timer);
-      if (scrollViewport) {
-        if (handleScroll) scrollViewport.removeEventListener('scroll', handleScroll);
-        if (handleTouchStart) {
-          scrollViewport.removeEventListener('touchstart', handleTouchStart, { capture: true } as any);
-        }
-        if (handleTouchMove) {
-          scrollViewport.removeEventListener('touchmove', handleTouchMove, { capture: true } as any);
-        }
-      }
-    };
-  }, [onScrollUp, onScrollDown]);
-
-  // ULTIMATE FALLBACK: Window-level touch detection that ALWAYS works
-  // This is a last-resort safety net if ScrollArea detection fails
-  useEffect(() => {
-    let windowTouchStartY = 0;
-    let windowTouchStartTime = 0;
-    
-    const handleWindowTouchStart = (e: TouchEvent) => {
-      windowTouchStartY = e.touches[0].clientY;
-      windowTouchStartTime = Date.now();
-      console.log('🌍 WINDOW TOUCHSTART:', windowTouchStartY);
-    };
-    
-    const handleWindowTouchMove = (e: TouchEvent) => {
-      const touchY = e.touches[0].clientY;
-      const touchDelta = touchY - windowTouchStartY;
-      const timeDelta = Date.now() - windowTouchStartTime;
-      
-      console.log('🌍 WINDOW TOUCHMOVE:', { 
-        touchY, 
-        touchDelta, 
-        timeDelta,
-        velocity: touchDelta / timeDelta,
-        willShowDashboard: touchDelta > 0
-      });
-      
-      // ANY upward finger motion = show dashboard (even 1px!)
-      if (touchDelta > 0) {
-        console.log('🎯 WINDOW: Upward scroll detected, calling onScrollUp()');
-        if (onScrollUp) onScrollUp();
-      } else if (touchDelta < -10) {
-        console.log('⬇️ WINDOW: Downward scroll detected, calling onScrollDown()');
-        if (onScrollDown) onScrollDown();
-      }
-    };
-    
-    // Add window-level listeners as absolute fallback
-    window.addEventListener('touchstart', handleWindowTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleWindowTouchMove, { passive: true });
-    console.log('✅ WINDOW: Global touch listeners added as ultimate fallback');
-    
-    return () => {
-      window.removeEventListener('touchstart', handleWindowTouchStart);
-      window.removeEventListener('touchmove', handleWindowTouchMove);
-    };
-  }, [onScrollUp, onScrollDown]);
-  */
 
   // Deleted memories are removed from the database and won't appear in the memories array
   // No need to track them locally
@@ -519,19 +268,15 @@ export function ChatTab({
       });
       
       if (!scrollViewport) {
-        console.log('ChatTab ScrollArea viewport not found, found', scrollViewports.length, 'viewports');
+        console.log('ChatTab ScrollArea viewport not found for scroll button');
         return;
       }
 
-      console.log('Found ChatTab ScrollArea viewport, setting up scroll detection');
+      console.log('Found ChatTab ScrollArea viewport, setting up scroll-to-top button detection');
 
       const handleScroll = () => {
         const scrollTop = scrollViewport!.scrollTop;
         const shouldShow = scrollTop > 300;
-        // Only log when state changes
-        if (shouldShow !== showScrollToTop) {
-          console.log('Scroll position:', scrollTop, 'Show button:', shouldShow);
-        }
         setShowScrollToTop(shouldShow);
       };
 
@@ -547,8 +292,10 @@ export function ChatTab({
     return () => clearTimeout(timer);
   }, []); // No dependencies - set up once on mount
 
-  // Auto-scroll to bottom when messages change or component loads
+  // Auto-scroll to bottom when new messages are added
   useEffect(() => {
+    if (memories.length === 0) return;
+    
     const timer = setTimeout(() => {
       // Find the ScrollArea viewport
       const scrollViewports = document.querySelectorAll('[data-slot="scroll-area-viewport"]');
@@ -562,17 +309,21 @@ export function ChatTab({
       });
       
       if (scrollViewport) {
-        // Scroll to bottom (instant on first load, smooth on updates)
-        const isFirstLoad = memories.length > 0 && scrollViewport.scrollTop === 0;
-        scrollViewport.scrollTo({
-          top: scrollViewport.scrollHeight,
-          behavior: isFirstLoad ? 'instant' : 'smooth'
-        });
+        // Check if user is near bottom (within 200px)
+        const isNearBottom = scrollViewport.scrollHeight - scrollViewport.scrollTop - scrollViewport.clientHeight < 200;
+        
+        // Only auto-scroll if user is already near the bottom (to not interrupt reading)
+        if (isNearBottom || scrollViewport.scrollTop === 0) {
+          scrollViewport.scrollTo({
+            top: scrollViewport.scrollHeight,
+            behavior: scrollViewport.scrollTop === 0 ? 'instant' : 'smooth'
+          });
+        }
       }
-    }, 200);
+    }, 150);
     
     return () => clearTimeout(timer);
-  }, [memories.length]);
+  }, [memories]); // Trigger on any memory change, not just length
 
   // Scroll to bottom on initial mount
   useEffect(() => {
@@ -2447,7 +2198,7 @@ export function ChatTab({
         ref={scrollAreaRef}
         className={`flex-1 px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
         style={{ 
-          paddingBottom: 'calc(180px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(200px + env(safe-area-inset-bottom, 0px))',
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
