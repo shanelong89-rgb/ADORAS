@@ -514,7 +514,14 @@ export function Dashboard({
       {/* Extended background container that goes behind notch */}
       <div className="fixed inset-0 -top-20 -z-10" style={{ backgroundColor: 'rgb(245, 249, 233)' }}></div>
       
-      <div className="h-full w-full animate-fade-in flex flex-col overflow-hidden" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+      <div 
+        className="h-full w-full animate-fade-in flex flex-col overflow-y-auto overflow-x-hidden" 
+        style={{ 
+          backgroundColor: 'rgb(245, 249, 233)',
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y'
+        }}
+      >
         {/* Safari Install Banner - Shows on iOS Safari when not installed */}
         <SafariInstallBanner />
         
