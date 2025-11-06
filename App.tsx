@@ -159,8 +159,7 @@ export default function App() {
     return (
       <ErrorBoundary>
         <div className="fixed inset-0 overflow-y-auto" style={{
-          height: '100vh',
-          paddingTop: 'env(safe-area-inset-top)',
+          paddingTop: 'env(safe-area-inset-top, 0)',
           paddingBottom: 'env(safe-area-inset-bottom, 0)',
           backgroundColor: 'rgb(245, 249, 233)'
         }}>
@@ -180,8 +179,7 @@ export default function App() {
     return (
       <ErrorBoundary>
         <div className="fixed inset-0 overflow-y-auto" style={{
-          height: '100vh',
-          paddingTop: 'env(safe-area-inset-top)',
+          paddingTop: 'env(safe-area-inset-top, 0)',
           paddingBottom: 'env(safe-area-inset-bottom, 0)',
           backgroundColor: 'rgb(245, 249, 233)'
         }}>
