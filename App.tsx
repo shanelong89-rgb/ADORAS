@@ -212,9 +212,6 @@ export default function App() {
     <ErrorBoundary>
       <div 
         className="h-full w-full flex flex-col"
-        style={{ 
-          backgroundColor: 'rgb(245, 249, 233)'
-        }}
       >
         <AuthProvider>
           <AppContent />
