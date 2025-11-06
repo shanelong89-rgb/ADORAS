@@ -213,8 +213,6 @@ export default function App() {
       <div 
         className="w-full flex flex-col"
         style={{
-          paddingTop: 'max(4rem, calc(env(safe-area-inset-top) + 3rem))',
-          paddingBottom: 0,
           minHeight: '100vh'
         }}
       >
