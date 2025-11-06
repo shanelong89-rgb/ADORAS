@@ -246,6 +246,31 @@ export function ChatTab({
     }
   }, [memories]);
 
+  // ========================================================================
+  // 🎯 CRITICAL FIX: AUTO-SCROLL TO NEW MESSAGES
+  // ========================================================================
+  // This is the ONLY auto-scroll effect for new messages - no duplicates!
+  useEffect(() => {
+    // Skip if no messages
+    if (memories.length === 0) return;
+    
+    // Find the scroll viewport using consistent selector
+    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (!scrollViewport) return;
+    
+    // Calculate distance from bottom
+    const distanceFromBottom = scrollViewport.scrollHeight - scrollViewport.scrollTop - scrollViewport.clientHeight;
+    const isNearBottom = distanceFromBottom < 200; // Within 200px of bottom
+    
+    // Only auto-scroll if user is near bottom (doesn't interrupt reading old messages)
+    if (isNearBottom && messagesEndRef.current) {
+      // Small delay to ensure DOM has updated
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 100);
+    }
+  }, [memories.length]); // Trigger when memory count changes (new message added)
+
   // Check microphone permission status on mount
   useEffect(() => {
     const checkMicPermission = async () => {
