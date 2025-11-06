@@ -284,7 +284,7 @@ export function ChatTab({
     if (memories.length === 0) return;
     
     // Find the scroll viewport using consistent selector
-    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    const scrollViewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
     if (!scrollViewport) return;
     
     // Calculate distance from bottom
@@ -292,12 +292,14 @@ export function ChatTab({
     const isNearBottom = distanceFromBottom < 300; // Increased from 200px to 300px (accounts for prompt headers)
     
     // Only auto-scroll if user is near bottom (doesn't interrupt reading old messages)
-    if (isNearBottom && messagesEndRef.current) {
-      // Longer delay to ensure prompt headers have rendered
+    if (isNearBottom) {
+      // FIXED: Use direct scrollTop instead of scrollIntoView to avoid input box overlap
       setTimeout(() => {
-        // Scroll to VERY bottom (past prompt headers and beige gap)
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
-      }, 150); // Increased from 100ms to 150ms
+        if (!scrollViewport) return;
+        // Scroll to ABSOLUTE bottom - scrollTop = scrollHeight ensures message is fully visible above input
+        scrollViewport.scrollTop = scrollViewport.scrollHeight;
+        console.log('📜 Auto-scrolled to bottom (new message)');
+      }, 150);
     }
   }, [memories.length]); // Trigger when memory count changes (new message added)
 
@@ -1529,22 +1531,44 @@ export function ChatTab({
   // Initial mount: ALWAYS scroll to bottom to show latest messages
   useEffect(() => {
     if (!hasScrolledInitiallyRef.current && chatMessages.length > 0) {
-      // Multiple attempts to ensure scroll happens
+      // Multiple attempts to ensure scroll happens - EXTENDED for reliability
       const timer1 = setTimeout(() => scrollToBottom('auto'), 100);
       const timer2 = setTimeout(() => scrollToBottom('auto'), 300);
-      const timer3 = setTimeout(() => {
+      const timer3 = setTimeout(() => scrollToBottom('auto'), 500);
+      const timer4 = setTimeout(() => {
         scrollToBottom('auto');
         prevMessageCountRef.current = chatMessages.length;
         hasScrolledInitiallyRef.current = true;
-      }, 600);
+        console.log('✅ ChatTab: Initial scroll to bottom complete');
+      }, 800); // Extended final scroll
       
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+        clearTimeout(timer4);
+      };
+    }
+  }, [chatMessages.length, scrollToBottom]);
+
+  // FIXED: Scroll to bottom when tab becomes visible or shouldScrollToBottom prop changes
+  useEffect(() => {
+    if (shouldScrollToBottom) {
+      // Multiple attempts for reliability - works even before initial scroll
+      const timer1 = setTimeout(() => scrollToBottom('auto'), 50);
+      const timer2 = setTimeout(() => scrollToBottom('auto'), 150);
+      const timer3 = setTimeout(() => {
+        scrollToBottom('auto');
+        onScrollToBottomComplete?.();
+        console.log('✅ ChatTab: Scrolled to bottom (tab became visible)');
+      }, 300);
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
         clearTimeout(timer3);
       };
     }
-  }, [chatMessages.length, scrollToBottom]);
+  }, [shouldScrollToBottom, scrollToBottom, onScrollToBottomComplete]);
 
   // When activePrompt changes: scroll to top to show the prompt banner
   // OPTIMIZED: Minimal logging
