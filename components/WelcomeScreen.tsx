@@ -23,13 +23,19 @@ export function WelcomeScreen({ onNext, onLogin }: WelcomeScreenProps) {
   }, [isAuthenticated, isLoading, onNext]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden animate-fade-in bg-primary">
+    <div 
+      className="flex items-center justify-center relative overflow-hidden animate-fade-in bg-primary"
+      style={{
+        minHeight: '100vh',
+        minHeight: '-webkit-fill-available'
+      }}
+    >
       {/* Extended background container that goes behind notch */}
       <div className="fixed inset-0 -top-20">
         {/* Background plant image */}
         <motion.div 
           className="absolute inset-0 bg-cover bg-center opacity-40"
-          style={{ backgroundImage: `url(https://images.unsplash.com/photo-1593309556524-350239b6ac10?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080)` }}
+          style={{ backgroundImage: `url(https://cdn.shopify.com/s/files/1/0504/5963/9996/files/ADORAS__HOMEPAGE_-_illustrationImage.png?v=1762405230)` }}
           animate={{
             scale: [1, 1.1, 1],
             x: [0, -20, 0],
@@ -47,7 +53,15 @@ export function WelcomeScreen({ onNext, onLogin }: WelcomeScreenProps) {
       </div>
       
       {/* Content container with safe area padding */}
-      <div className="relative w-full min-h-screen flex items-center justify-center p-2 sm:p-4" style={{ paddingTop: 'max(env(safe-area-inset-top), 0.5rem)' }}>
+      <div 
+        className="relative w-full flex items-center justify-center p-2 sm:p-4" 
+        style={{ 
+          minHeight: '100vh',
+          minHeight: '-webkit-fill-available',
+          paddingTop: 'max(1rem, env(safe-area-inset-top))',
+          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
+        }}
+      >
         {/* Corner frame decorations */}
         <div className="absolute top-3 left-3 sm:top-4 sm:left-4 w-4 h-4 sm:w-6 sm:h-6 border-l-2 border-t-2 border-white/50"></div>
         <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 w-4 h-4 sm:w-6 sm:h-6 border-l-2 border-b-2 border-white/50"></div>
@@ -57,11 +71,12 @@ export function WelcomeScreen({ onNext, onLogin }: WelcomeScreenProps) {
         <div className="relative w-full max-w-md text-center space-y-3 sm:space-y-6 px-4 sm:px-6 py-4 sm:py-8 animate-scale-in rounded-[1px]">
           {/* Adoras Logo */}
           <div className="flex justify-center mt-0 mb-4 sm:mb-[10px]">
-            <div className="w-32 h-32 sm:w-45 sm:h-45 flex items-center justify-center mb-8 sm:mb-[100px]">
-              <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
-                <circle cx="50" cy="50" r="45" fill="rgb(245, 249, 233)" opacity="0.9"/>
-                <text x="50" y="60" fontSize="36" fontWeight="700" fill="rgb(54, 69, 59)" textAnchor="middle" fontFamily="Archivo">A</text>
-              </svg>
+            <div className="w-full max-w-[180px] sm:max-w-[240px] mb-8 sm:mb-[100px]">
+              <img 
+                src="https://cdn.shopify.com/s/files/1/0504/5963/9996/files/ADORASLogo-1-white.png?v=1762417593" 
+                alt="Adoras Logo" 
+                className="w-full h-auto object-contain drop-shadow-2xl"
+              />
             </div>
           </div>
 
