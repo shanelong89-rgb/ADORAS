@@ -112,10 +112,12 @@ export function Dashboard({
   
   // Memoized scroll callbacks to prevent ChatTab from re-rendering constantly
   const handleScrollUp = useCallback(() => {
+    console.log('✅ Dashboard: handleScrollUp called - SHOWING header');
     setShowHeader(true);
   }, []);
   
   const handleScrollDown = useCallback(() => {
+    console.log('⬇️ Dashboard: handleScrollDown called - HIDING header');
     setShowHeader(false);
   }, []);
   const [lastChatReadTimestamp, setLastChatReadTimestamp] = useState<number>(() => {
