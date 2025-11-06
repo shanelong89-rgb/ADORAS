@@ -101,7 +101,6 @@ export function useChatScrollDetection({
               if (delta < 0) { // ANY upward scroll = instant header show
                 if (scrollTimeout) clearTimeout(scrollTimeout);
                 if (!isUnmounted.current) {
-                  console.log('🎯 Scroll UP detected - showing header');
                   onScrollUp?.();
                 }
                 lastScrollY.current = currentScrollY;
@@ -152,13 +151,12 @@ export function useChatScrollDetection({
               const deltaY = touchStartY.current - touchY;
               
               // INSTANT header show on ANY swipe down (reduced threshold)
-              if (deltaY < -10) { // Swipe down = scroll up (INSTANT!)
+              if (deltaY < -5) { // Swipe down = scroll up (INSTANT! - reduced from -10)
                 isProcessingTouch.current = true;
                 if (!isUnmounted.current) {
-                  console.log('🎯 Swipe DOWN detected - showing header');
                   onScrollUp?.();
                 }
-              } else if (deltaY > 50) { // Swipe up = scroll down
+              } else if (deltaY > 40) { // Swipe up = scroll down (reduced from 50)
                 isProcessingTouch.current = true;
                 if (!isUnmounted.current) {
                   onScrollDown?.();
