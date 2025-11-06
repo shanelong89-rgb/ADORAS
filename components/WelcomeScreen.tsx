@@ -31,7 +31,7 @@ export function WelcomeScreen({ onNext, onLogin }: WelcomeScreenProps) {
       }}
     >
       {/* Extended background container that goes behind notch */}
-      <div className="fixed inset-0 -top-20">
+      <div className="fixed inset-0 -top-20 bg-primary">
         {/* Background plant image */}
         <motion.div 
           className="absolute inset-0 bg-cover bg-center opacity-40"
