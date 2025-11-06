@@ -571,9 +571,9 @@ export function Dashboard({
                     <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="bg-[#36453B] flex flex-col border-l-0">
+                <SheetContent className="bg-[#36453B] flex flex-col border-l-0 pt-0">
                   {/* Compressed Header */}
-                  <SheetHeader className="flex-shrink-0 px-4 sm:px-6 mb-3 sm:mb-4" style={{ marginTop: '1rem' }}>
+                  <SheetHeader className="flex-shrink-0 px-4 sm:px-6 mb-3 sm:mb-4" style={{ marginTop: 'max(1rem, calc(env(safe-area-inset-top) + 0.5rem))' }}>
                     <SheetTitle className="text-white text-base sm:text-lg" style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>Menu</SheetTitle>
                     <SheetDescription className="text-[#ECF0E2] text-xs sm:text-sm">
                       Settings & connected users
@@ -880,7 +880,17 @@ export function Dashboard({
           </div>
 
           {/* Tab Navigation Bar */}
-          <div className="bg-card/80 backdrop-blur-md border-b border-border/20">
+          <div 
+            className="bg-card/80 backdrop-blur-md border-b border-border/20"
+            style={{
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              paddingBottom: 'env(safe-area-inset-bottom, 0)',
+              zIndex: 50
+            }}
+          >
             <div className="grid grid-cols-3 gap-1.5 p-2 sm:p-2.5 max-w-4xl mx-auto px-5 sm:px-8 md:px-10 lg:px-12 xl:px-16">
               <button
                 onClick={() => handleTabChange('prompts')}
@@ -932,7 +942,12 @@ export function Dashboard({
         {/* End Unified Header + Tabs Sticky Container */}
 
         {/* Tab Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div 
+          className="flex-1 flex flex-col overflow-hidden" 
+          style={{ 
+            paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px))' 
+          }}
+        >
           {activeTab === 'prompts' && (
             <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
               <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-4 sm:pb-6">
