@@ -515,14 +515,14 @@ export function Dashboard({
       <div className="fixed inset-0 -top-20 -z-10" style={{ backgroundColor: 'rgb(245, 249, 233)' }}></div>
       
       <div 
-        className="h-full w-full animate-fade-in flex flex-col overflow-y-auto overflow-x-hidden" 
+        className="w-full animate-fade-in flex flex-col overflow-hidden" 
         style={{ 
           backgroundColor: 'rgb(245, 249, 233)',
-          WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y',
           maxWidth: '100vw',
           margin: '0 auto',
-          position: 'relative'
+          position: 'relative',
+          minHeight: '100vh',
+          height: '100vh'
         }}
       >
         {/* Safari Install Banner - Shows on iOS Safari when not installed */}
@@ -937,6 +937,7 @@ export function Dashboard({
         {/* Tab Content */}
         <div 
           className="flex-1 flex flex-col overflow-hidden"
+          style={{ minHeight: 0 }}
         >
           {activeTab === 'prompts' && (
             <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
@@ -953,7 +954,7 @@ export function Dashboard({
           )}
           
           {activeTab === 'chat' && (
-            <div className="m-0 p-0 flex-1 flex flex-col">
+            <div className="m-0 p-0 flex-1 flex flex-col" style={{ minHeight: 0 }}>
               <ChatTab 
                 userType={userType}
                 userProfile={userProfile}
