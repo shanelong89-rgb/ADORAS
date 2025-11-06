@@ -260,14 +260,15 @@ export function ChatTab({
     
     // Calculate distance from bottom
     const distanceFromBottom = scrollViewport.scrollHeight - scrollViewport.scrollTop - scrollViewport.clientHeight;
-    const isNearBottom = distanceFromBottom < 200; // Within 200px of bottom
+    const isNearBottom = distanceFromBottom < 300; // Increased from 200px to 300px (accounts for prompt headers)
     
     // Only auto-scroll if user is near bottom (doesn't interrupt reading old messages)
     if (isNearBottom && messagesEndRef.current) {
-      // Small delay to ensure DOM has updated
+      // Longer delay to ensure prompt headers have rendered
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }, 100);
+        // Scroll to VERY bottom (past prompt headers and beige gap)
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+      }, 150); // Increased from 100ms to 150ms
     }
   }, [memories.length]); // Trigger when memory count changes (new message added)
 
@@ -2150,12 +2151,12 @@ export function ChatTab({
         </div>
       )}
 
-      {/* Messages Area - Add bottom padding for fixed input */}
+      {/* Messages Area - INCREASED bottom padding to prevent hiding under input */}
       <ScrollArea 
         ref={scrollAreaRef}
         className={`flex-1 px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
         style={{ 
-          paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(180px + env(safe-area-inset-bottom, 0px))', // Increased from 120px to 180px
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
