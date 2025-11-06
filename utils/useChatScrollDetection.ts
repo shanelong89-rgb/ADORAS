@@ -7,8 +7,8 @@ interface UseChatScrollDetectionProps {
 }
 
 /**
- * OPTIMIZED for Vercel: Minimal logging, fast detection
- * Detects scroll direction in Chat tab for dashboard header visibility
+ * CRASH-PROOF: Detects scroll direction with defensive error handling
+ * Shows/hides dashboard header on scroll up/down
  */
 export function useChatScrollDetection({
   onScrollUp,
@@ -19,157 +19,216 @@ export function useChatScrollDetection({
   const touchStartY = useRef(0);
   const scrollViewportRef = useRef<Element | null>(null);
   const isProcessingTouch = useRef(false);
+  const isUnmounted = useRef(false); // Prevent operations after unmount
 
   useEffect(() => {
+    isUnmounted.current = false;
+    
     // Defensive: Don't setup if no callbacks or no ref
-    if (!onScrollUp || !onScrollDown || !scrollContainerRef) return;
+    if (!onScrollUp || !onScrollDown || !scrollContainerRef) {
+      return;
+    }
     
     // Wrap everything in try-catch to prevent crashes
     try {
+      let cleanupFn: (() => void) | null = null;
+      let attemptCount = 0;
+      const maxAttempts = 5; // Give it more tries
+      let retryTimeout: ReturnType<typeof setTimeout> | null = null;
 
-    let cleanupFn: (() => void) | null = null;
-    let attemptCount = 0;
-    const maxAttempts = 3; // Reduced from 10
-
-    const tryAttachListeners = () => {
-      attemptCount++;
-
-      // Find scroll viewport quickly
-      let scrollViewport: Element | null = null;
-      
-      const allViewports = [
-        ...Array.from(document.querySelectorAll('[data-slot="scroll-area-viewport"]')),
-        ...Array.from(document.querySelectorAll('[data-radix-scroll-area-viewport]'))
-      ];
-      
-      // Find ChatTab viewport by checking for conversation content
-      for (const vp of allViewports) {
-        const hasSpaceY = vp.classList.contains('space-y-6');
-        const hasConvoText = vp.textContent?.includes('Start a conversation');
-        const hasMemoryPrompt = vp.textContent?.includes('Reply to Previous Prompt');
-        
-        if (hasSpaceY && (hasConvoText || hasMemoryPrompt)) {
-          scrollViewport = vp;
-          break;
+      const tryAttachListeners = () => {
+        // CRITICAL: Check if unmounted before each attempt
+        if (isUnmounted.current) {
+          if (retryTimeout) clearTimeout(retryTimeout);
+          return;
         }
-      }
 
-      if (!scrollViewport && attemptCount < maxAttempts) {
-        setTimeout(tryAttachListeners, 100);
-        return;
-      }
-
-      if (!scrollViewport) return;
-
-      scrollViewportRef.current = scrollViewport;
-      lastScrollY.current = scrollViewport.scrollTop;
-
-      // DESKTOP: Scroll handler - INSTANT response, no throttle for upward scroll
-      let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
-      const handleScroll = () => {
         try {
-          if (!scrollViewportRef.current) return;
+          attemptCount++;
+
+          // Find scroll viewport - DEFENSIVE (doesn't crash on text changes)
+          let scrollViewport: Element | null = null;
           
-          const currentScrollY = scrollViewportRef.current.scrollTop;
-          const delta = currentScrollY - lastScrollY.current;
+          // 1. Try to get from ref first (most reliable)
+          if (scrollContainerRef.current && !isUnmounted.current) {
+            const viewport = scrollContainerRef.current.querySelector('[data-radix-scroll-area-viewport]');
+            if (viewport) {
+              scrollViewport = viewport;
+            }
+          }
           
-          // INSTANT header show on ANY upward scroll (no throttle, no threshold)
-          if (delta < 0) { // ANY upward scroll = instant header show
-            if (scrollTimeout) clearTimeout(scrollTimeout);
-            onScrollUp?.();
-            lastScrollY.current = currentScrollY;
+          // 2. Fallback: Find by looking for chat-specific class (more reliable than text)
+          if (!scrollViewport && !isUnmounted.current) {
+            const allViewports = document.querySelectorAll('[data-radix-scroll-area-viewport]');
+            for (const vp of Array.from(allViewports)) {
+              // Look for the space-y-4 div that contains messages
+              if (vp.querySelector('.space-y-4')) {
+                scrollViewport = vp;
+                break;
+              }
+            }
+          }
+
+          // 3. Retry if not found yet and not unmounted
+          if (!scrollViewport && attemptCount < maxAttempts && !isUnmounted.current) {
+            retryTimeout = setTimeout(tryAttachListeners, 150); // Slightly longer delay
             return;
           }
-          
-          // Throttle ONLY for downward scroll
-          if (scrollTimeout) return;
-          
-          scrollTimeout = setTimeout(() => {
-            if (!scrollViewportRef.current) return;
-            
-            const newScrollY = scrollViewportRef.current.scrollTop;
-            const newDelta = newScrollY - lastScrollY.current;
-            
-            if (newDelta > 20) {
-              onScrollDown?.();
+
+          // 4. Give up gracefully if still not found or unmounted
+          if (!scrollViewport || isUnmounted.current) {
+            if (attemptCount >= maxAttempts) {
+              console.log('[ScrollDetection] Could not find scroll viewport - gracefully skipping setup');
             }
+            return;
+          }
+
+          scrollViewportRef.current = scrollViewport;
+          lastScrollY.current = scrollViewport.scrollTop || 0;
+
+          // DESKTOP: Scroll handler - INSTANT response, no throttle for upward scroll
+          let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+          const handleScroll = () => {
+            if (isUnmounted.current) return; // CRITICAL: Check unmount status
             
-            lastScrollY.current = newScrollY;
-            scrollTimeout = null;
-          }, 50);
-        } catch (error) {
-          // Prevent crashes - silently fail
-          console.error('[ScrollDetection] Scroll handler error:', error);
-        }
-      };
+            try {
+              if (!scrollViewportRef.current) return;
+              
+              const currentScrollY = scrollViewportRef.current.scrollTop;
+              const delta = currentScrollY - lastScrollY.current;
+              
+              // INSTANT header show on ANY upward scroll (no throttle, no threshold)
+              if (delta < 0) { // ANY upward scroll = instant header show
+                if (scrollTimeout) clearTimeout(scrollTimeout);
+                if (!isUnmounted.current) {
+                  console.log('🎯 Scroll UP detected - showing header');
+                  onScrollUp?.();
+                }
+                lastScrollY.current = currentScrollY;
+                return;
+              }
+              
+              // Throttle ONLY for downward scroll
+              if (scrollTimeout) return;
+              
+              scrollTimeout = setTimeout(() => {
+                if (isUnmounted.current || !scrollViewportRef.current) return;
+                
+                const newScrollY = scrollViewportRef.current.scrollTop;
+                const newDelta = newScrollY - lastScrollY.current;
+                
+                if (newDelta > 20 && !isUnmounted.current) {
+                  onScrollDown?.();
+                }
+                
+                lastScrollY.current = newScrollY;
+                scrollTimeout = null;
+              }, 50);
+            } catch (error) {
+              // Prevent crashes - silently fail
+              console.error('[ScrollDetection] Scroll handler error:', error);
+            }
+          };
 
-      // MOBILE: Touch handlers - INSTANT response for scroll up
-      const handleTouchStart = (e: TouchEvent) => {
-        try {
-          touchStartY.current = e.touches[0].clientY;
-          isProcessingTouch.current = false;
-        } catch (error) {
-          console.error('[ScrollDetection] Touch start error:', error);
-        }
-      };
+          // MOBILE: Touch handlers - INSTANT response for scroll up
+          const handleTouchStart = (e: TouchEvent) => {
+            if (isUnmounted.current) return;
+            
+            try {
+              touchStartY.current = e.touches[0]?.clientY || 0;
+              isProcessingTouch.current = false;
+            } catch (error) {
+              console.error('[ScrollDetection] Touch start error:', error);
+            }
+          };
 
-      const handleTouchMove = (e: TouchEvent) => {
-        try {
-          if (isProcessingTouch.current) return;
-          
-          const touchY = e.touches[0].clientY;
-          const deltaY = touchStartY.current - touchY;
-          
-          // INSTANT header show on ANY swipe down (reduced threshold)
-          if (deltaY < -10) { // Swipe down = scroll up (INSTANT!)
-            isProcessingTouch.current = true;
-            onScrollUp?.();
-          } else if (deltaY > 50) { // Swipe up = scroll down
-            isProcessingTouch.current = true;
-            onScrollDown?.();
+          const handleTouchMove = (e: TouchEvent) => {
+            if (isUnmounted.current) return;
+            
+            try {
+              if (isProcessingTouch.current || !e.touches[0]) return;
+              
+              const touchY = e.touches[0].clientY;
+              const deltaY = touchStartY.current - touchY;
+              
+              // INSTANT header show on ANY swipe down (reduced threshold)
+              if (deltaY < -10) { // Swipe down = scroll up (INSTANT!)
+                isProcessingTouch.current = true;
+                if (!isUnmounted.current) {
+                  console.log('🎯 Swipe DOWN detected - showing header');
+                  onScrollUp?.();
+                }
+              } else if (deltaY > 50) { // Swipe up = scroll down
+                isProcessingTouch.current = true;
+                if (!isUnmounted.current) {
+                  onScrollDown?.();
+                }
+              }
+            } catch (error) {
+              console.error('[ScrollDetection] Touch move error:', error);
+            }
+          };
+
+          const handleTouchEnd = () => {
+            if (isUnmounted.current) return;
+            
+            try {
+              isProcessingTouch.current = false;
+            } catch (error) {
+              console.error('[ScrollDetection] Touch end error:', error);
+            }
+          };
+
+          // Attach listeners ONLY if not unmounted
+          if (!isUnmounted.current && scrollViewport) {
+            scrollViewport.addEventListener('scroll', handleScroll, { passive: true });
+            scrollViewport.addEventListener('touchstart', handleTouchStart, { passive: true });
+            scrollViewport.addEventListener('touchmove', handleTouchMove, { passive: true });
+            scrollViewport.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+            // Cleanup function
+            cleanupFn = () => {
+              if (scrollTimeout) clearTimeout(scrollTimeout);
+              if (retryTimeout) clearTimeout(retryTimeout);
+              if (scrollViewportRef.current) {
+                try {
+                  scrollViewportRef.current.removeEventListener('scroll', handleScroll);
+                  scrollViewportRef.current.removeEventListener('touchstart', handleTouchStart);
+                  scrollViewportRef.current.removeEventListener('touchmove', handleTouchMove);
+                  scrollViewportRef.current.removeEventListener('touchend', handleTouchEnd);
+                } catch (error) {
+                  // Ignore cleanup errors
+                }
+              }
+              scrollViewportRef.current = null;
+            };
           }
         } catch (error) {
-          console.error('[ScrollDetection] Touch move error:', error);
+          console.error('[ScrollDetection] tryAttachListeners error:', error);
         }
       };
-
-      const handleTouchEnd = () => {
-        try {
-          isProcessingTouch.current = false;
-        } catch (error) {
-          console.error('[ScrollDetection] Touch end error:', error);
-        }
-      };
-
-      // Attach listeners
-      scrollViewport.addEventListener('scroll', handleScroll, { passive: true });
-      scrollViewport.addEventListener('touchstart', handleTouchStart, { passive: true });
-      scrollViewport.addEventListener('touchmove', handleTouchMove, { passive: true });
-      scrollViewport.addEventListener('touchend', handleTouchEnd, { passive: true });
-
-      // Cleanup function
-      cleanupFn = () => {
-        if (scrollTimeout) clearTimeout(scrollTimeout);
-        if (scrollViewportRef.current) {
-          scrollViewportRef.current.removeEventListener('scroll', handleScroll);
-          scrollViewportRef.current.removeEventListener('touchstart', handleTouchStart);
-          scrollViewportRef.current.removeEventListener('touchmove', handleTouchMove);
-          scrollViewportRef.current.removeEventListener('touchend', handleTouchEnd);
-        }
-      };
-    };
 
       // Start trying to attach listeners
       tryAttachListeners();
 
       // Cleanup on unmount
       return () => {
-        if (cleanupFn) cleanupFn();
+        isUnmounted.current = true; // Mark as unmounted FIRST
+        if (retryTimeout) clearTimeout(retryTimeout);
+        if (cleanupFn) {
+          try {
+            cleanupFn();
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+        }
       };
     } catch (error) {
       // Silently fail to prevent crashes
       console.error('[ScrollDetection] Setup failed:', error);
-      return () => {}; // No-op cleanup
+      return () => {
+        isUnmounted.current = true;
+      };
     }
   }, [onScrollUp, onScrollDown, scrollContainerRef]);
 }
