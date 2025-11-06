@@ -199,9 +199,10 @@ export function ChatTab({
   }, [activePrompt]);
 
   // CRITICAL: Setup scroll detection to show/hide dashboard header
+  // This hook handles scroll events to show/hide the dashboard header
   useChatScrollDetection({
-    onScrollUp,
-    onScrollDown,
+    onScrollUp: onScrollUp || (() => {}),
+    onScrollDown: onScrollDown || (() => {}),
     scrollContainerRef: scrollAreaRef
   });
 
@@ -1540,99 +1541,44 @@ export function ChatTab({
   // Track previous message count to detect new messages
   const prevMessageCountRef = useRef<number>(0);
   const hasScrolledInitiallyRef = useRef<boolean>(false);
-  const lastChatReadRef = useRef<number>(0);
   
-  // Load last read timestamp for unread detection
-  useEffect(() => {
-    const connectionId = userType === 'keeper' ? partnerProfile?.id : userProfile.id;
-    if (connectionId) {
-      const stored = localStorage.getItem(`lastChatRead_${userProfile.id}_${connectionId}`);
-      lastChatReadRef.current = stored ? parseInt(stored) : 0;
-    }
-  }, [userType, userProfile.id, partnerProfile?.id]);
-  
-  // Helper function to scroll to bottom in the ScrollArea viewport
+  // SIMPLIFIED: Just scroll to bottom - no complex unread detection
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     try {
-      if (!scrollAreaRef?.current) return;
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        if (!scrollAreaRef?.current) return;
 
-      const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
-      if (!viewport || typeof viewport.scrollTo !== 'function') return;
+        const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+        if (!viewport) return;
 
-      // Scroll to the very bottom with padding adjustment
-      const scrollTarget = viewport.scrollHeight - viewport.clientHeight;
-      viewport.scrollTo({ top: scrollTarget, behavior });
+        // Scroll to absolute bottom
+        viewport.scrollTop = viewport.scrollHeight;
+      });
     } catch (error) {
-      // Silent fail in production
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Scroll error:', error);
-      }
+      // Silently fail
     }
   }, []);
-  
-  // Helper function to scroll to first unread message
-  const scrollToFirstUnread = useCallback(() => {
-    try {
-      if (!scrollAreaRef?.current) return false;
 
-      // Find first unread message
-      const firstUnreadIndex = chatMessages.findIndex(msg => {
-        const isFromPartner = msg.sender !== userType;
-        const isMessage = msg.type === 'text' || msg.type === 'voice';
-        const isUnread = msg.timestamp.getTime() > lastChatReadRef.current;
-        return isFromPartner && isMessage && isUnread;
-      });
-
-      if (firstUnreadIndex === -1) {
-        // No unread messages, scroll to bottom
-        scrollToBottom('smooth');
-        return false;
-      }
-
-      // Scroll to first unread message
-      const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
-      if (!viewport) return false;
-
-      // Get all message elements
-      const messageElements = viewport.querySelectorAll('[data-message-index]');
-      const unreadElement = Array.from(messageElements).find(
-        el => (el as HTMLElement).dataset.messageIndex === String(firstUnreadIndex)
-      ) as HTMLElement;
-
-      if (unreadElement) {
-        // Scroll to show the unread message at the top of the viewport
-        const offsetTop = unreadElement.offsetTop - 100; // 100px padding from top
-        viewport.scrollTo({ top: Math.max(0, offsetTop), behavior: 'smooth' });
-        return true;
-      }
-
-      // Fallback: scroll to bottom
-      scrollToBottom('smooth');
-      return false;
-    } catch (error) {
-      // Fallback: scroll to bottom
-      scrollToBottom('smooth');
-      return false;
-    }
-  }, [chatMessages, userType, scrollToBottom]);
-
-  // Initial mount: scroll to first UNREAD message or bottom
+  // Initial mount: ALWAYS scroll to bottom to show latest messages
   useEffect(() => {
     if (!hasScrolledInitiallyRef.current && chatMessages.length > 0) {
-      const timer = setTimeout(() => {
-        if (scrollAreaRef?.current) {
-          // Try to scroll to first unread, fallback to bottom
-          const hasUnread = scrollToFirstUnread();
-          if (!hasUnread) {
-            scrollToBottom('smooth');
-          }
-          prevMessageCountRef.current = chatMessages.length;
-          hasScrolledInitiallyRef.current = true;
-        }
-      }, 500); // Longer delay to ensure DOM is ready
-      return () => clearTimeout(timer);
+      // Multiple attempts to ensure scroll happens
+      const timer1 = setTimeout(() => scrollToBottom('auto'), 100);
+      const timer2 = setTimeout(() => scrollToBottom('auto'), 300);
+      const timer3 = setTimeout(() => {
+        scrollToBottom('auto');
+        prevMessageCountRef.current = chatMessages.length;
+        hasScrolledInitiallyRef.current = true;
+      }, 600);
+      
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+      };
     }
-  }, [chatMessages.length, scrollToBottom, scrollToFirstUnread]);
+  }, [chatMessages.length, scrollToBottom]);
 
   // When activePrompt changes: scroll to top to show the prompt banner
   // OPTIMIZED: Minimal logging
@@ -1650,46 +1596,30 @@ export function ChatTab({
     }
   }, [activePrompt]);
 
-  // When messages change: scroll to show new messages
+  // When NEW messages arrive: ALWAYS scroll to bottom
   useEffect(() => {
     if (hasScrolledInitiallyRef.current && chatMessages.length > prevMessageCountRef.current) {
-      const timer = setTimeout(() => {
-        if (scrollAreaRef?.current) {
-          // Always scroll to bottom when new message arrives
-          scrollToBottom('smooth');
-        }
-      }, 200); // Slight delay to let DOM update
+      // Immediate scroll + delayed scroll for reliability
+      scrollToBottom('auto');
+      const timer = setTimeout(() => scrollToBottom('smooth'), 100);
       
       prevMessageCountRef.current = chatMessages.length;
       return () => clearTimeout(timer);
     }
   }, [chatMessages.length, scrollToBottom]);
 
-  // Handle explicit scroll-to-bottom request from parent (e.g., from notifications)
+  // Handle explicit scroll-to-bottom request from parent (e.g., from notifications, tab switches)
   useEffect(() => {
     if (shouldScrollToBottom && scrollAreaRef?.current) {
+      // Immediate + delayed for reliability
+      scrollToBottom('auto');
       const timer = setTimeout(() => {
         scrollToBottom('smooth');
         onScrollToBottomComplete?.();
-      }, 300); // Longer delay for notification taps
+      }, 150);
       return () => clearTimeout(timer);
     }
   }, [shouldScrollToBottom, onScrollToBottomComplete, scrollToBottom]);
-  
-  // Re-scroll when tab becomes visible (switching back to chat)
-  useEffect(() => {
-    // When ChatTab mounts/becomes visible, check for unread and scroll
-    const timer = setTimeout(() => {
-      if (hasScrolledInitiallyRef.current && scrollAreaRef?.current) {
-        const hasUnread = scrollToFirstUnread();
-        if (!hasUnread) {
-          scrollToBottom('smooth');
-        }
-      }
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, []); // Empty deps = runs when component becomes visible
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2312,11 +2242,6 @@ export function ChatTab({
               const showPromptHeader = message.promptQuestion && 
                 (!prevMessage || prevMessage.promptQuestion !== message.promptQuestion);
               
-              // Detect if this message is unread
-              const isFromPartner = message.sender !== userType;
-              const isMessage = message.type === 'text' || message.type === 'voice';
-              const isUnread = isFromPartner && isMessage && message.timestamp.getTime() > lastChatReadRef.current;
-              
               return (
                 <React.Fragment key={message.id}>
                   {showPromptHeader && (
@@ -2334,9 +2259,7 @@ export function ChatTab({
                       </div>
                     </div>
                   )}
-                  <div data-message-index={index} data-message-id={message.id} data-unread={isUnread}>
-                    {renderMessage(message)}
-                  </div>
+                  {renderMessage(message)}
                 </React.Fragment>
               );
             })
