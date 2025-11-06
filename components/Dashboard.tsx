@@ -519,15 +519,18 @@ export function Dashboard({
         style={{ 
           backgroundColor: 'rgb(245, 249, 233)',
           WebkitOverflowScrolling: 'touch',
-          touchAction: 'pan-y'
+          touchAction: 'pan-y',
+          maxWidth: '100vw',
+          margin: '0 auto',
+          position: 'relative'
         }}
       >
         {/* Safari Install Banner - Shows on iOS Safari when not installed */}
         <SafariInstallBanner />
         
-        {/* Unified Header + Tabs Sticky Container */}
+        {/* Header + Tabs Container - Sticky at top, slides up when hidden */}
         <div 
-          className={`sticky top-0 z-50 transition-transform duration-300 ease-out ${
+          className={`sticky top-0 z-50 transition-transform duration-300 ease-out flex-shrink-0 ${
             showHeader ? 'translate-y-0' : '-translate-y-full'
           }`}
         >
@@ -879,18 +882,8 @@ export function Dashboard({
           </div>
           </div>
 
-          {/* Tab Navigation Bar */}
-          <div 
-            className="bg-card/80 backdrop-blur-md border-b border-border/20"
-            style={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              paddingBottom: 'env(safe-area-inset-bottom, 0)',
-              zIndex: 50
-            }}
-          >
+          {/* Tab Navigation Bar - Below header, part of sticky container */}
+          <div className="bg-card/80 backdrop-blur-md border-b border-border/20">
             <div className="grid grid-cols-3 gap-1.5 p-2 sm:p-2.5 max-w-4xl mx-auto px-5 sm:px-8 md:px-10 lg:px-12 xl:px-16">
               <button
                 onClick={() => handleTabChange('prompts')}
@@ -939,18 +932,15 @@ export function Dashboard({
             </div>
           </div>
         </div>
-        {/* End Unified Header + Tabs Sticky Container */}
+        {/* End Header + Tabs Container */}
 
         {/* Tab Content */}
         <div 
-          className="flex-1 flex flex-col overflow-hidden" 
-          style={{ 
-            paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px))' 
-          }}
+          className="flex-1 flex flex-col overflow-hidden"
         >
           {activeTab === 'prompts' && (
             <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-4 sm:pb-6">
+              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-8">
               <PromptsTab 
                 userType={userType}
                 partnerName={partnerProfile?.name}
@@ -984,7 +974,7 @@ export function Dashboard({
           
           {activeTab === 'media' && (
             <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-4 sm:pb-6">
+              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-8">
                 <MediaLibraryTab 
                   memories={validatedMemories}
                   userType={userType}
