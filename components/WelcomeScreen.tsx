@@ -26,7 +26,8 @@ export function WelcomeScreen({ onNext, onLogin }: WelcomeScreenProps) {
     <div 
       className="flex items-start justify-center relative overflow-hidden animate-fade-in bg-primary"
       style={{
-        minHeight: '100svh'
+        minHeight: '100svh',
+        height: '100svh'
       }}
     >
       {/* Extended background container that goes behind notch */}
@@ -53,11 +54,11 @@ export function WelcomeScreen({ onNext, onLogin }: WelcomeScreenProps) {
       
       {/* Content container with safe area padding */}
       <div 
-        className="relative w-full flex items-center justify-center p-2 sm:p-4 pt-20 sm:pt-24" 
+        className="relative w-full flex flex-col items-center justify-start p-2 sm:p-4" 
         style={{ 
           minHeight: '100svh',
-          paddingTop: 'max(5rem, env(safe-area-inset-top))',
-          paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
+          paddingTop: 'max(4rem, calc(env(safe-area-inset-top) + 2rem))',
+          paddingBottom: '0px'
         }}
       >
         {/* Corner frame decorations */}
