@@ -2209,7 +2209,7 @@ export function ChatTab({
         ref={scrollAreaRef}
         className={`flex-1 px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
         style={{ 
-          paddingBottom: 'calc(200px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))',
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
