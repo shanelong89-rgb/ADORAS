@@ -15,9 +15,7 @@ import { initPerformanceMonitoring } from './utils/performanceMonitor'; // Phase
 import { pwaInstaller } from './utils/pwaInstaller'; // PWA and Service Worker
 
 export type UserType = 'keeper' | 'teller' | null;
-
 export type AppLanguage = 'english' | 'spanish' | 'french' | 'chinese' | 'korean' | 'japanese';
-
 export interface UserProfile {
   id: string;
   name: string;
@@ -36,7 +34,6 @@ export interface UserProfile {
     shareLocationData?: boolean;
   };
 }
-
 export interface Storyteller {
   id: string;
   name: string;
@@ -47,7 +44,6 @@ export interface Storyteller {
   lastMessage?: string;
   lastMessageTime?: Date;
 }
-
 export interface LegacyKeeper {
   id: string;
   name: string;
@@ -58,7 +54,6 @@ export interface LegacyKeeper {
   lastMessage?: string;
   lastMessageTime?: Date;
 }
-
 export interface Memory {
   id: string;
   type: 'text' | 'photo' | 'voice' | 'video' | 'document';
@@ -104,13 +99,12 @@ export interface Memory {
   documentPageCount?: number;
   documentScanLanguage?: string;
 }
-
 export type DisplayLanguage = 'english' | 'french' | 'chinese' | 'korean' | 'japanese' | 'all';
 
 export default function App() {
   const { isOpen, setIsOpen } = useDebugPanel(); // Phase 3f
   const [groqDialogOpen, setGroqDialogOpen] = React.useState(false); // Don't auto-open, user can open from settings
-  
+
   // Check if diagnostic mode is enabled via URL parameter
   const isDiagnosticMode = new URLSearchParams(window.location.search).get('diagnostic') === 'true';
   // Check if Chrome fix mode is enabled
@@ -122,16 +116,15 @@ export default function App() {
     // Phase 3f: Setup global error handlers and performance monitoring
     const cleanupErrorHandlers = setupGlobalErrorHandlers();
     const cleanupPerformanceMonitoring = initPerformanceMonitoring();
-
     console.log('✅ Phase 3f: Error tracking and performance monitoring initialized');
-    
+
     // Initialize PWA and register service worker immediately
     console.log('📱 Initializing PWA and service worker...');
-    
+
     // Detect if running in preview environment
-    const isPreview = window.location.hostname.includes('figma.site') || 
+    const isPreview = window.location.hostname.includes('figma.site') ||
                       window.location.hostname.includes('figmaiframepreview');
-    
+
     pwaInstaller.registerServiceWorker().then((registration) => {
       if (registration) {
         console.log('✅ Service worker registered on app load');
@@ -146,13 +139,12 @@ export default function App() {
     }).catch((error) => {
       console.error('❌ Service worker registration error:', error);
     });
-
     return () => {
       cleanupErrorHandlers();
       cleanupPerformanceMonitoring();
     };
   }, []);
-  
+
   // Show simple test if test mode is enabled
   if (isSimpleTestMode) {
     return (
@@ -161,49 +153,43 @@ export default function App() {
       </ErrorBoundary>
     );
   }
-  
+
   // Show Chrome fix tool if chromefix mode is enabled
   if (isChromeFixMode) {
     return (
       <ErrorBoundary>
-        <div className="fixed inset-0 overflow-y-auto" style={{ 
+        <div className="fixed inset-0 overflow-y-auto" style={{
           height: '100vh',
           paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0)',
           backgroundColor: 'rgb(245, 249, 233)'
         }}>
           <ChromeLoginFix />
-          <Toaster 
-            position="top-center" 
-            richColors 
-            toastOptions={{
-              style: {
-                fontFamily: 'Inter, sans-serif',
-              },
-            }}
+          <Toaster
+            position="top-center"
+            richColors
+            toastOptions={{ style: { fontFamily: 'Inter, sans-serif' } }}
           />
         </div>
       </ErrorBoundary>
     );
   }
-  
+
   // Show diagnostic tool if diagnostic mode is enabled
   if (isDiagnosticMode) {
     return (
       <ErrorBoundary>
-        <div className="fixed inset-0 overflow-y-auto" style={{ 
+        <div className="fixed inset-0 overflow-y-auto" style={{
           height: '100vh',
           paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0)',
           backgroundColor: 'rgb(245, 249, 233)'
         }}>
           <MobileAuthDiagnostic />
-          <Toaster 
-            position="top-center" 
-            richColors 
-            toastOptions={{
-              style: {
-                fontFamily: 'Inter, sans-serif',
-              },
-            }}
+          <Toaster
+            position="top-center"
+            richColors
+            toastOptions={{ style: { fontFamily: 'Inter, sans-serif' } }}
           />
         </div>
       </ErrorBoundary>
@@ -212,53 +198,38 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      {/* Root container - Fixed height with safe area support */}
-      <div 
-        className="w-full flex flex-col fixed inset-0"
+      {/* Root container - Flexible height with safe area support */}
+      <div
+        className="w-full flex flex-col flex-1"
         style={{
-          height: '100vh',
-          maxHeight: '100vh',
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: '0', // Bottom safe area handled by child components
+          paddingTop: 'env(safe-area-inset-top, 0)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0)',
           backgroundColor: 'rgb(245, 249, 233)'
         }}
       >
         {/* Main content area - Flexible scroll container */}
-        <div 
+        <div
           className="flex-1 overflow-y-auto overflow-x-hidden"
-          style={{
-            WebkitOverflowScrolling: 'touch',
-            touchAction: 'pan-y',
-            height: '100%'
-          }}
+          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
         >
           <AuthProvider>
-            <AppContent />
+            <AppContent style={{ overflow: 'visible' }} />
           </AuthProvider>
         </div>
-
         {/* Overlay components - Fixed positioning to not affect layout height */}
-        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 9999 }}>
-          <div className="pointer-events-auto">
-            <PWAMetaTags />
-            <DebugPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
-            <ServerStatusBanner />
-            {/* Groq API Key Setup - Will show when user gets API key errors */}
-            <GroqAPIKeySetup 
-              open={groqDialogOpen} 
-              onOpenChange={setGroqDialogOpen}
-            />
-            <Toaster 
-              position="top-center" 
-              richColors 
-              toastOptions={{
-                style: {
-                  fontFamily: 'Inter, sans-serif',
-                },
-              }}
-            />
-          </div>
-        </div>
+        <PWAMetaTags style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
+        <DebugPanel isOpen={isOpen} onClose={() => setIsOpen(false)} style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
+        <ServerStatusBanner style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
+        <GroqAPIKeySetup
+          open={groqDialogOpen}
+          onOpenChange={setGroqDialogOpen}
+          style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }}
+        />
+        <Toaster
+          position="top-center"
+          richColors
+          toastOptions={{ style: { fontFamily: 'Inter, sans-serif' } }}
+        />
       </div>
     </ErrorBoundary>
   );
