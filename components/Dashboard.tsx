@@ -445,9 +445,13 @@ export function Dashboard({
         {/* Safari Install Banner - Shows on iOS Safari when not installed */}
         <SafariInstallBanner />
         
-        {/* Header + Tabs Container - Sticky at top, slides up when hidden */}
+        {/* Header + Tabs Container - FIXED at top, always visible */}
         <div 
-          className="sticky top-0 z-50 flex-shrink-0"
+          className="fixed top-0 left-0 right-0 z-50 flex-shrink-0"
+          style={{ 
+            maxWidth: '100vw',
+            backgroundColor: 'rgb(245, 249, 233)'
+          }}
         >
           {/* Modern Header */}
           <div className="bg-card/80 backdrop-blur-md border-b border-border/20" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
@@ -849,10 +853,13 @@ export function Dashboard({
         </div>
         {/* End Header + Tabs Container */}
 
-        {/* Tab Content */}
+        {/* Tab Content - Add top padding to account for fixed header */}
         <div 
           className="flex-1 flex flex-col overflow-hidden"
-          style={{ minHeight: 0 }}
+          style={{ 
+            minHeight: 0,
+            paddingTop: 'calc(env(safe-area-inset-top) + 140px)' // Header height ~140px (avatar + tabs)
+          }}
         >
           {activeTab === 'prompts' && (
             <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
