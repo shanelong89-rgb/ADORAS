@@ -2040,9 +2040,12 @@ export function ChatTab({
 
   return (
     <div 
-      className="flex flex-col h-full" 
+      className="flex flex-col h-full overflow-y-auto overflow-x-hidden" 
       style={{ 
-        backgroundColor: 'rgb(245, 249, 233)'
+        backgroundColor: 'rgb(245, 249, 233)',
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y',
+        paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))'
       }}
     >
       {/* Hidden file inputs - always in DOM so they can be triggered from anywhere */}
@@ -2213,14 +2216,15 @@ export function ChatTab({
       {/* Messages Area - Flex container that stops BEFORE input box */}
       <ScrollArea 
         ref={scrollAreaRef}
-        className={`flex-1 px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
+        className={`h-full w-full overflow-y-auto ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`} 
         style={{ 
+          padding: 0,
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain'
         }}
       >
-        <div className="space-y-4 max-w-full pb-4">
+        <div className="space-y-4 max-w-full pb-4 px-3">
           {memories.length === 0 ? (
             <div className="text-center py-8 space-y-2">
               <div className="text-4xl">💬</div>
@@ -2263,12 +2267,17 @@ export function ChatTab({
         </div>
       </ScrollArea>
 
-      {/* Input Area - Flex item at bottom (NOT fixed) */}
+      {/* Input Area - Fixed at bottom of screen */}
       <div 
         className="flex-shrink-0 border-t shadow-lg" 
         style={{ 
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
           backgroundColor: 'white',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          zIndex: 40
         }}
       >
         {/* Recording Indicator */}
