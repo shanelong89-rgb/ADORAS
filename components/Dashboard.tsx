@@ -571,9 +571,9 @@ export function Dashboard({
                     <Menu className="w-5 h-5 sm:w-6 sm:h-6 text-muted-foreground" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="bg-[#36453B] flex flex-col py-4 sm:py-6 border-l-0">
+                <SheetContent className="bg-[#36453B] flex flex-col border-l-0">
                   {/* Compressed Header */}
-                  <SheetHeader className="flex-shrink-0 px-4 sm:px-6 mb-3 sm:mb-4">
+                  <SheetHeader className="flex-shrink-0 px-4 sm:px-6 mb-3 sm:mb-4" style={{ marginTop: '1rem' }}>
                     <SheetTitle className="text-white text-base sm:text-lg" style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>Menu</SheetTitle>
                     <SheetDescription className="text-[#ECF0E2] text-xs sm:text-sm">
                       Settings & connected users
