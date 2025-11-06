@@ -49,33 +49,18 @@ export function useChatScrollDetection({
           // Find scroll viewport - DEFENSIVE (doesn't crash on text changes)
           let scrollViewport: Element | null = null;
           
-          // 1. Try to get from ref first (most reliable)
+          // 1. Try to get from ref first (most reliable) - now works with native div scrolling
           if (scrollContainerRef.current && !isUnmounted.current) {
-            const viewport = scrollContainerRef.current.querySelector('[data-radix-scroll-area-viewport]');
-            if (viewport) {
-              scrollViewport = viewport;
-            }
+            scrollViewport = scrollContainerRef.current;
           }
           
-          // 2. Fallback: Find by looking for chat-specific class (more reliable than text)
-          if (!scrollViewport && !isUnmounted.current) {
-            const allViewports = document.querySelectorAll('[data-radix-scroll-area-viewport]');
-            for (const vp of Array.from(allViewports)) {
-              // Look for the space-y-4 div that contains messages
-              if (vp.querySelector('.space-y-4')) {
-                scrollViewport = vp;
-                break;
-              }
-            }
-          }
-
-          // 3. Retry if not found yet and not unmounted
+          // 2. Retry if not found yet and not unmounted
           if (!scrollViewport && attemptCount < maxAttempts && !isUnmounted.current) {
             retryTimeout = setTimeout(tryAttachListeners, 150); // Slightly longer delay
             return;
           }
 
-          // 4. Give up gracefully if still not found or unmounted
+          // 3. Give up gracefully if still not found or unmounted
           if (!scrollViewport || isUnmounted.current) {
             if (attemptCount >= maxAttempts) {
               console.log('[ScrollDetection] Could not find scroll viewport - gracefully skipping setup');
