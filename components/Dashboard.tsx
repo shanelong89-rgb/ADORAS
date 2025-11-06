@@ -1,3 +1,4 @@
+// Dashboard v2.0 - Header always visible, no scroll detection
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { PromptsTab } from './PromptsTab';
@@ -100,19 +101,6 @@ export function Dashboard({
   const [showKeeperConnections, setShowKeeperConnections] = useState(false);
   const [showTellerConnections, setShowTellerConnections] = useState(false);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
-  const [showHeader, setShowHeader] = useState(true);
-  const lastScrollY = useRef(0);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const touchStartY = useRef(0);
-  
-  // Memoized scroll callbacks to prevent ChatTab from re-rendering constantly
-  const handleScrollUp = useCallback(() => {
-    setShowHeader(true);
-  }, []);
-  
-  const handleScrollDown = useCallback(() => {
-    setShowHeader(false);
-  }, []);
   const [lastChatReadTimestamp, setLastChatReadTimestamp] = useState<number>(() => {
     // Load from localStorage
     const stored = localStorage.getItem(`lastChatRead_${userProfile.id}`);
@@ -401,80 +389,9 @@ export function Dashboard({
     document.body.scrollTop = 0;
   }, []);
 
-  // Scroll detection - ULTRA-RESPONSIVE
-  // Chat tab relies EXCLUSIVELY on ChatTab's internal scroll detection
-  // This window scroll handler is ONLY for Prompts/Media tabs
-  useEffect(() => {
-    let lastScrollY = 0;
-    let lastTouchY = 0;
-    
-    const handleScroll = () => {
-      // Chat tab: Do NOT interfere - let ChatTab handle scroll detection
-      if (activeTab === 'chat') {
-        return; // ChatTab will call onScrollUp/onScrollDown to control header
-      }
-      
-      // For Prompts/Media tabs - detect scroll direction
-      const currentScrollY = window.scrollY || document.documentElement.scrollTop;
-      const delta = currentScrollY - lastScrollY;
-      
-      if (delta < 0) {
-        // Scrolling up - show header
-        setShowHeader(true);
-      } else if (delta > 0 && currentScrollY > 100) {
-        // Scrolling down - hide header (only if scrolled past 100px)
-        setShowHeader(false);
-      }
-      
-      lastScrollY = currentScrollY;
-    };
-
-    // Touch event handlers for iOS/mobile - ONLY FOR PROMPTS/MEDIA TABS
-    // Chat tab uses internal ScrollArea, so window touch events don't apply
-    const handleTouchStart = (e: TouchEvent) => {
-      // Skip in Chat tab - ChatTab handles its own touch detection
-      if (activeTab === 'chat') return;
-      lastTouchY = e.touches[0].clientY;
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      // Skip in Chat tab - ChatTab handles its own touch detection
-      if (activeTab === 'chat') return;
-      
-      const currentTouchY = e.touches[0].clientY;
-      const touchDelta = currentTouchY - lastTouchY;
-      
-      // ANY touch movement triggers header show/hide
-      if (Math.abs(touchDelta) > 3) {
-        if (touchDelta > 0) {
-          // Swiping down - show header
-          setShowHeader(true);
-        } else if (window.scrollY > 100) {
-          // Swiping up - hide header (only if scrolled past 100px)
-          setShowHeader(false);
-        }
-        lastTouchY = currentTouchY;
-      }
-    };
-
-    // Direct event listeners without throttling for maximum responsiveness
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, [activeTab]);
-
   // Handle tab changes and auto-scroll
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
-    
-    // Always show header when switching tabs
-    setShowHeader(true);
     
     // Note: Messages will be marked as read only when user is actively viewing them in ChatTab
     // Don't mark as read immediately when switching tabs - let user see the notification first
@@ -530,9 +447,7 @@ export function Dashboard({
         
         {/* Header + Tabs Container - Sticky at top, slides up when hidden */}
         <div 
-          className={`sticky top-0 z-50 transition-transform duration-300 ease-out flex-shrink-0 ${
-            showHeader ? 'translate-y-0' : '-translate-y-full'
-          }`}
+          className="sticky top-0 z-50 flex-shrink-0"
         >
           {/* Modern Header */}
           <div className="bg-card/80 backdrop-blur-md border-b border-border/20" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
@@ -965,8 +880,6 @@ export function Dashboard({
                 onClearPrompt={() => setActivePrompt(null)}
                 onEditMemory={onEditMemory}
                 onDeleteMemory={onDeleteMemory}
-                onScrollUp={handleScrollUp}
-                onScrollDown={handleScrollDown}
                 shouldScrollToBottom={shouldScrollChatToBottom}
                 onScrollToBottomComplete={() => setShouldScrollChatToBottom(false)}
               />
