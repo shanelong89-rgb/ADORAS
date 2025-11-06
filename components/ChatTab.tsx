@@ -1534,35 +1534,46 @@ export function ChatTab({
   const prevMessageCountRef = useRef<number>(0);
   const hasScrolledInitiallyRef = useRef<boolean>(false);
   
-  // Initial mount: scroll to top if there's an activePrompt, otherwise scroll to bottom
+  // Helper function to scroll to bottom in the ScrollArea viewport
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'instant') => {
+    // Find the ScrollArea viewport
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+      if (viewport) {
+        // Scroll to the very bottom
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior });
+        console.log(`📜 Scrolled ScrollArea to bottom (${viewport.scrollHeight}px)`);
+      }
+    }
+  }, []);
+
+  // Initial mount: scroll to bottom to show latest messages
   useEffect(() => {
-    if (!hasScrolledInitiallyRef.current) {
+    if (!hasScrolledInitiallyRef.current && chatMessages.length > 0) {
+      // Wait for messages to render, then scroll to bottom
       const timer = setTimeout(() => {
-        if (activePrompt || currentPromptContext) {
-          // Scroll to top to show the prompt banner
-          window.scrollTo({ top: 0, behavior: 'instant' });
-          document.documentElement.scrollTop = 0;
-          document.body.scrollTop = 0;
-        } else if (chatMessages.length > 0) {
-          // Has messages but no active prompt, scroll to latest message
-          messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
-        }
+        scrollToBottom('instant');
         // Set initial count and mark as scrolled
         prevMessageCountRef.current = chatMessages.length;
         hasScrolledInitiallyRef.current = true;
-      }, 100);
+        console.log(`📜 Initial scroll completed, showing ${chatMessages.length} messages`);
+      }, 300); // Increased delay to ensure media loads
       return () => clearTimeout(timer);
     }
-  }, [activePrompt, currentPromptContext, chatMessages.length]);
+  }, [chatMessages.length, scrollToBottom]);
 
   // When activePrompt changes: scroll to top to show the prompt banner
   useEffect(() => {
     if (activePrompt && hasScrolledInitiallyRef.current) {
       const timer = setTimeout(() => {
-        // Scroll to absolute top to show the activePrompt banner
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
+        // Scroll ScrollArea to top to show the activePrompt banner
+        if (scrollAreaRef.current) {
+          const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+          if (viewport) {
+            viewport.scrollTo({ top: 0, behavior: 'smooth' });
+            console.log('📜 Scrolled to top to show prompt banner');
+          }
+        }
       }, 150);
       return () => clearTimeout(timer);
     }
@@ -1572,19 +1583,19 @@ export function ChatTab({
   useEffect(() => {
     if (hasScrolledInitiallyRef.current) {
       // Only scroll to bottom if messages increased (new message added)
-      // Always scroll to show the complete message including timestamp
       if (chatMessages.length > prevMessageCountRef.current) {
-        // Use a slight delay to ensure the message is fully rendered
+        console.log(`📜 New message detected (${prevMessageCountRef.current} → ${chatMessages.length}), scrolling to bottom`);
+        // Use a delay to ensure the message is fully rendered
         const timer = setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+          scrollToBottom('smooth');
+        }, 150);
         
         // Update the count
         prevMessageCountRef.current = chatMessages.length;
         return () => clearTimeout(timer);
       }
     }
-  }, [chatMessages]);
+  }, [chatMessages, scrollToBottom]);
 
   // Handle explicit scroll-to-bottom request from parent (e.g., from notifications)
   useEffect(() => {
@@ -1592,13 +1603,13 @@ export function ChatTab({
       console.log('📜 Scrolling to bottom on demand from notification click');
       // Scroll to the end of messages to show the latest
       const timer = setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        scrollToBottom('smooth');
         // Notify parent that scroll is complete
         onScrollToBottomComplete?.();
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [shouldScrollToBottom, onScrollToBottomComplete]);
+  }, [shouldScrollToBottom, onScrollToBottomComplete, scrollToBottom]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
