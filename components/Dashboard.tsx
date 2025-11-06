@@ -104,6 +104,11 @@ export function Dashboard({
   const lastScrollY = useRef(0);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const touchStartY = useRef(0);
+  
+  // Debug: Log header visibility changes
+  useEffect(() => {
+    console.log(`🎯 Dashboard header visibility changed: ${showHeader ? 'VISIBLE' : 'HIDDEN'} (tab: ${activeTab})`);
+  }, [showHeader, activeTab]);
   const [lastChatReadTimestamp, setLastChatReadTimestamp] = useState<number>(() => {
     // Load from localStorage
     const stored = localStorage.getItem(`lastChatRead_${userProfile.id}`);
@@ -410,14 +415,30 @@ export function Dashboard({
   // Chat tab relies EXCLUSIVELY on ChatTab's internal scroll detection
   // This window scroll handler is ONLY for Prompts/Media tabs
   useEffect(() => {
+    let lastScrollY = 0;
+    let lastTouchY = 0;
+    
     const handleScroll = () => {
       // Chat tab: Do NOT interfere - let ChatTab handle scroll detection
       if (activeTab === 'chat') {
         return; // ChatTab will call onScrollUp/onScrollDown to control header
       }
       
-      // For Prompts/Media tabs - always show header
-      setShowHeader(true);
+      // For Prompts/Media tabs - detect scroll direction
+      const currentScrollY = window.scrollY || document.documentElement.scrollTop;
+      const delta = currentScrollY - lastScrollY;
+      
+      if (delta < 0) {
+        // Scrolling up - show header
+        console.log(`📜 ${activeTab.toUpperCase()} tab: Scroll UP detected, showing header`);
+        setShowHeader(true);
+      } else if (delta > 0 && currentScrollY > 100) {
+        // Scrolling down - hide header (only if scrolled past 100px)
+        console.log(`📜 ${activeTab.toUpperCase()} tab: Scroll DOWN detected, hiding header`);
+        setShowHeader(false);
+      }
+      
+      lastScrollY = currentScrollY;
     };
 
     // Touch event handlers for iOS/mobile - ONLY FOR PROMPTS/MEDIA TABS
@@ -425,15 +446,29 @@ export function Dashboard({
     const handleTouchStart = (e: TouchEvent) => {
       // Skip in Chat tab - ChatTab handles its own touch detection
       if (activeTab === 'chat') return;
-      touchStartY.current = e.touches[0].clientY;
+      lastTouchY = e.touches[0].clientY;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       // Skip in Chat tab - ChatTab handles its own touch detection
       if (activeTab === 'chat') return;
       
-      // For Prompts/Media tabs, always show header on touch
-      setShowHeader(true);
+      const currentTouchY = e.touches[0].clientY;
+      const touchDelta = currentTouchY - lastTouchY;
+      
+      // ANY touch movement triggers header show/hide
+      if (Math.abs(touchDelta) > 3) {
+        if (touchDelta > 0) {
+          // Swiping down - show header
+          console.log(`👆 ${activeTab.toUpperCase()} tab: Touch SWIPE DOWN, showing header`);
+          setShowHeader(true);
+        } else if (window.scrollY > 100) {
+          // Swiping up - hide header (only if scrolled past 100px)
+          console.log(`👇 ${activeTab.toUpperCase()} tab: Touch SWIPE UP, hiding header`);
+          setShowHeader(false);
+        }
+        lastTouchY = currentTouchY;
+      }
     };
 
     // Direct event listeners without throttling for maximum responsiveness
@@ -932,9 +967,11 @@ export function Dashboard({
                 onEditMemory={onEditMemory}
                 onDeleteMemory={onDeleteMemory}
                 onScrollUp={() => {
+                  console.log('📱 CHAT: onScrollUp callback fired, showing header');
                   setShowHeader(true);
                 }}
                 onScrollDown={() => {
+                  console.log('📱 CHAT: onScrollDown callback fired, hiding header');
                   setShowHeader(false);
                 }}
                 shouldScrollToBottom={shouldScrollChatToBottom}
