@@ -2,9 +2,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 :root {
   --font-size: 16px;
- 
   /* Design system colors - Build 719 palette */
   --white: rgb(255, 255, 255);
   --black: rgb(54, 69, 59);
@@ -15,7 +15,6 @@
   --adoras-back: rgb(193, 193, 165);
   --type-color: rgb(236, 240, 226);
   --alt-dark-font: rgb(81, 87, 81);
- 
   /* Semantic color mapping */
   --background: 75 57% 95%; /* HSL for rgb(245, 249, 233) #F5F9E9 */
   --foreground: 152 13% 24%; /* HSL for rgb(54, 69, 59) #36453B */
@@ -23,49 +22,41 @@
   --card-foreground: 152 13% 24%; /* HSL for rgb(54, 69, 59) #36453B */
   --popover: 0 0% 100%; /* HSL for white */
   --popover-foreground: 152 13% 24%; /* HSL for rgb(54, 69, 59) #36453B */
- 
   /* Primary colors - using the sophisticated green #36453B */
   --primary: 152 13% 24%; /* HSL for rgb(54, 69, 59) */
   --primary-foreground: 0 0% 100%; /* HSL for white */
   --secondary: 0 0% 95%; /* HSL for rgb(241, 241, 241) */
   --secondary-foreground: 138 4% 33%; /* HSL for rgb(81, 87, 81) */
- 
   /* Muted colors */
   --muted: 78 29% 91%; /* HSL for rgb(236, 240, 226) */
   --muted-foreground: 198 7% 37%; /* HSL for rgb(89, 101, 105) */
   --accent: 60 14% 70%; /* HSL for rgb(193, 193, 165) */
   --accent-foreground: 152 13% 24%; /* HSL for rgb(54, 69, 59) */
- 
   /* System colors */
   --destructive: 0 72% 51%; /* HSL for #dc2626 */
   --destructive-foreground: 0 0% 100%; /* HSL for white */
   --border: 152 13% 24%; /* Base green color for borders */
   --input: 0 0% 100%; /* HSL for white */
   --ring: 152 13% 24%; /* HSL for rgb(54, 69, 59) */
- 
   /* Typography */
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
   --font-weight-black: 900;
- 
   /* Effects - Softer shadows for Build 719 */
   --shadow-sm: 0 1px 2px 0 rgb(54 69 59 / 0.03);
   --shadow: 0 1px 3px 0 rgb(54 69 59 / 0.06), 0 1px 2px -1px rgb(54 69 59 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(54 69 59 / 0.07), 0 2px 4px -2px rgb(54 69 59 / 0.06);
   --shadow-lg: 0 8px 12px -3px rgb(54 69 59 / 0.08), 0 4px 6px -4px rgb(54 69 59 / 0.06);
- 
   /* Charts */
   --chart-1: var(--adoras-green);
   --chart-2: var(--adoras-back);
   --chart-3: var(--fonts-color);
   --chart-4: var(--alt-dark-font);
   --chart-5: var(--type-color);
- 
   /* Border radius */
   --radius: 0.5rem;
- 
   /* Sidebar */
   --sidebar: var(--white);
   --sidebar-foreground: var(--black);
@@ -76,6 +67,7 @@
   --sidebar-border: rgba(54, 69, 59, 0.1);
   --sidebar-ring: var(--adoras-green);
 }
+
 .dark {
   --background: var(--black);
   --foreground: var(--white);
@@ -112,6 +104,7 @@
   --sidebar-border: rgba(193, 193, 165, 0.2);
   --sidebar-ring: var(--adoras-back);
 }
+
 @layer base {
   * {
     border-color: hsl(var(--border));
@@ -121,7 +114,6 @@
     background-color: rgb(245, 249, 233);
     color: rgb(54, 69, 59);
   }
- 
   /* iOS PWA Fullscreen Support with Touch Scrolling */
   html {
     height: 100%;
@@ -134,7 +126,6 @@
     /* Disable pinch-zoom to prevent asymmetric scaling */
     touch-action: pan-y;
   }
- 
   body {
     min-height: 100%;
     width: 100%;
@@ -148,7 +139,6 @@
     overscroll-behavior-x: none;
     overscroll-behavior-y: auto;
   }
- 
   /* Ensure root element fills viewport and allows scrolling */
   #root {
     min-height: 100%;
@@ -159,7 +149,6 @@
     flex-direction: column;
     -webkit-overflow-scrolling: touch;
   }
- 
   /* iOS standalone mode specific styles */
   @media all and (display-mode: standalone) {
     body {
@@ -170,69 +159,61 @@
     }
   }
 }
+
 /* Improved Container and Spacing System */
 @layer components {
   /* Main container with proper max-width and padding */
   .app-container {
     @apply max-w-2xl mx-auto px-4 sm:px-6;
   }
- 
   /* Content spacing utilities */
   .content-spacing {
     @apply space-y-4 sm:space-y-6;
   }
- 
   .content-padding {
     @apply px-4 py-6 sm:px-6 sm:py-8;
   }
- 
   .section-spacing {
     @apply mb-6 sm:mb-8;
   }
- 
   /* Card improvements */
   .card-refined {
     @apply rounded-xl border border-border/50 bg-card shadow-sm;
   }
- 
   .card-padding {
     @apply p-4 sm:p-6;
   }
- 
   .card-header-spacing {
     @apply mb-3 sm:mb-4;
   }
 }
+
 /* Enhanced Visual Polish */
 @layer utilities {
   /* Smooth hover transitions */
   .hover-lift {
     @apply transition-transform duration-200 ease-out hover:-translate-y-0.5;
   }
- 
   .hover-lift-lg {
     @apply transition-transform duration-200 ease-out hover:-translate-y-1;
   }
- 
   /* Better shadows - Build 719 softer style */
   .shadow-soft {
     box-shadow: 0 2px 8px rgba(54, 69, 59, 0.04);
   }
- 
   .shadow-soft-lg {
     box-shadow: 0 4px 16px rgba(54, 69, 59, 0.06);
   }
- 
   /* Refined borders - Build 719 more subtle */
   .border-refined {
     @apply border border-border/30;
   }
- 
   /* Better focus states */
   .focus-refined {
     @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary;
   }
 }
+
 /**
  * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
  */
@@ -303,6 +284,7 @@
     }
   }
 }
+
 html {
   font-size: var(--font-size);
   font-family: 'Archivo', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
@@ -310,12 +292,14 @@ html {
   -moz-osx-font-smoothing: grayscale;
   background-color: rgb(245, 249, 233) !important;
 }
+
 /* Prevent zoom on iOS when focusing inputs */
 @supports (-webkit-touch-callout: none) {
   input, textarea, select {
     font-size: 16px !important;
   }
 }
+
 /* Ensure aspect-square works properly on mobile */
 .aspect-square {
   aspect-ratio: 1 / 1;
@@ -323,6 +307,7 @@ html {
   min-height: 0;
   position: relative;
 }
+
 /* Ensure images inside aspect-square containers display properly */
 .aspect-square img,
 .aspect-square video {
@@ -333,18 +318,19 @@ html {
   max-width: 100%;
   max-height: 100%;
 }
+
 /* Mobile-specific fixes for media display */
 @media (max-width: 640px) {
   .aspect-square {
     min-height: 150px;
     height: auto;
   }
- 
   /* Ensure grid items have proper height */
   .grid.grid-cols-2 > * {
     min-height: 0;
   }
 }
+
 /* Design system gradients - Updated for Build 719 soft aesthetic */
 .gradient-background {
   background: linear-gradient(135deg, var(--adoras-green) 0%, var(--alt-dark-font) 100%);
@@ -359,6 +345,7 @@ html {
   /* Soft beige/tan gradient for Today's Prompt card - matches Build 719 */
   background: linear-gradient(135deg, rgba(205, 202, 180, 0.85) 0%, rgba(215, 212, 195, 0.75) 100%);
 }
+
 /* Glass morphism effect */
 .glass {
   backdrop-filter: blur(20px);
@@ -369,6 +356,7 @@ html {
   background: rgba(26, 26, 26, 0.8);
   border: 1px solid rgba(38, 38, 38, 0.2);
 }
+
 /* Smooth animations */
 .animate-fade-in {
   animation: fadeIn 0.5s ease-out;
@@ -403,6 +391,7 @@ html {
     transform: scale(1);
   }
 }
+
 /* Custom datetime-local input styling to match Adoras theme */
 input[type="datetime-local"] {
   color-scheme: light;
@@ -417,6 +406,7 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
   background-color: rgba(54, 69, 59, 0.1);
 }
+
 /* WebKit datetime popup styling */
 input[type="datetime-local"]::-webkit-datetime-edit {
   padding: 0;
@@ -451,12 +441,14 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
   color: var(--adoras-green);
   outline: none;
 }
+
 /* Ensure the calendar popup uses the app's color scheme (limited browser support) */
 @supports selector(::-webkit-calendar-picker-indicator) {
   input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     background-color: transparent;
   }
 }
+
 /* Calendar component styling improvements */
 .rdp {
   --rdp-cell-size: 36px;
@@ -505,6 +497,7 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
   height: 36px;
   margin: 0 auto;
 }
+
 /* Calendar dropdown improvements */
 .rdp-caption_dropdowns select {
   appearance: none;
@@ -530,33 +523,32 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
   outline-offset: 2px;
   border-color: var(--adoras-green);
 }
+
 /* Mobile optimizations for calendar */
 @media (max-width: 640px) {
   .rdp {
     --rdp-cell-size: 36px;
   }
- 
   .rdp-month {
     max-width: 100%;
   }
- 
   .rdp-caption_dropdowns select {
     min-width: 80px;
     font-size: 0.8125rem;
     padding: 5px 10px;
     padding-right: 28px;
   }
+}
+
 /* Dashboard fixed header spacing - responsive for each platform */
 .dashboard-content {
   padding-top: calc(env(safe-area-inset-top, 0px) + 100px) !important; /* Mobile: compact header + tabs + small gap */
 }
-
 @media (min-width: 640px) {
   .dashboard-content {
     padding-top: calc(env(safe-area-inset-top, 0px) + 135px) !important; /* Tablet/Desktop: larger header + tabs + gap */
   }
 }
-
 @media (min-width: 1024px) {
   .dashboard-content {
     padding-top: calc(env(safe-area-inset-top, 0px) + 140px) !important; /* Large screens: with natural gap */
