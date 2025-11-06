@@ -858,7 +858,7 @@ export function Dashboard({
           className="flex-1 flex flex-col overflow-hidden"
           style={{ 
             minHeight: 0,
-            paddingTop: 'calc(env(safe-area-inset-top) + 140px)' // Header height ~140px (avatar + tabs)
+            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 100px)' // Mobile: header + tabs + small gap
           }}
         >
           {activeTab === 'prompts' && (
