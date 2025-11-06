@@ -118,19 +118,12 @@ export function useChatScrollDetection({
         const currentScrollY = scrollViewportRef.current.scrollTop;
         const delta = currentScrollY - lastScrollY.current;
 
-        // Log EVERY scroll event for debugging
-        if (delta !== 0) {
-          console.log(`📜 ChatTab scroll event: scrollTop=${currentScrollY}, delta=${delta}`);
-        }
-
         // ULTRA-SENSITIVE: ANY movement triggers header show/hide
         if (delta < 0) {
           // Scrolling up - show header
-          console.log('⬆️ Scroll UP detected, delta:', delta, '→ CALLING onScrollUp()');
           onScrollUp();
         } else if (delta > 0) {
           // Scrolling down - hide header
-          console.log('⬇️ Scroll DOWN detected, delta:', delta, '→ CALLING onScrollDown()');
           onScrollDown();
         }
 
@@ -141,7 +134,6 @@ export function useChatScrollDetection({
       const handleTouchStart = (e: TouchEvent) => {
         touchStartY.current = e.touches[0].clientY;
         isProcessingTouch.current = false;
-        console.log('👆 Touch START at Y:', touchStartY.current);
       };
 
       // TOUCH MOVE: Detect swipe direction with minimal throttling for ultra-responsiveness
@@ -158,11 +150,9 @@ export function useChatScrollDetection({
           
           if (touchDelta > 0) {
             // Swipe down - show header (scrolling up in content)
-            console.log('👆 Touch SWIPE DOWN (scroll up), delta:', touchDelta);
             onScrollUp();
           } else {
             // Swipe up - hide header (scrolling down in content)
-            console.log('👇 Touch SWIPE UP (scroll down), delta:', touchDelta);
             onScrollDown();
           }
           
