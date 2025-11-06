@@ -15,16 +15,16 @@ export const PWAMetaTags: React.FC = () => {
       // Clear existing PWA tags to avoid duplicates
       const existingAppleIcons = document.querySelectorAll('link[rel="apple-touch-icon"]');
       existingAppleIcons.forEach(icon => icon.remove());
-      
+
       const existingManifest = document.querySelector('link[rel="manifest"]');
       if (existingManifest) existingManifest.remove();
 
       // Get the current origin
       const origin = window.location.origin;
 
-      // 1. iOS Web App Meta Tags (Enhanced for notifications and fullscreen)
+      // 1. iOS Web App Meta Tags (Enhanced for notifications and fullscreen with adjustable scaling)
       const metaTags = [
-        { name: 'viewport', content: 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1.0, user-scalable=yes, minimum-scale=1.0, maximum-scale=5.0, viewport-fit=cover' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
         { name: 'apple-mobile-web-app-title', content: 'Adoras' },
@@ -36,7 +36,6 @@ export const PWAMetaTags: React.FC = () => {
         { name: 'apple-mobile-web-app-orientations', content: 'portrait' },
         { name: 'format-detection', content: 'telephone=no' },
       ];
-
       metaTags.forEach(({ name, content }) => {
         let meta = document.querySelector(`meta[name="${name}"]`);
         if (!meta) {
@@ -58,14 +57,13 @@ export const PWAMetaTags: React.FC = () => {
         { filename: 'apple-touch-icon-152.png', sizes: '152x152' },
         { filename: 'apple-touch-icon-120.png', sizes: '120x120' },
       ];
-
       appleIcons.forEach(({ filename, sizes }) => {
         const dataURL = iconMap.get(filename);
         if (dataURL) {
           const link = document.createElement('link');
           link.rel = 'apple-touch-icon';
           link.href = dataURL;
-          if (sizes) link.sizes.value = sizes;
+          if (sizes) link.sizes = sizes;
           document.head.appendChild(link);
         }
       });
@@ -75,7 +73,6 @@ export const PWAMetaTags: React.FC = () => {
         { filename: 'icon-192.png', sizes: '192x192' },
         { filename: 'icon-512.png', sizes: '512x512' },
       ];
-
       standardIcons.forEach(({ filename, sizes }) => {
         const dataURL = iconMap.get(filename);
         if (dataURL) {
@@ -83,7 +80,7 @@ export const PWAMetaTags: React.FC = () => {
           link.rel = 'icon';
           link.href = dataURL;
           link.type = 'image/png';
-          if (sizes) link.sizes.value = sizes;
+          if (sizes) link.sizes = sizes;
           document.head.appendChild(link);
         }
       });
@@ -114,49 +111,20 @@ export const PWAMetaTags: React.FC = () => {
         orientation: "portrait-primary",
         prefer_related_applications: false,
         icons: [
-          {
-            src: iconMap.get('icon-192.png') || '',
-            sizes: "192x192",
-            type: "image/png",
-            purpose: "any maskable"
-          },
-          {
-            src: iconMap.get('icon-512.png') || '',
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "any maskable"
-          },
-          {
-            src: iconMap.get('apple-touch-icon.png') || '',
-            sizes: "180x180",
-            type: "image/png",
-            purpose: "any"
-          },
-          {
-            src: iconMap.get('apple-touch-icon-152.png') || '',
-            sizes: "152x152",
-            type: "image/png",
-            purpose: "any"
-          },
-          {
-            src: iconMap.get('apple-touch-icon-120.png') || '',
-            sizes: "120x120",
-            type: "image/png",
-            purpose: "any"
-          }
+          { src: iconMap.get('icon-192.png') || '', sizes: "192x192", type: "image/png", purpose: "any maskable" },
+          { src: iconMap.get('icon-512.png') || '', sizes: "512x512", type: "image/png", purpose: "any maskable" },
+          { src: iconMap.get('apple-touch-icon.png') || '', sizes: "180x180", type: "image/png", purpose: "any" },
+          { src: iconMap.get('apple-touch-icon-152.png') || '', sizes: "152x152", type: "image/png", purpose: "any" },
+          { src: iconMap.get('apple-touch-icon-120.png') || '', sizes: "120x120", type: "image/png", purpose: "any" },
         ],
         categories: ["social", "lifestyle", "productivity"],
         lang: "en-US",
         dir: "ltr",
         permissions: ["notifications", "push"],
-        notifications: {
-          preferredLanguage: "en-US"
-        }
+        notifications: { preferredLanguage: "en-US" },
       };
-
       const manifestBlob = new Blob([JSON.stringify(manifestContent)], { type: 'application/json' });
       const manifestURL = URL.createObjectURL(manifestBlob);
-
       let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
       if (!manifestLink) {
         manifestLink = document.createElement('link');
@@ -164,16 +132,14 @@ export const PWAMetaTags: React.FC = () => {
         document.head.appendChild(manifestLink);
       }
       manifestLink.href = manifestURL;
-
       console.log('✅ PWA Meta Tags Injected:', {
         origin,
         manifest: 'Blob URL with data URL icons',
         appleIcons: appleIcons.length,
         standardIcons: standardIcons.length,
-        iconsGenerated: iconMap.size
+        iconsGenerated: iconMap.size,
       });
     };
-
     setupPWA().catch(error => {
       console.error('❌ Failed to setup PWA meta tags:', error);
     });
