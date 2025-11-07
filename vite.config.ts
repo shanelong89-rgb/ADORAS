@@ -18,6 +18,7 @@ export default defineConfig({
     rollupOptions: {
       external: [
         /^npm:/,  // Exclude all npm: imports (Deno-specific)
+        /^jsr:/,  // Exclude all jsr: imports (Deno-specific)
         /supabase\/functions/,  // Exclude all Supabase Edge Functions (backend code)
       ],
     },
