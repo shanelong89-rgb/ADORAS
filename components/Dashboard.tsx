@@ -214,18 +214,40 @@ export function Dashboard({
       const result = await apiClient.markMessagesAsRead(connectionId);
       
       if (result.success && result.updatedCount && result.updatedCount > 0) {
-        console.log(`✅ Marked ${result.updatedCount} messages as read - triggering badge update`);
+        console.log(`✅ Marked ${result.updatedCount} messages as read - updating local state immediately`);
+        
+        // Get the memories for this connection
+        const connectionMemories = userType === 'keeper' 
+          ? (memoriesByStoryteller[connectionId] || [])
+          : (memoriesByLegacyKeeper[connectionId] || []);
+        
+        // Find all unread messages from partner and update them locally
+        const unreadMessageIds = connectionMemories
+          .filter(memory => {
+            const isFromPartner = memory.sender !== userType;
+            const isMessage = memory.type === 'text' || memory.type === 'voice';
+            const isUnread = !memory.readBy || !memory.readBy.includes(userProfile.id);
+            return isFromPartner && isMessage && isUnread;
+          })
+          .map(m => m.id);
+        
+        console.log(`📝 Updating ${unreadMessageIds.length} messages locally with readBy array`);
+        
+        // Update each unread message locally to add current user to readBy array
+        unreadMessageIds.forEach(memoryId => {
+          const memory = connectionMemories.find(m => m.id === memoryId);
+          if (memory && onEditMemory) {
+            const updatedReadBy = [...(memory.readBy || []), userProfile.id];
+            onEditMemory(memoryId, { readBy: updatedReadBy }, true); // localOnly = true
+          }
+        });
         
         // Trigger badge re-calculation by updating timestamp
-        // The backend has already updated the readBy arrays, so when AppContent
-        // refetches memories, they'll have the updated readBy arrays
         const now = Date.now();
         localStorage.setItem(`lastChatRead_${userProfile.id}_${connectionId}`, now.toString());
         setLastChatReadTimestamp(now);
         
-        // Force a memories refetch for this connection to get updated readBy arrays
-        // This will happen automatically on the next periodic refresh (every 30s)
-        // or when switching connections
+        console.log(`✅ Local state updated - badges should clear immediately`);
       }
       
       return result;
@@ -233,7 +255,7 @@ export function Dashboard({
       console.error('❌ Error marking messages as read:', error);
       return { success: false, error: String(error) };
     }
-  }, [userProfile.id]);
+  }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper, onEditMemory]);
 
   // Mark messages as read after viewing chat tab for 2 seconds
   useEffect(() => {
