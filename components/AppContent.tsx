@@ -241,6 +241,13 @@ export function AppContent() {
               console.log(`   ℹ️ Skipping global memories update for background connection`);
             }
 
+            // Update sidebar last message preview for this connection (real-time)
+            // Only update for text/voice messages (not photos, videos, etc.)
+            if (newMemory.type === 'text' || newMemory.type === 'voice') {
+              console.log(`   📱 Updating sidebar last message for connection: ${update.connectionId}`);
+              updateSidebarLastMessage(update.connectionId);
+            }
+
             // Don't show toast notification here - let Dashboard handle it
             // This prevents duplicate notifications
           } else if (update.action === 'update' && update.memory) {
@@ -674,6 +681,40 @@ export function AppContent() {
     
     return { message: preview, time: lastMsg.timestamp };
   };
+
+  /**
+   * Update sidebar lastMessage preview for a specific connection
+   * Called when new messages arrive via real-time sync
+   */
+  const updateSidebarLastMessage = React.useCallback((connectionId: string) => {
+    const lastMessageInfo = getLastMessageForConnection(connectionId);
+    
+    if (userType === 'keeper') {
+      setStorytellers(prev => 
+        prev.map(storyteller => 
+          storyteller.id === connectionId
+            ? {
+                ...storyteller,
+                lastMessage: lastMessageInfo?.message,
+                lastMessageTime: lastMessageInfo?.time,
+              }
+            : storyteller
+        )
+      );
+    } else if (userType === 'teller') {
+      setLegacyKeepers(prev =>
+        prev.map(keeper =>
+          keeper.id === connectionId
+            ? {
+                ...keeper,
+                lastMessage: lastMessageInfo?.message,
+                lastMessageTime: lastMessageInfo?.time,
+              }
+            : keeper
+        )
+      );
+    }
+  }, [userType, memoriesByStoryteller, memoriesByLegacyKeeper]);
 
   /**
    * Phase 1d-4: Transform API connections to Storyteller format (for Keepers)
