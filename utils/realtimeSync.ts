@@ -1,7 +1,10 @@
 /**
- * Real-time Sync Service - Phase 5
+ * Real-time Sync Service - Phase 5 (Multi-Channel Support)
  * Provides live updates, presence indicators, and WebSocket connections
  * Uses Supabase Realtime for real-time communication
+ * 
+ * UPDATED: Now supports subscribing to MULTIPLE connections simultaneously
+ * This ensures sidebar updates for ALL connections, not just the active one
  */
 
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -36,17 +39,28 @@ export interface TypingIndicator {
   isTyping: boolean;
 }
 
-type PresenceCallback = (presences: Record<string, PresenceState>) => void;
+type PresenceCallback = (connectionId: string, presences: Record<string, PresenceState>) => void;
 type MemoryUpdateCallback = (update: MemoryUpdate) => void;
 type TypingCallback = (typing: TypingIndicator) => void;
 
+interface ChannelInfo {
+  channel: RealtimeChannel;
+  connectionId: string;
+  isConnected: boolean;
+  reconnectAttempts: number;
+}
+
 /**
- * Real-time Sync Manager
+ * Real-time Sync Manager (Multi-Channel Version)
  * Manages WebSocket connections, presence, and live updates
+ * Can subscribe to multiple connections simultaneously
  */
 class RealtimeSyncManager {
-  private channel: RealtimeChannel | null = null;
-  private connectionId: string | null = null;
+  // Map of connectionId -> ChannelInfo
+  private channels: Map<string, ChannelInfo> = new Map();
+  
+  // Active connection for presence tracking
+  private activeConnectionId: string | null = null;
   private userId: string | null = null;
   private userName: string | null = null;
   
@@ -54,78 +68,91 @@ class RealtimeSyncManager {
   private memoryUpdateCallbacks: MemoryUpdateCallback[] = [];
   private typingCallbacks: TypingCallback[] = [];
   
-  private isConnected: boolean = false;
-  private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 3; // Reduced from 5 to 3
-  private reconnectTimeout: number | null = null;
-  private isReconnecting: boolean = false;
-  private permanentlyDisabled: boolean = false; // Stop trying if we keep failing
+  private maxReconnectAttempts: number = 3;
+  private permanentlyDisabled: boolean = false;
 
   /**
-   * Initialize real-time sync for a connection
+   * Subscribe to multiple connections at once
+   * This allows real-time updates for ALL user connections, not just the active one
    */
-  async connect(params: {
-    connectionId: string;
+  async subscribeToConnections(params: {
+    connectionIds: string[];
     userId: string;
     userName: string;
+    activeConnectionId?: string;
   }): Promise<void> {
-    const { connectionId, userId, userName } = params;
+    const { connectionIds, userId, userName, activeConnectionId } = params;
 
-    // Don't attempt to connect if permanently disabled
     if (this.permanentlyDisabled) {
       console.log('ℹ️ Real-time features are disabled due to repeated connection failures');
       return;
     }
 
-    // Prevent multiple simultaneous connection attempts
-    if (this.isReconnecting) {
-      console.log('ℹ️ Connection attempt already in progress, skipping...');
+    this.userId = userId;
+    this.userName = userName;
+    this.activeConnectionId = activeConnectionId || connectionIds[0] || null;
+
+    console.log(`🔌 Subscribing to ${connectionIds.length} connections:`, connectionIds);
+    console.log(`   Active connection: ${this.activeConnectionId}`);
+
+    // Subscribe to each connection
+    for (const connectionId of connectionIds) {
+      await this.connectToChannel(connectionId, userId, userName);
+    }
+
+    // Remove channels that are no longer needed
+    const activeConnectionIds = new Set(connectionIds);
+    for (const [connectionId, channelInfo] of this.channels.entries()) {
+      if (!activeConnectionIds.has(connectionId)) {
+        console.log(`🗑️ Removing old channel: ${connectionId}`);
+        await this.disconnectFromChannel(connectionId);
+      }
+    }
+  }
+
+  /**
+   * Connect to a single channel
+   */
+  private async connectToChannel(
+    connectionId: string,
+    userId: string,
+    userName: string
+  ): Promise<void> {
+    // Skip if already connected
+    if (this.channels.has(connectionId)) {
+      console.log(`ℹ️ Already subscribed to connection: ${connectionId}`);
       return;
     }
 
-    this.isReconnecting = true;
-
     try {
-      // Disconnect existing channel if any
-      if (this.channel) {
-        await this.disconnect();
-      }
-
-      this.connectionId = connectionId;
-      this.userId = userId;
-      this.userName = userName;
-
-      console.log('🔌 Connecting to real-time channel:', connectionId);
+      console.log(`🔌 Connecting to channel: ${connectionId}`);
 
       // Create channel for this connection
-      this.channel = supabase.channel(`connection:${connectionId}`, {
+      const channel = supabase.channel(`connection:${connectionId}`, {
         config: {
           broadcast: { self: true }, // Receive own messages (for multi-tab)
           presence: { key: userId }, // Use userId as presence key
         },
       });
 
+      // Store channel info
+      const channelInfo: ChannelInfo = {
+        channel,
+        connectionId,
+        isConnected: false,
+        reconnectAttempts: 0,
+      };
+
+      this.channels.set(connectionId, channelInfo);
+
       // Subscribe to presence changes
-      this.channel.on('presence', { event: 'sync' }, () => {
-        const state = this.channel!.presenceState();
-        
-        // Log presence sync without photos (to avoid huge console logs)
-        const presenceSummary = Object.entries(state).reduce((acc, [key, values]: [string, any[]]) => {
-          const presence = values[0];
-          acc[key] = {
-            userId: presence?.userId,
-            userName: presence?.userName,
-            online: true,
-            hasPhoto: !!presence?.userPhoto
-          };
-          return acc;
-        }, {} as Record<string, any>);
-        console.log('👥 Presence synced:', presenceSummary);
+      channel.on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
         
         // Convert presence state to our format
         const presences: Record<string, PresenceState> = {};
         Object.entries(state).forEach(([key, values]: [string, any[]]) => {
-          const presence = values[0]; // Take first presence for each user
+          const presence = values[0];
           if (presence) {
             presences[key] = {
               userId: presence.userId,
@@ -136,150 +163,189 @@ class RealtimeSyncManager {
           }
         });
         
-        // Notify callbacks
-        this.presenceCallbacks.forEach(cb => cb(presences));
+        // Notify callbacks with connectionId
+        this.presenceCallbacks.forEach(cb => cb(connectionId, presences));
       });
 
-      this.channel.on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('✅ User joined:', key, newPresences);
+      channel.on('presence', { event: 'join' }, ({ key }) => {
+        console.log(`✅ User joined ${connectionId}:`, key);
       });
 
-      this.channel.on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('👋 User left:', key, leftPresences);
+      channel.on('presence', { event: 'leave' }, ({ key }) => {
+        console.log(`👋 User left ${connectionId}:`, key);
       });
 
       // Subscribe to memory updates
-      this.channel.on('broadcast', { event: 'memory-update' }, ({ payload }) => {
-        console.log('📡 Memory update received:', payload);
+      channel.on('broadcast', { event: 'memory-update' }, ({ payload }) => {
+        console.log(`📡 Memory update received on ${connectionId}:`, payload);
         this.memoryUpdateCallbacks.forEach(cb => cb(payload as MemoryUpdate));
       });
 
       // Subscribe to typing indicators
-      this.channel.on('broadcast', { event: 'typing' }, ({ payload }) => {
-        console.log('⌨️ Typing indicator:', payload);
+      channel.on('broadcast', { event: 'typing' }, ({ payload }) => {
+        console.log(`⌨️ Typing indicator on ${connectionId}:`, payload);
         this.typingCallbacks.forEach(cb => cb(payload as TypingIndicator));
       });
 
       // Subscribe and track presence
-      await this.channel.subscribe(async (status) => {
+      await channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time channel connected!');
-          this.isConnected = true;
-          this.reconnectAttempts = 0;
+          console.log(`✅ Connected to channel: ${connectionId}`);
+          channelInfo.isConnected = true;
+          channelInfo.reconnectAttempts = 0;
 
-          // Track our presence (without photo to keep payload small)
-          const presenceData: PresenceState = {
-            userId,
-            userName,
-            online: true,
-            lastSeen: new Date().toISOString(),
-          };
+          // Only track presence on the ACTIVE connection to avoid presence spam
+          if (connectionId === this.activeConnectionId) {
+            const presenceData: PresenceState = {
+              userId,
+              userName,
+              online: true,
+              lastSeen: new Date().toISOString(),
+            };
 
-          await this.channel!.track(presenceData);
-          console.log('👤 Presence tracked:', presenceData);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.warn('⚠️ Real-time channel error - will retry');
-          this.isConnected = false;
-          this.attemptReconnect();
-        } else if (status === 'TIMED_OUT') {
-          console.warn('⚠️ Real-time channel timed out - will retry');
-          this.isConnected = false;
-          this.attemptReconnect();
+            await channel.track(presenceData);
+            console.log(`👤 Presence tracked on active channel: ${connectionId}`);
+          }
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn(`⚠️ Channel ${connectionId} error/timeout`);
+          channelInfo.isConnected = false;
+          this.attemptReconnectChannel(connectionId);
         } else if (status === 'CLOSED') {
-          console.log('🔌 Real-time channel closed');
-          this.isConnected = false;
+          console.log(`🔌 Channel ${connectionId} closed`);
+          channelInfo.isConnected = false;
         }
       });
     } catch (error) {
-      console.error('❌ Error during connection:', error);
-      this.attemptReconnect();
-    } finally {
-      this.isReconnecting = false;
+      console.error(`❌ Error connecting to ${connectionId}:`, error);
+      this.attemptReconnectChannel(connectionId);
     }
   }
 
   /**
-   * Attempt to reconnect
+   * Attempt to reconnect a specific channel
    */
-  private attemptReconnect(): void {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.warn('⚠️ Max reconnection attempts reached - real-time features disabled');
-      console.log('ℹ️ App will continue to work without real-time sync');
-      this.permanentlyDisabled = true;
+  private attemptReconnectChannel(connectionId: string): void {
+    const channelInfo = this.channels.get(connectionId);
+    if (!channelInfo) return;
+
+    if (channelInfo.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.warn(`⚠️ Max reconnection attempts reached for ${connectionId}`);
+      this.channels.delete(connectionId);
       return;
     }
 
-    this.reconnectAttempts++;
-    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000); // Exponential backoff, max 30s
+    channelInfo.reconnectAttempts++;
+    const delay = Math.min(1000 * Math.pow(2, channelInfo.reconnectAttempts), 30000);
 
-    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+    console.log(`🔄 Reconnecting ${connectionId} in ${delay}ms (attempt ${channelInfo.reconnectAttempts}/${this.maxReconnectAttempts})`);
 
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-    }
-
-    this.reconnectTimeout = window.setTimeout(() => {
-      if (this.connectionId && this.userId && this.userName) {
-        this.connect({
-          connectionId: this.connectionId,
-          userId: this.userId,
-          userName: this.userName,
+    setTimeout(() => {
+      if (this.userId && this.userName) {
+        this.disconnectFromChannel(connectionId).then(() => {
+          this.connectToChannel(connectionId, this.userId!, this.userName!);
         });
       }
     }, delay);
   }
 
   /**
-   * Disconnect from real-time channel
+   * Disconnect from a specific channel
    */
-  async disconnect(): Promise<void> {
-    if (this.channel) {
-      console.log('🔌 Disconnecting from real-time channel');
-      
-      try {
-        // Untrack presence before disconnecting (safely)
-        try {
-          await this.channel.untrack();
-        } catch (untrackError) {
-          console.warn('⚠️ Error untracking presence:', untrackError);
-        }
-        
-        // Store reference and clear before unsubscribing to prevent race conditions
-        const channelToRemove = this.channel;
-        this.channel = null;
-        this.connectionId = null;
-        this.isConnected = false;
-        
-        // Unsubscribe from channel - wrap in try/catch
-        try {
-          if (channelToRemove && typeof channelToRemove.unsubscribe === 'function') {
-            await supabase.removeChannel(channelToRemove);
-          }
-        } catch (removeError) {
-          // Silently handle removeChannel errors - this is expected during cleanup
-          // Channel might already be removed by Supabase or never fully initialized
-        }
-      } catch (error) {
-        console.error('❌ Error during disconnect:', error);
-        // Ensure state is cleared even if disconnect fails
-        this.channel = null;
-        this.connectionId = null;
-        this.isConnected = false;
-      }
-    }
+  private async disconnectFromChannel(connectionId: string): Promise<void> {
+    const channelInfo = this.channels.get(connectionId);
+    if (!channelInfo) return;
 
-    if (this.reconnectTimeout) {
-      clearTimeout(this.reconnectTimeout);
-      this.reconnectTimeout = null;
+    console.log(`🔌 Disconnecting from channel: ${connectionId}`);
+
+    try {
+      // Untrack presence if this was the active connection
+      if (connectionId === this.activeConnectionId) {
+        try {
+          await channelInfo.channel.untrack();
+        } catch (untrackError) {
+          console.warn(`⚠️ Error untracking presence on ${connectionId}:`, untrackError);
+        }
+      }
+
+      // Remove channel
+      try {
+        await supabase.removeChannel(channelInfo.channel);
+      } catch (removeError) {
+        // Silently handle errors
+      }
+    } catch (error) {
+      console.error(`❌ Error disconnecting from ${connectionId}:`, error);
+    } finally {
+      this.channels.delete(connectionId);
     }
   }
 
   /**
-   * Broadcast memory update to all connected clients
+   * Disconnect from ALL channels
+   */
+  async disconnectAll(): Promise<void> {
+    console.log(`🔌 Disconnecting from all ${this.channels.size} channels`);
+    
+    const connectionIds = Array.from(this.channels.keys());
+    for (const connectionId of connectionIds) {
+      await this.disconnectFromChannel(connectionId);
+    }
+
+    this.channels.clear();
+    this.activeConnectionId = null;
+  }
+
+  /**
+   * Set which connection is currently active (for presence tracking)
+   */
+  async setActiveConnection(connectionId: string): Promise<void> {
+    if (this.activeConnectionId === connectionId) {
+      return; // Already active
+    }
+
+    console.log(`🎯 Switching active connection: ${this.activeConnectionId} → ${connectionId}`);
+
+    // Untrack presence from old active connection
+    if (this.activeConnectionId) {
+      const oldChannel = this.channels.get(this.activeConnectionId);
+      if (oldChannel && oldChannel.channel) {
+        try {
+          await oldChannel.channel.untrack();
+          console.log(`👤 Untracked presence from: ${this.activeConnectionId}`);
+        } catch (error) {
+          console.warn(`⚠️ Error untracking from ${this.activeConnectionId}:`, error);
+        }
+      }
+    }
+
+    // Track presence on new active connection
+    this.activeConnectionId = connectionId;
+    const newChannel = this.channels.get(connectionId);
+    if (newChannel && newChannel.channel && newChannel.isConnected && this.userId && this.userName) {
+      try {
+        const presenceData: PresenceState = {
+          userId: this.userId,
+          userName: this.userName,
+          online: true,
+          lastSeen: new Date().toISOString(),
+        };
+
+        await newChannel.channel.track(presenceData);
+        console.log(`👤 Tracked presence on: ${connectionId}`);
+      } catch (error) {
+        console.warn(`⚠️ Error tracking presence on ${connectionId}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Broadcast memory update to a specific connection's channel
    */
   async broadcastMemoryUpdate(update: Omit<MemoryUpdate, 'timestamp'>): Promise<void> {
-    if (!this.channel || !this.isConnected) {
-      console.warn('⚠️ Not connected to real-time channel, skipping broadcast');
+    const channelInfo = this.channels.get(update.connectionId);
+    
+    if (!channelInfo || !channelInfo.isConnected) {
+      console.warn(`⚠️ Not connected to channel ${update.connectionId}, skipping broadcast`);
       return;
     }
 
@@ -288,9 +354,9 @@ class RealtimeSyncManager {
       timestamp: new Date().toISOString(),
     };
 
-    console.log('📡 Broadcasting memory update:', payload);
+    console.log(`📡 Broadcasting memory update to ${update.connectionId}:`, payload);
 
-    await this.channel.send({
+    await channelInfo.channel.send({
       type: 'broadcast',
       event: 'memory-update',
       payload,
@@ -298,21 +364,26 @@ class RealtimeSyncManager {
   }
 
   /**
-   * Broadcast typing indicator
+   * Broadcast typing indicator on active connection
    */
   async broadcastTyping(isTyping: boolean): Promise<void> {
-    if (!this.channel || !this.isConnected || !this.userId || !this.userName || !this.connectionId) {
+    if (!this.activeConnectionId || !this.userId || !this.userName) {
+      return;
+    }
+
+    const channelInfo = this.channels.get(this.activeConnectionId);
+    if (!channelInfo || !channelInfo.isConnected) {
       return;
     }
 
     const payload: TypingIndicator = {
       userId: this.userId,
       userName: this.userName,
-      connectionId: this.connectionId,
+      connectionId: this.activeConnectionId,
       isTyping,
     };
 
-    await this.channel.send({
+    await channelInfo.channel.send({
       type: 'broadcast',
       event: 'typing',
       payload,
@@ -325,7 +396,6 @@ class RealtimeSyncManager {
   onPresenceChange(callback: PresenceCallback): () => void {
     this.presenceCallbacks.push(callback);
     
-    // Return unsubscribe function
     return () => {
       this.presenceCallbacks = this.presenceCallbacks.filter(cb => cb !== callback);
     };
@@ -337,7 +407,6 @@ class RealtimeSyncManager {
   onMemoryUpdate(callback: MemoryUpdateCallback): () => void {
     this.memoryUpdateCallbacks.push(callback);
     
-    // Return unsubscribe function
     return () => {
       this.memoryUpdateCallbacks = this.memoryUpdateCallbacks.filter(cb => cb !== callback);
     };
@@ -349,7 +418,6 @@ class RealtimeSyncManager {
   onTyping(callback: TypingCallback): () => void {
     this.typingCallbacks.push(callback);
     
-    // Return unsubscribe function
     return () => {
       this.typingCallbacks = this.typingCallbacks.filter(cb => cb !== callback);
     };
@@ -360,38 +428,45 @@ class RealtimeSyncManager {
    */
   getConnectionStatus(): {
     isConnected: boolean;
-    connectionId: string | null;
-    reconnectAttempts: number;
+    activeConnectionId: string | null;
+    totalChannels: number;
+    connectedChannels: number;
   } {
+    const connectedChannels = Array.from(this.channels.values()).filter(
+      ch => ch.isConnected
+    ).length;
+
     return {
-      isConnected: this.isConnected,
-      connectionId: this.connectionId,
-      reconnectAttempts: this.reconnectAttempts,
+      isConnected: connectedChannels > 0,
+      activeConnectionId: this.activeConnectionId,
+      totalChannels: this.channels.size,
+      connectedChannels,
     };
   }
 
   /**
-   * Get current presence state
+   * LEGACY: Old single-channel connect method (for backward compatibility)
+   * Redirects to subscribeToConnections with a single connection
    */
-  getCurrentPresences(): Record<string, PresenceState> {
-    if (!this.channel) return {};
-
-    const state = this.channel.presenceState();
-    const presences: Record<string, PresenceState> = {};
-
-    Object.entries(state).forEach(([key, values]: [string, any[]]) => {
-      const presence = values[0];
-      if (presence) {
-        presences[key] = {
-          userId: presence.userId,
-          userName: presence.userName,
-          online: true,
-          lastSeen: new Date().toISOString(),
-        };
-      }
+  async connect(params: {
+    connectionId: string;
+    userId: string;
+    userName: string;
+  }): Promise<void> {
+    console.warn('⚠️ Using legacy connect() method. Consider using subscribeToConnections() instead.');
+    await this.subscribeToConnections({
+      connectionIds: [params.connectionId],
+      userId: params.userId,
+      userName: params.userName,
+      activeConnectionId: params.connectionId,
     });
+  }
 
-    return presences;
+  /**
+   * LEGACY: Old disconnect method
+   */
+  async disconnect(): Promise<void> {
+    await this.disconnectAll();
   }
 }
 
