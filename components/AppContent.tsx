@@ -183,29 +183,30 @@ export function AppContent() {
 
         // Subscribe to memory updates from other clients
         unsubscribeMemoryUpdates = realtimeSync.onMemoryUpdate(async (update) => {
-          if (isCleanedUp) {
-            console.log(`⚠️ IGNORING stale realtime update for ${update.connectionId} (subscription cleaned up)`);
-            return; // Ignore stale callbacks
-          }
+          try {
+            if (isCleanedUp) {
+              console.log(`⚠️ IGNORING stale realtime update for ${update.connectionId} (subscription cleaned up)`);
+              return; // Ignore stale callbacks
+            }
 
-          console.log('📡 Received memory update:', update, { 
-            expectedConnectionId: connectionId,
-            updateConnectionId: update.connectionId,
-            isForCurrentConnection: update.connectionId === connectionId 
-          });
+            // CRITICAL FIX: Get CURRENT active connection FIRST before logging
+            // Don't use undefined connectionId - it was causing ReferenceError!
+            const currentActiveConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+            const isActiveConnection = update.connectionId === currentActiveConnectionId;
 
-          // Ignore updates from ourselves (current user)
-          if (update.userId === user.id) {
-            console.log('   ℹ️ Ignoring update from self');
-            return;
-          }
+            console.log('📡 Received memory update:', update, { 
+              currentActiveConnectionId,
+              updateConnectionId: update.connectionId,
+              isForCurrentConnection: isActiveConnection
+            });
 
-          // CRITICAL: Get CURRENT active connection at time of update processing
-          // Don't use captured connectionId - it might be stale!
-          const currentActiveConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
-          const isActiveConnection = update.connectionId === currentActiveConnectionId;
-          
-          console.log(`   🎯 Update is for ${isActiveConnection ? 'ACTIVE' : 'BACKGROUND'} connection (active: ${currentActiveConnectionId}, update: ${update.connectionId})`);
+            // Ignore updates from ourselves (current user)
+            if (update.userId === user.id) {
+              console.log('   ℹ️ Ignoring update from self');
+              return;
+            }
+            
+            console.log(`   🎯 Update is for ${isActiveConnection ? 'ACTIVE' : 'BACKGROUND'} connection (active: ${currentActiveConnectionId}, update: ${update.connectionId})`);
 
           // Handle different update types
           if (update.action === 'create' && update.memory) {
@@ -317,6 +318,10 @@ export function AppContent() {
             }
             
             console.log(`   ✅ Memory ${update.memoryId} deleted from all caches`);
+          }
+          } catch (error) {
+            console.error('❌ Error processing memory update:', error);
+            console.error('Update data:', update);
           }
         });
 
