@@ -16,6 +16,7 @@ import { pwaInstaller } from './utils/pwaInstaller'; // PWA and Service Worker
 
 export type UserType = 'keeper' | 'teller' | null;
 export type AppLanguage = 'english' | 'spanish' | 'french' | 'chinese' | 'korean' | 'japanese';
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -34,6 +35,7 @@ export interface UserProfile {
     shareLocationData?: boolean;
   };
 }
+
 export interface Storyteller {
   id: string;
   name: string;
@@ -44,6 +46,7 @@ export interface Storyteller {
   lastMessage?: string;
   lastMessageTime?: Date;
 }
+
 export interface LegacyKeeper {
   id: string;
   name: string;
@@ -54,6 +57,7 @@ export interface LegacyKeeper {
   lastMessage?: string;
   lastMessageTime?: Date;
 }
+
 export interface Memory {
   id: string;
   type: 'text' | 'photo' | 'voice' | 'video' | 'document';
@@ -63,6 +67,7 @@ export interface Memory {
   category?: string;
   estimatedDate?: string;
   tags: string[];
+  readBy?: string[]; // User IDs who have read this message
   transcript?: string;
   originalText?: string;
   promptQuestion?: string;
@@ -99,6 +104,7 @@ export interface Memory {
   documentPageCount?: number;
   documentScanLanguage?: string;
 }
+
 export type DisplayLanguage = 'english' | 'french' | 'chinese' | 'korean' | 'japanese' | 'all';
 
 export default function App() {
