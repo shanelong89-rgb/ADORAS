@@ -855,7 +855,7 @@ export function Dashboard({
 
         {/* Tab Content - Add top padding to account for fixed header */}
         <div 
-          className="flex-1 flex flex-col overflow-hidden"
+          className="flex-1 flex flex-col overflow-hidden dashboard-content"
           style={{ 
             minHeight: 0,
             paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)' // Mobile: flush with tabs
@@ -894,17 +894,15 @@ export function Dashboard({
           )}
           
           {activeTab === 'media' && (
-            <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-8">
-                <MediaLibraryTab 
-                  memories={validatedMemories}
-                  userType={userType}
-                  userAge={userProfile.age || 20}
-                  partnerBirthday={partnerProfile?.birthday}
-                  onEditMemory={onEditMemory}
-                  onDeleteMemory={onDeleteMemory}
-                />
-              </div>
+            <div className="flex-1 flex flex-col overflow-hidden px-4 sm:px-6 pt-4 sm:pt-6">
+              <MediaLibraryTab 
+                memories={validatedMemories}
+                userType={userType}
+                userAge={userProfile.age || 20}
+                partnerBirthday={partnerProfile?.birthday}
+                onEditMemory={onEditMemory}
+                onDeleteMemory={onDeleteMemory}
+              />
             </div>
           )}
         </div>
