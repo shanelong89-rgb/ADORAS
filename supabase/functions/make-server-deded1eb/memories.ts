@@ -6,8 +6,8 @@
  */
 
 import { createClient } from 'jsr:@supabase/supabase-js';
-import * as kv from './kv_store.ts';
-import { Memory, Connection, Keys, generateId } from './database.ts';
+import * as kv from './kv_store.tsx';
+import { Memory, Connection, Keys, generateId } from './database.tsx';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -693,6 +693,84 @@ export async function getMemory(params: {
     };
   } catch (error) {
     console.error('Error getting memory:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Mark messages as read by a user
+ */
+export async function markMessagesAsRead(params: {
+  connectionId: string;
+  userId: string;
+  messageIds?: string[]; // If not provided, mark ALL messages in connection as read
+}) {
+  try {
+    console.log(`📖 Marking messages as read for user ${params.userId} in connection ${params.connectionId}`);
+    
+    // Verify connection exists and user is authorized
+    const connection = await kv.get<Connection>(Keys.connection(params.connectionId));
+    if (!connection) {
+      throw new Error('Connection not found');
+    }
+
+    if (connection.keeperId !== params.userId && connection.tellerId !== params.userId) {
+      throw new Error('User not authorized for this connection');
+    }
+
+    // Get message IDs to mark as read
+    let targetMessageIds: string[];
+    if (params.messageIds && params.messageIds.length > 0) {
+      targetMessageIds = params.messageIds;
+    } else {
+      // Mark all messages in connection as read
+      targetMessageIds = await kv.get<string[]>(Keys.connectionMemories(params.connectionId)) || [];
+    }
+
+    console.log(`📖 Marking ${targetMessageIds.length} messages as read`);
+
+    // Update each message's readBy array
+    let updatedCount = 0;
+    await Promise.all(
+      targetMessageIds.map(async (messageId) => {
+        try {
+          const memory = await kv.get<Memory>(Keys.memory(messageId));
+          if (!memory) {
+            console.warn(`⚠️ Memory ${messageId} not found when marking as read`);
+            return;
+          }
+
+          // Skip if user already marked as read
+          if (memory.readBy && memory.readBy.includes(params.userId)) {
+            return;
+          }
+
+          // Add user to readBy array
+          const updatedMemory = {
+            ...memory,
+            readBy: [...(memory.readBy || []), params.userId],
+            updatedAt: new Date().toISOString(),
+          };
+
+          await kv.set(Keys.memory(messageId), updatedMemory);
+          updatedCount++;
+        } catch (error) {
+          console.error(`❌ Error marking message ${messageId} as read:`, error);
+        }
+      })
+    );
+
+    console.log(`✅ Marked ${updatedCount} messages as read`);
+
+    return {
+      success: true,
+      updatedCount,
+    };
+  } catch (error) {
+    console.error('Error marking messages as read:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
