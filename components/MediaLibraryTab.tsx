@@ -1302,6 +1302,9 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
         </div>
       </div>
 
+      {/* Separator */}
+      <div className="border-t border-border my-4" />
+
       {/* Scrollable View Content */}
       <ScrollArea className="flex-1">
         {viewMode === 'calendar' ? (
