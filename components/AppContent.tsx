@@ -467,10 +467,13 @@ export function AppContent() {
           }
         });
 
-        if (mediaUrls.length > 0 && !networkStatus.isSlowConnection) {
-          console.log(`📦 Prefetching ${mediaUrls.length} media items...`);
-          prefetchMedia(mediaUrls);
-        }
+        // DISABLED: Aggressive prefetching caused 779% Supabase egress overage
+        // Media now lazy-loads on-demand when viewed (saves ~50% bandwidth)
+        // if (mediaUrls.length > 0 && !networkStatus.isSlowConnection) {
+        //   console.log(`📦 Prefetching ${mediaUrls.length} media items...`);
+        //   prefetchMedia(mediaUrls);
+        // }
+        console.log(`ℹ️ Media prefetch disabled to reduce bandwidth. ${mediaUrls.length} items will lazy-load on demand.`);
       }
     };
 
