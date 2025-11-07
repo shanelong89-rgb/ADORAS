@@ -1208,9 +1208,9 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
   };
 
   return (
-    <div className="space-y-5 sm:space-y-6 max-w-3xl mx-auto">
-      {/* Search and Filters */}
-      <div className="space-y-4 sm:space-y-5">
+    <div className="flex flex-col h-full max-w-3xl mx-auto">
+      {/* Fixed Search and Filters */}
+      <div className="flex-shrink-0 space-y-4 sm:space-y-5 pb-4">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1284,26 +1284,26 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
             </Button>
           </div>
         </div>
+
+        {/* Results Count */}
+        <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground flex-wrap gap-2">
+          <span className="break-words">
+            {filteredMemories.length} {filteredMemories.length === 1 ? 'memory' : 'memories'}
+            {selectedCategory !== 'All' && ` in ${selectedCategory}`}
+            {searchQuery && (
+              <span className="ml-2 text-primary">
+                <ScanText className="w-3 h-3 inline mr-1" />
+                Searching in all text including scanned documents
+              </span>
+            )}
+            {viewMode === 'calendar' && ` • ${availableYears.length} ${availableYears.length === 1 ? 'year' : 'years'}`}
+          </span>
+          <span className="whitespace-nowrap">{memories.length} total</span>
+        </div>
       </div>
 
-      {/* Results Count */}
-      <div className="flex items-center justify-between text-xs sm:text-sm text-muted-foreground flex-wrap gap-2">
-        <span className="break-words">
-          {filteredMemories.length} {filteredMemories.length === 1 ? 'memory' : 'memories'}
-          {selectedCategory !== 'All' && ` in ${selectedCategory}`}
-          {searchQuery && (
-            <span className="ml-2 text-primary">
-              <ScanText className="w-3 h-3 inline mr-1" />
-              Searching in all text including scanned documents
-            </span>
-          )}
-          {viewMode === 'calendar' && ` • ${availableYears.length} ${availableYears.length === 1 ? 'year' : 'years'}`}
-        </span>
-        <span className="whitespace-nowrap">{memories.length} total</span>
-      </div>
-
-      {/* View Content */}
-      <ScrollArea className="h-[calc(100vh-300px)]">
+      {/* Scrollable View Content */}
+      <ScrollArea className="flex-1">
         {viewMode === 'calendar' ? (
           renderCalendarView()
         ) : (
