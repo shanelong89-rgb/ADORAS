@@ -2090,19 +2090,21 @@ export function AppContent() {
             }
 
             // Get partner's userId from the connection
-            const connectionRecord = connections.find(c => 
-              (userType === 'keeper' && c.partner?.id === activeStorytellerId) ||
-              (userType === 'teller' && c.partner?.id === activeLegacyKeeperId)
-            );
+            // FIXED: activeStorytellerId/activeLegacyKeeperId are CONNECTION IDs, not user IDs
+            const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+            const connectionRecord = connections.find(c => c.connection?.id === activeConnectionId);
 
             console.log('📱 Connection lookup:', {
               foundConnection: !!connectionRecord,
               connectionId: connectionRecord?.connection?.id,
               partnerId: connectionRecord?.partner?.id,
               partnerName: connectionRecord?.partner?.name,
+              activeConnectionId,
               activeStorytellerId,
               activeLegacyKeeperId,
               userType,
+              totalConnections: connections.length,
+              allConnectionIds: connections.map(c => c.connection?.id),
             });
 
             if (connectionRecord && connectionRecord.partner) {
@@ -2220,11 +2222,47 @@ export function AppContent() {
     }
   };
 
-  const handleEditMemory = async (memoryId: string, updates: Partial<Memory>) => {
+  const handleEditMemory = async (memoryId: string, updates: Partial<Memory>, localOnly = false) => {
     try {
+      const connectionId = userType === 'keeper' 
+        ? activeStorytellerId 
+        : activeLegacyKeeperId;
+      
+      // If localOnly is true, skip API call and just update local state
+      // This is used for read tracking where backend already updated via markMessagesAsRead
+      if (localOnly) {
+        console.log(`✏️ Updating memory locally: ${memoryId}`, updates);
+        
+        // Update local state directly
+        setMemories((prev) => prev.map((memory) =>
+          memory.id === memoryId ? { ...memory, ...updates } : memory
+        ));
+        
+        // Update memories by connection
+        if (userType === 'keeper' && connectionId) {
+          setMemoriesByStoryteller((prev) => ({
+            ...prev,
+            [connectionId]: (prev[connectionId] || []).map((memory) =>
+              memory.id === memoryId ? { ...memory, ...updates } : memory
+            ),
+          }));
+        }
+        
+        if (userType === 'teller' && connectionId) {
+          setMemoriesByLegacyKeeper((prev) => ({
+            ...prev,
+            [connectionId]: (prev[connectionId] || []).map((memory) =>
+              memory.id === memoryId ? { ...memory, ...updates } : memory
+            ),
+          }));
+        }
+        
+        return;
+      }
+      
+      // Otherwise, call API to update memory
       console.log('📡 Updating memory via API...', memoryId);
       
-      // Call API to update memory
       const response = await apiClient.updateMemory(memoryId, {
         note: updates.note,
         timestamp: updates.timestamp?.toISOString(),
@@ -2244,10 +2282,6 @@ export function AppContent() {
         ));
         
         // Update memories by connection
-        const connectionId = userType === 'keeper' 
-          ? activeStorytellerId 
-          : activeLegacyKeeperId;
-        
         if (userType === 'keeper' && connectionId) {
           setMemoriesByStoryteller((prev) => ({
             ...prev,
@@ -2529,7 +2563,7 @@ export function AppContent() {
     // Show loading screen while checking authentication
     if (isLoading) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="mt-4 text-muted-foreground" style={{ fontFamily: 'Inter' }}>Loading...</p>
