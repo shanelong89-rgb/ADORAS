@@ -20,11 +20,19 @@ export default defineConfig({
         /^npm:/,  // Exclude all npm: imports (Deno-specific)
         /^jsr:/,  // Exclude all jsr: imports (Deno-specific)
         /supabase\/functions/,  // Exclude all Supabase Edge Functions (backend code)
+        /\/kv_store/,  // Exclude kv_store explicitly
       ],
+      onwarn(warning, warn) {
+        // Suppress warnings about unresolved imports from backend
+        if (warning.code === 'UNRESOLVED_IMPORT' && warning.message.includes('kv_store')) {
+          return;
+        }
+        warn(warning);
+      },
     },
   },
   optimizeDeps: {
-    exclude: ['supabase/functions'],  // Don't pre-bundle backend code
+    exclude: ['supabase/functions', 'supabase'],  // Don't pre-bundle backend code
   },
   publicDir: 'public',
   server: {
@@ -41,6 +49,9 @@ export default defineConfig({
   css: {
     postcss: './postcss.config.js',
   },
+  assetsInclude: ['**/*.png', '**/*.jpg', '**/*.svg'],
+  // Completely ignore supabase folder during builds
+  exclude: ['supabase/**/*'],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './'),
