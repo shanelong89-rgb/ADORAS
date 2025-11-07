@@ -28,8 +28,8 @@
     }
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
+    "*.ts",
+    "*.tsx",
     "components/**/*.tsx",
     "components/**/*.ts",
     "utils/**/*.ts",
@@ -38,7 +38,8 @@
   "exclude": [
     "node_modules",
     "build",
-    "dist"
+    "dist",
+    "supabase/**/*"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
