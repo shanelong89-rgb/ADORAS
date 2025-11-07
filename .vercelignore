@@ -2,7 +2,7 @@
 supabase/
 supabase/**/*
 
-# Exclude all markdown documentation
+# Exclude documentation
 *.md
 **/*.md
 
