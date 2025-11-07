@@ -208,37 +208,24 @@ export function Dashboard({
     }
   }, [unreadMessageCount, activeTab]);
 
-  // Helper function to mark messages as read and update local state
+  // Helper function to mark messages as read
   const markConnectionAsRead = React.useCallback(async (connectionId: string) => {
     try {
       const result = await apiClient.markMessagesAsRead(connectionId);
       
-      if (result.success) {
-        console.log(`✅ Marked ${result.updatedCount || 0} messages as read`);
+      if (result.success && result.updatedCount && result.updatedCount > 0) {
+        console.log(`✅ Marked ${result.updatedCount} messages as read - triggering badge update`);
         
-        // Update local memory objects with readBy array
-        const connectionMemories = userType === 'keeper' 
-          ? (memoriesByStoryteller[connectionId] || [])
-          : (memoriesByLegacyKeeper[connectionId] || []);
-        
-        connectionMemories.forEach(memory => {
-          if (!memory.readBy?.includes(userProfile.id)) {
-            if (onEditMemory) {
-              // Pass localOnly=true to skip API call (backend already updated via markMessagesAsRead)
-              onEditMemory(memory.id, {
-                readBy: [...(memory.readBy || []), userProfile.id]
-              }, true);
-            }
-          }
-        });
-        
-        // Update local timestamp
+        // Trigger badge re-calculation by updating timestamp
+        // The backend has already updated the readBy arrays, so when AppContent
+        // refetches memories, they'll have the updated readBy arrays
         const now = Date.now();
         localStorage.setItem(`lastChatRead_${userProfile.id}_${connectionId}`, now.toString());
-        localStorage.setItem(`lastChatRead_${userProfile.id}`, now.toString());
         setLastChatReadTimestamp(now);
         
-        return result;
+        // Force a memories refetch for this connection to get updated readBy arrays
+        // This will happen automatically on the next periodic refresh (every 30s)
+        // or when switching connections
       }
       
       return result;
@@ -246,7 +233,7 @@ export function Dashboard({
       console.error('❌ Error marking messages as read:', error);
       return { success: false, error: String(error) };
     }
-  }, [userType, memoriesByStoryteller, memoriesByLegacyKeeper, userProfile.id, onEditMemory]);
+  }, [userProfile.id]);
 
   // Mark messages as read after viewing chat tab for 2 seconds
   useEffect(() => {
