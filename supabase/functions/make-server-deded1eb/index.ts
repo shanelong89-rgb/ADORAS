@@ -856,6 +856,42 @@ app.delete("/make-server-deded1eb/memories/:memoryId", async (c) => {
 });
 
 /**
+ * POST /make-server-deded1eb/memories/:connectionId/mark-read
+ * Mark messages as read for a connection
+ */
+app.post("/make-server-deded1eb/memories/:connectionId/mark-read", async (c) => {
+  try {
+    const accessToken = c.req.header("Authorization")?.split(" ")[1];
+    if (!accessToken) {
+      return c.json({ success: false, error: "Unauthorized" }, 401);
+    }
+
+    const verifyResult = await auth.verifyToken(accessToken);
+    if (!verifyResult.success || !verifyResult.userId) {
+      return c.json({ success: false, error: "Unauthorized" }, 401);
+    }
+
+    const connectionId = c.req.param("connectionId");
+    const body = await c.req.json().catch(() => ({})); // Body is optional
+    const messageIds = body.messageIds; // Optional: specific message IDs to mark as read
+
+    const result = await memories.markMessagesAsRead({
+      connectionId,
+      userId: verifyResult.userId,
+      messageIds,
+    });
+
+    return c.json(result, result.success ? 200 : 400);
+  } catch (error) {
+    console.error("Mark messages as read error:", error);
+    return c.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to mark messages as read" 
+    }, 500);
+  }
+});
+
+/**
  * GET /make-server-deded1eb/memory/:memoryId
  * Get a single memory
  */
