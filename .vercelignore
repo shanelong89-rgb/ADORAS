@@ -1,0 +1,11 @@
+# Exclude Supabase Edge Functions (backend code) from Vercel build
+supabase/
+supabase/**/*
+
+# Exclude all markdown documentation
+*.md
+**/*.md
+
+# Exclude shell scripts
+*.sh
+**/*.sh
