@@ -141,10 +141,6 @@ export function Dashboard({
       return 0; // No badge when actively viewing this chat
     }
     
-    // Get the last read timestamp for this specific connection
-    const stored = localStorage.getItem(`lastChatRead_${userProfile.id}_${connectionId}`);
-    const connectionLastRead = stored ? parseInt(stored) : 0;
-    
     // Get memories for this specific connection
     const connectionMemories = userType === 'keeper' 
       ? (memoriesByStoryteller[connectionId] || [])
@@ -154,7 +150,9 @@ export function Dashboard({
       // Check if this message is from the partner (not from the current user)
       const isFromPartner = memory.sender !== userType;
       const isMessage = memory.type === 'text' || memory.type === 'voice';
-      const isUnread = memory.timestamp.getTime() > connectionLastRead;
+      
+      // NEW: Use readBy array instead of timestamp comparison
+      const isUnread = !memory.readBy || !memory.readBy.includes(userProfile.id);
       
       return isFromPartner && isMessage && isUnread;
     }).length;
@@ -213,24 +211,62 @@ export function Dashboard({
   // Mark messages as read after viewing chat tab for 2 seconds
   useEffect(() => {
     if (activeTab === 'chat') {
-      const timer = setTimeout(() => {
-        const now = Date.now();
-        
-        // Also mark messages as read for the currently active connection
+      const timer = setTimeout(async () => {
         const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
         if (activeConnectionId) {
-          localStorage.setItem(`lastChatRead_${userProfile.id}_${activeConnectionId}`, now.toString());
-          console.log(`✅ Marked messages as read for connection: ${activeConnectionId}`);
+          try {
+            console.log(`📖 Marking all messages as read for connection: ${activeConnectionId}`);
+            
+            // Call backend to mark messages as read
+            const result = await apiClient.markMessagesAsRead(activeConnectionId);
+            
+            if (result.success) {
+              console.log(`✅ Marked ${result.updatedCount || 0} messages as read`);
+              
+              // Update local timestamp for backwards compatibility
+              const now = Date.now();
+              localStorage.setItem(`lastChatRead_${userProfile.id}_${activeConnectionId}`, now.toString());
+              localStorage.setItem(`lastChatRead_${userProfile.id}`, now.toString());
+              setLastChatReadTimestamp(now); // Trigger re-render
+            } else {
+              console.error('❌ Failed to mark messages as read:', result.error);
+            }
+          } catch (error) {
+            console.error('❌ Error marking messages as read:', error);
+          }
         }
-        
-        // Update global timestamp LAST to trigger re-render
-        localStorage.setItem(`lastChatRead_${userProfile.id}`, now.toString());
-        setLastChatReadTimestamp(now); // This triggers unreadMessageCount recalculation
       }, 2000); // 2 second delay to let user see notification badge first
       
       return () => clearTimeout(timer);
     }
   }, [activeTab, userProfile.id, userType, activeStorytellerId, activeLegacyKeeperId]);
+
+  // Mark messages as read when switching connections (while on chat tab)
+  const prevConnectionIdRef = useRef<string | undefined>();
+  useEffect(() => {
+    const currentConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+    
+    // Only trigger when connection actually changes AND we're on chat tab
+    if (activeTab === 'chat' && currentConnectionId && currentConnectionId !== prevConnectionIdRef.current && prevConnectionIdRef.current !== undefined) {
+      console.log(`🔄 Connection switched to ${currentConnectionId}, marking messages as read`);
+      
+      // Mark messages as read immediately when switching connections
+      apiClient.markMessagesAsRead(currentConnectionId)
+        .then((result) => {
+          if (result.success) {
+            console.log(`✅ Marked ${result.updatedCount || 0} messages as read on connection switch`);
+            const now = Date.now();
+            localStorage.setItem(`lastChatRead_${userProfile.id}_${currentConnectionId}`, now.toString());
+            setLastChatReadTimestamp(now);
+          }
+        })
+        .catch((error) => {
+          console.error('❌ Error marking messages as read on connection switch:', error);
+        });
+    }
+    
+    prevConnectionIdRef.current = currentConnectionId;
+  }, [activeTab, userType, activeStorytellerId, activeLegacyKeeperId, userProfile.id]);
 
   // Track previous memory IDs to detect truly NEW messages (not just re-renders)
   const prevMemoryIdsRef = useRef<Set<string>>(new Set());
@@ -321,7 +357,7 @@ export function Dashboard({
                 sender: newMemory.sender,
                 type: isPrompt ? 'prompt' : 'message',
               },
-              onClick: () => {
+              onClick: async () => {
                 // Navigate to chat tab when notification is clicked
                 setActiveTab('chat');
                 // Trigger scroll to bottom to show new message
@@ -329,6 +365,16 @@ export function Dashboard({
                 // If it's a prompt, set it as the active prompt
                 if (isPrompt && newMemory.promptQuestion) {
                   setActivePrompt(newMemory.promptQuestion);
+                }
+                
+                // Mark messages as read immediately when clicking notification
+                const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+                if (activeConnectionId) {
+                  try {
+                    await apiClient.markMessagesAsRead(activeConnectionId);
+                  } catch (error) {
+                    console.error('Error marking messages as read from notification:', error);
+                  }
                 }
               },
             }
@@ -341,12 +387,22 @@ export function Dashboard({
             title: notificationTitle,
             body: messagePreview,
             avatar: partnerProfile.photo || '/apple-touch-icon.png',
-            onClick: () => {
+            onClick: async () => {
               // Trigger scroll to bottom to see the new message
               setShouldScrollChatToBottom(true);
               // If it's a prompt, ensure it's set as active prompt
               if (isPrompt && newMemory.promptQuestion) {
                 setActivePrompt(newMemory.promptQuestion);
+              }
+              
+              // Mark as read when clicking in-app toast
+              const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+              if (activeConnectionId) {
+                try {
+                  await apiClient.markMessagesAsRead(activeConnectionId);
+                } catch (error) {
+                  console.error('Error marking messages as read from toast:', error);
+                }
               }
             },
           });
