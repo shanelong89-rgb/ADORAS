@@ -239,6 +239,8 @@ export async function createMemory(params: {
       promptQuestion: params.promptQuestion,
       conversationContext: params.conversationContext,
       voiceVisualReference: params.voiceVisualReference,
+      // IMPORTANT: Sender has already "read" their own message
+      readBy: [params.userId],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
