@@ -129,7 +129,7 @@ export function AppContent() {
   }, [userType]);
 
   /**
-   * Phase 5: Setup real-time sync for active connection
+   * Phase 5: Setup real-time sync for ALL connections (multi-channel support)
    */
   useEffect(() => {
     let unsubscribePresence: (() => void) | null = null;
@@ -137,32 +137,48 @@ export function AppContent() {
     let isCleanedUp = false; // Track if this subscription has been cleaned up
 
     const setupRealtime = async () => {
-      const connectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
-      
-      // Only connect if we have a connection and user is authenticated
-      if (!connectionId || !user || !isConnected) {
+      // Only connect if user is authenticated
+      if (!user) {
         return;
       }
 
-      console.log(`🔌 Setting up real-time sync for connection: ${connectionId}`);
+      // Get ALL connection IDs
+      const allConnectionIds: string[] = [];
+      if (userType === 'keeper' && storytellers.length > 0) {
+        allConnectionIds.push(...storytellers.filter(s => s.isConnected).map(s => s.id));
+      } else if (userType === 'teller' && legacyKeepers.length > 0) {
+        allConnectionIds.push(...legacyKeepers.filter(k => k.isConnected).map(k => k.id));
+      }
+
+      if (allConnectionIds.length === 0) {
+        console.log('ℹ️ No active connections to subscribe to');
+        return;
+      }
+
+      const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+
+      console.log(`🔌 Setting up multi-channel real-time sync for ${allConnectionIds.length} connections:`, allConnectionIds);
+      console.log(`   Active connection: ${activeConnectionId}`);
 
       try {
-        // Connect to real-time channel
-        // Note: We don't pass userPhoto to avoid huge payloads in presence data
-        // Photos are fetched separately when displaying user avatars
-        await realtimeSync.connect({
-          connectionId,
+        // Subscribe to ALL connections simultaneously
+        await realtimeSync.subscribeToConnections({
+          connectionIds: allConnectionIds,
           userId: user.id,
           userName: user.name,
+          activeConnectionId,
         });
 
         setRealtimeConnected(true);
 
-        // Subscribe to presence updates
-        unsubscribePresence = realtimeSync.onPresenceChange((presenceState) => {
+        // Subscribe to presence updates (now receives connectionId)
+        unsubscribePresence = realtimeSync.onPresenceChange((connectionId, presenceState) => {
           if (isCleanedUp) return; // Ignore stale callbacks
-          console.log('👥 Presence updated:', presenceState);
-          setPresences(presenceState);
+          console.log(`👥 Presence updated for ${connectionId}:`, presenceState);
+          // For now, only track presence for active connection
+          if (connectionId === activeConnectionId) {
+            setPresences(presenceState);
+          }
         });
 
         // Subscribe to memory updates from other clients
@@ -325,11 +341,23 @@ export function AppContent() {
       if (unsubscribeMemoryUpdates) {
         unsubscribeMemoryUpdates();
       }
-      realtimeSync.disconnect();
+      realtimeSync.disconnectAll();
       setRealtimeConnected(false);
       setPresences({});
     };
-  }, [userType, activeStorytellerId, activeLegacyKeeperId, user, isConnected]);
+  }, [userType, activeStorytellerId, activeLegacyKeeperId, user, storytellers, legacyKeepers]);
+
+  /**
+   * Update active connection in realtime sync when switching chats
+   */
+  useEffect(() => {
+    const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+    
+    if (activeConnectionId && realtimeConnected) {
+      console.log(`🎯 Updating active connection in realtime: ${activeConnectionId}`);
+      realtimeSync.setActiveConnection(activeConnectionId);
+    }
+  }, [activeStorytellerId, activeLegacyKeeperId, userType, realtimeConnected]);
 
   /**
    * Notification Onboarding: Show on first dashboard load if not subscribed
