@@ -1303,7 +1303,7 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
       </div>
 
       {/* Scrollable View Content */}
-      <ScrollArea className="flex-1 pt-4">
+      <div className="flex-1 overflow-y-auto overscroll-contain pt-4 pb-8" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
         {viewMode === 'calendar' ? (
           renderCalendarView()
         ) : (
@@ -1431,7 +1431,7 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
             )}
           </>
         )}
-      </ScrollArea>
+      </div>
 
       {/* Day Detail Dialog */}
       <Dialog open={showDayDialog} onOpenChange={setShowDayDialog}>
