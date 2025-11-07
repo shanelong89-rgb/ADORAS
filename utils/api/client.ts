@@ -550,6 +550,22 @@ class AdorasAPIClient {
   }
 
   /**
+   * Mark messages as read for a connection
+   */
+  async markMessagesAsRead(
+    connectionId: string,
+    messageIds?: string[]
+  ): Promise<{ success: boolean; updatedCount?: number; error?: string }> {
+    return this.request<{ success: boolean; updatedCount?: number; error?: string }>(
+      `/memories/${connectionId}/mark-read`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ messageIds }),
+      }
+    );
+  }
+
+  /**
    * Refresh signed URL for a memory's media files (Phase 3b)
    * Prevents broken images/videos after URLs expire (1 hour)
    */
