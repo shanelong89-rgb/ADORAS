@@ -41,6 +41,7 @@ export interface Memory {
   estimatedDate?: string; // When the memory occurred
   category?: string;
   tags: string[];
+  readBy?: string[]; // User IDs who have read this message
   
   // Voice memo specific
   transcript?: string;
