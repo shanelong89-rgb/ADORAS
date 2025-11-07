@@ -394,13 +394,14 @@ export function Dashboard({
             }
           );
         } else {
-          // If user IS on chat tab, show in-app toast notification
-          // This ensures prompts and messages are always visible even when already on chat
+          // If user IS on chat tab, show PROMINENT in-app toast notification banner
+          // This ensures messages are always visible even when already on chat
           showToast({
             type: notificationType,
             title: notificationTitle,
             body: messagePreview,
             avatar: partnerProfile.photo || '/apple-touch-icon.png',
+            duration: 6000, // Show for 6 seconds (longer than default)
             onClick: async () => {
               // Trigger scroll to bottom to see the new message
               setShouldScrollChatToBottom(true);
