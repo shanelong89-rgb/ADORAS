@@ -15,6 +15,11 @@ export default defineConfig({
     outDir: 'build',
     sourcemap: true,
     emptyOutDir: true,
+    rollupOptions: {
+      external: [
+        /^npm:/,  // Exclude all npm: imports (Deno-specific)
+      ],
+    },
   },
   publicDir: 'public',
   server: {
