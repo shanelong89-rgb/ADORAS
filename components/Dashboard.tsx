@@ -47,7 +47,7 @@ interface DashboardProps {
   onSwitchLegacyKeeper?: (legacyKeeperId: string) => void;
   displayLanguage: DisplayLanguage;
   onDisplayLanguageChange: (language: DisplayLanguage) => void;
-  onEditMemory?: (memoryId: string, updates: Partial<Memory>) => void;
+  onEditMemory?: (memoryId: string, updates: Partial<Memory>, localOnly?: boolean) => void;
   onDeleteMemory?: (memoryId: string) => void;
   onUpdateProfile: (updates: Partial<UserProfile>) => void;
   onCreateInvitation?: (partnerName: string, partnerRelationship: string, phoneNumber: string) => Promise<{ success: boolean; invitationId?: string; message?: string; error?: string }>;
@@ -208,38 +208,60 @@ export function Dashboard({
     }
   }, [unreadMessageCount, activeTab]);
 
+  // Helper function to mark messages as read and update local state
+  const markConnectionAsRead = React.useCallback(async (connectionId: string) => {
+    try {
+      const result = await apiClient.markMessagesAsRead(connectionId);
+      
+      if (result.success) {
+        console.log(`✅ Marked ${result.updatedCount || 0} messages as read`);
+        
+        // Update local memory objects with readBy array
+        const connectionMemories = userType === 'keeper' 
+          ? (memoriesByStoryteller[connectionId] || [])
+          : (memoriesByLegacyKeeper[connectionId] || []);
+        
+        connectionMemories.forEach(memory => {
+          if (!memory.readBy?.includes(userProfile.id)) {
+            if (onEditMemory) {
+              // Pass localOnly=true to skip API call (backend already updated via markMessagesAsRead)
+              onEditMemory(memory.id, {
+                readBy: [...(memory.readBy || []), userProfile.id]
+              }, true);
+            }
+          }
+        });
+        
+        // Update local timestamp
+        const now = Date.now();
+        localStorage.setItem(`lastChatRead_${userProfile.id}_${connectionId}`, now.toString());
+        localStorage.setItem(`lastChatRead_${userProfile.id}`, now.toString());
+        setLastChatReadTimestamp(now);
+        
+        return result;
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error marking messages as read:', error);
+      return { success: false, error: String(error) };
+    }
+  }, [userType, memoriesByStoryteller, memoriesByLegacyKeeper, userProfile.id, onEditMemory]);
+
   // Mark messages as read after viewing chat tab for 2 seconds
   useEffect(() => {
     if (activeTab === 'chat') {
       const timer = setTimeout(async () => {
         const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
         if (activeConnectionId) {
-          try {
-            console.log(`📖 Marking all messages as read for connection: ${activeConnectionId}`);
-            
-            // Call backend to mark messages as read
-            const result = await apiClient.markMessagesAsRead(activeConnectionId);
-            
-            if (result.success) {
-              console.log(`✅ Marked ${result.updatedCount || 0} messages as read`);
-              
-              // Update local timestamp for backwards compatibility
-              const now = Date.now();
-              localStorage.setItem(`lastChatRead_${userProfile.id}_${activeConnectionId}`, now.toString());
-              localStorage.setItem(`lastChatRead_${userProfile.id}`, now.toString());
-              setLastChatReadTimestamp(now); // Trigger re-render
-            } else {
-              console.error('❌ Failed to mark messages as read:', result.error);
-            }
-          } catch (error) {
-            console.error('❌ Error marking messages as read:', error);
-          }
+          console.log(`📖 Marking all messages as read for connection: ${activeConnectionId}`);
+          await markConnectionAsRead(activeConnectionId);
         }
       }, 2000); // 2 second delay to let user see notification badge first
       
       return () => clearTimeout(timer);
     }
-  }, [activeTab, userProfile.id, userType, activeStorytellerId, activeLegacyKeeperId]);
+  }, [activeTab, userType, activeStorytellerId, activeLegacyKeeperId, markConnectionAsRead]);
 
   // Mark messages as read when switching connections (while on chat tab)
   const prevConnectionIdRef = useRef<string | undefined>();
@@ -249,24 +271,11 @@ export function Dashboard({
     // Only trigger when connection actually changes AND we're on chat tab
     if (activeTab === 'chat' && currentConnectionId && currentConnectionId !== prevConnectionIdRef.current && prevConnectionIdRef.current !== undefined) {
       console.log(`🔄 Connection switched to ${currentConnectionId}, marking messages as read`);
-      
-      // Mark messages as read immediately when switching connections
-      apiClient.markMessagesAsRead(currentConnectionId)
-        .then((result) => {
-          if (result.success) {
-            console.log(`✅ Marked ${result.updatedCount || 0} messages as read on connection switch`);
-            const now = Date.now();
-            localStorage.setItem(`lastChatRead_${userProfile.id}_${currentConnectionId}`, now.toString());
-            setLastChatReadTimestamp(now);
-          }
-        })
-        .catch((error) => {
-          console.error('❌ Error marking messages as read on connection switch:', error);
-        });
+      markConnectionAsRead(currentConnectionId);
     }
     
     prevConnectionIdRef.current = currentConnectionId;
-  }, [activeTab, userType, activeStorytellerId, activeLegacyKeeperId, userProfile.id]);
+  }, [activeTab, userType, activeStorytellerId, activeLegacyKeeperId, markConnectionAsRead]);
 
   // Track previous memory IDs to detect truly NEW messages (not just re-renders)
   const prevMemoryIdsRef = useRef<Set<string>>(new Set());
@@ -370,11 +379,7 @@ export function Dashboard({
                 // Mark messages as read immediately when clicking notification
                 const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
                 if (activeConnectionId) {
-                  try {
-                    await apiClient.markMessagesAsRead(activeConnectionId);
-                  } catch (error) {
-                    console.error('Error marking messages as read from notification:', error);
-                  }
+                  await markConnectionAsRead(activeConnectionId);
                 }
               },
             }
@@ -398,11 +403,7 @@ export function Dashboard({
               // Mark as read when clicking in-app toast
               const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
               if (activeConnectionId) {
-                try {
-                  await apiClient.markMessagesAsRead(activeConnectionId);
-                } catch (error) {
-                  console.error('Error marking messages as read from toast:', error);
-                }
+                await markConnectionAsRead(activeConnectionId);
               }
             },
           });
