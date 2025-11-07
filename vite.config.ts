@@ -18,8 +18,12 @@ export default defineConfig({
     rollupOptions: {
       external: [
         /^npm:/,  // Exclude all npm: imports (Deno-specific)
+        /supabase\/functions/,  // Exclude all Supabase Edge Functions (backend code)
       ],
     },
+  },
+  optimizeDeps: {
+    exclude: ['supabase/functions'],  // Don't pre-bundle backend code
   },
   publicDir: 'public',
   server: {
