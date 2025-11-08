@@ -1,0 +1,6 @@
+supabase/
+*.md
+*.sh
+docs/
+guidelines/
+optimized_files/
