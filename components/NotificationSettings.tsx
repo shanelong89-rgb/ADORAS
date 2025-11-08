@@ -41,6 +41,7 @@ import {
   Info,
   HelpCircle,
   Wrench,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { IOSSettingsGuide } from "./IOSSettingsGuide";
@@ -57,6 +58,12 @@ import {
   sendTestNotification,
   type NotificationPreferences,
 } from "../utils/notificationService";
+import {
+  isPWAMode,
+  isIOS as detectIOS,
+  canReceivePushNotifications,
+  getNotificationCapabilityMessage,
+} from "../utils/pwaDetection";
 
 interface NotificationSettingsProps {
   userId: string;
@@ -102,6 +109,8 @@ export function NotificationSettings({
   const [isLoading, setIsLoading] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [canUsePush, setCanUsePush] = useState(false);
+  const [capability, setCapability] = useState<ReturnType<typeof getNotificationCapabilityMessage> | null>(null);
   const [showSettingsGuide, setShowSettingsGuide] =
     useState(false);
   const [guideReason, setGuideReason] = useState<
@@ -129,16 +138,16 @@ export function NotificationSettings({
     try {
       console.log('🔔 [INIT] Initializing notification settings for userId:', userId);
       
-      // Detect iOS
-      const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      // Use PWA detection utilities
+      const iOS = detectIOS();
+      const standalone = isPWAMode();
+      const canPush = canReceivePushNotifications();
+      const pushCapability = getNotificationCapabilityMessage();
+      
       setIsIOS(iOS);
-
-      // Check if running as standalone PWA
-      const standalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as any).standalone === true ||
-        document.referrer.includes("android-app://");
       setIsStandalone(standalone);
+      setCanUsePush(canPush);
+      setCapability(pushCapability);
 
       // Detect Figma Make preview environment
       const previewEnv =
@@ -150,6 +159,8 @@ export function NotificationSettings({
         iOS,
         standalone,
         previewEnv,
+        canPush,
+        pushCapability,
       });
 
       // Check notification support
@@ -617,8 +628,82 @@ export function NotificationSettings({
         </Alert>
       )}
 
-      {/* iOS-Specific Installation Alert */}
-      {isIOS && !isStandalone && (
+      {/* PWA Capability Status Alert */}
+      {capability && (
+        <>
+          {!capability.canReceive && (
+            <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+              <AlertCircle className="h-4 w-4 text-yellow-600" />
+              <AlertTitle className="text-yellow-900 dark:text-yellow-100">
+                Push Notifications Not Available
+              </AlertTitle>
+              <AlertDescription className="text-yellow-800 dark:text-yellow-200 space-y-2">
+                <p className="text-sm">{capability.message}</p>
+                {capability.actionLabel && (
+                  <Button
+                    onClick={() => {
+                      toast.info('Look for the Install/Add to Home Screen option in your browser menu', {
+                        duration: 6000,
+                      });
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/20"
+                  >
+                    <Smartphone className="w-4 h-4 mr-2" />
+                    {capability.actionLabel}
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {capability.isLimited && capability.canReceive && (
+            <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+              <Info className="h-4 w-4 text-blue-600" />
+              <AlertTitle className="text-blue-900 dark:text-blue-100">
+                Limited Notification Support
+              </AlertTitle>
+              <AlertDescription className="text-blue-800 dark:text-blue-200 space-y-2">
+                <p className="text-sm">{capability.message}</p>
+                <p className="text-xs mt-2">
+                  💡 <strong>Tip:</strong> Install Adoras as an app to receive notifications even when your browser is closed.
+                </p>
+                {capability.actionLabel && (
+                  <Button
+                    onClick={() => {
+                      toast.info('Look for the Install/Add to Home Screen option in your browser menu', {
+                        duration: 6000,
+                      });
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/20"
+                  >
+                    <Smartphone className="w-4 h-4 mr-2" />
+                    {capability.actionLabel}
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!capability.isLimited && capability.canReceive && isStandalone && (
+            <Alert className="border-green-200 bg-green-50 dark:bg-green-950/20">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertTitle className="text-green-900 dark:text-green-100">
+                Full Push Notification Support
+              </AlertTitle>
+              <AlertDescription className="text-green-800 dark:text-green-200">
+                <p className="text-sm">{capability.message}</p>
+              </AlertDescription>
+            </Alert>
+          )}
+        </>
+      )}
+
+      {/* iOS-Specific Installation Alert (legacy - now handled by capability alert above) */}
+      {isIOS && !isStandalone && !capability && (
         <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
           <Smartphone className="h-4 w-4 text-blue-600" />
           <AlertTitle className="text-blue-900 dark:text-blue-100">
