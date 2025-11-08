@@ -34,14 +34,69 @@ function excludeBackendFiles() {
     load(id: string) {
       // Return mock module for @supabase/functions-js
       if (id === '\0virtual:empty') {
-        console.log('✅ Returning mock FunctionsClient for blocked import');
-        // Return a stub that satisfies @supabase/supabase-js imports
+        console.log('✅ Returning complete mock for @supabase/functions-js');
+        // Return a complete stub that satisfies ALL @supabase/supabase-js imports
         return `
+          // Mock FunctionsClient class
           export class FunctionsClient {
             constructor() {}
-            invoke() { return Promise.resolve({ data: null, error: new Error('Functions not available in browser') }); }
+            invoke() { 
+              return Promise.resolve({ 
+                data: null, 
+                error: new Error('Edge Functions not available in browser build') 
+              }); 
+            }
             setAuth() { return this; }
           }
+          
+          // Mock error classes
+          export class FunctionsHttpError extends Error {
+            constructor(message) {
+              super(message);
+              this.name = 'FunctionsHttpError';
+            }
+          }
+          
+          export class FunctionsFetchError extends Error {
+            constructor(message) {
+              super(message);
+              this.name = 'FunctionsFetchError';
+            }
+          }
+          
+          export class FunctionsRelayError extends Error {
+            constructor(message) {
+              super(message);
+              this.name = 'FunctionsRelayError';
+            }
+          }
+          
+          export class FunctionsError extends Error {
+            constructor(message) {
+              super(message);
+              this.name = 'FunctionsError';
+            }
+          }
+          
+          // Mock FunctionRegion enum/type
+          export const FunctionRegion = {
+            Any: 'any',
+            ApNortheast1: 'ap-northeast-1',
+            ApNortheast2: 'ap-northeast-2',
+            ApSouth1: 'ap-south-1',
+            ApSoutheast1: 'ap-southeast-1',
+            ApSoutheast2: 'ap-southeast-2',
+            CaCentral1: 'ca-central-1',
+            EuCentral1: 'eu-central-1',
+            EuWest1: 'eu-west-1',
+            EuWest2: 'eu-west-2',
+            EuWest3: 'eu-west-3',
+            SaEast1: 'sa-east-1',
+            UsEast1: 'us-east-1',
+            UsWest1: 'us-west-1',
+            UsWest2: 'us-west-2'
+          };
+          
           export default FunctionsClient;
         `;
       }
