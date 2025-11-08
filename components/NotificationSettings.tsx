@@ -888,6 +888,48 @@ export function NotificationSettings({
             </div>
           )}
           
+          {/* Manual Permission Request Button - For users who haven't granted permission yet */}
+          {!isSubscribed && permission === 'default' && canUsePush && !(isIOS && !isStandalone) && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg space-y-3">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Enable Push Notifications
+                  </p>
+                  <p className="text-xs text-blue-800 dark:text-blue-200 mt-1">
+                    Get notified instantly when {isPWAMode() ? 'messages arrive' : 'the browser is open'}. Click below to allow notifications.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={handleEnableNotifications}
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Bell className="w-4 h-4 mr-2" />
+                {isLoading ? 'Requesting Permission...' : 'Request Permission'}
+              </Button>
+            </div>
+          )}
+          
+          {/* Retry Button - For users who dismissed the popup */}
+          {!isSubscribed && permission === 'default' && !canUsePush && (
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg space-y-3">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-yellow-900 dark:text-yellow-100">
+                    Push Not Available on This Platform
+                  </p>
+                  <p className="text-xs text-yellow-800 dark:text-yellow-200 mt-1">
+                    {capability?.message || 'Push notifications are not supported on this browser/platform.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* Refresh button for non-subscribed users */}
           {!isSubscribed && (
             <div className="flex justify-center">
