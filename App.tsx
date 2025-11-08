@@ -1,4 +1,4 @@
-// Cache bust: 2024-11-08-11-10-MOCK-FUNCTIONSCLIENT
+// Cache bust: 2024-11-08-11-15-COMPLETE-MOCK-ALL-EXPORTS
 import React, { useEffect } from 'react';
 import { PWAMetaTags } from './components/PWAMetaTags';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
