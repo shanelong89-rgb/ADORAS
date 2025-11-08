@@ -1,4 +1,4 @@
-// Cache bust: 2024-11-08-10-45
+// Cache bust: 2024-11-08-11-05-FIXED-EXTERNAL-BUG
 import React, { useEffect } from 'react';
 import { PWAMetaTags } from './components/PWAMetaTags';
 import { PWAUpdateNotification } from './components/PWAUpdateNotification';
