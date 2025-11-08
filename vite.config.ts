@@ -60,13 +60,8 @@ export default defineConfig({
     sourcemap: false,
     emptyOutDir: true,
     rollupOptions: {
-      external: [
-        /^npm:/,  // Exclude all npm: imports (Deno-specific)
-        /^node:/,  // Exclude all node: imports (Deno-specific)
-        /supabase[\\/]functions/,  // Exclude all Supabase Edge Functions (backend code)
-        '@supabase/functions-js',  // Explicitly exclude Deno package
-        'hono',  // Explicitly exclude Hono framework
-      ],
+      // DON'T use external - it leaves import statements in the code!
+      // Instead, the plugin above returns empty modules for blocked imports
       output: {
         manualChunks: undefined,
         // Force new bundle hash by adding build timestamp
