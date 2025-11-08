@@ -9,8 +9,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 function excludeBackendFiles() {
   return {
     name: 'exclude-backend-files',
+    enforce: 'pre' as const,
     // Block imports during resolution phase
-    resolveId(source: string) {
+    resolveId(source: string, importer: string | undefined) {
       // Block any imports that reference backend directories or packages
       if (
         source.includes('supabase/functions') || 
@@ -20,16 +21,24 @@ function excludeBackendFiles() {
         source.startsWith('npm:') ||
         source.startsWith('node:')
       ) {
-        console.log(`🚫 Blocked backend import: ${source}`);
-        return { id: source, external: true };
+        console.error(`\n❌ BLOCKED BACKEND IMPORT: ${source}`);
+        if (importer) {
+          console.error(`   ↳ Imported from: ${importer}`);
+        }
+        // Return empty module instead of external
+        return '\0virtual:empty';
       }
       return null;
     },
     // Block files during load phase
     load(id: string) {
+      // Return empty module for blocked imports
+      if (id === '\0virtual:empty') {
+        return 'export default {}';
+      }
       if (id.includes('supabase/functions') || id.includes('supabase\\functions')) {
-        console.log(`🚫 Blocked backend file load: ${id}`);
-        return { code: 'export default {}', moduleSideEffects: false };
+        console.error(`\n❌ BLOCKED BACKEND FILE: ${id}`);
+        return 'export default {}';
       }
       return null;
     },
