@@ -64,6 +64,9 @@ class RealtimeSyncManager {
   private userId: string | null = null;
   private userName: string | null = null;
   
+  // Presence state cache (connectionId -> userId -> PresenceState)
+  private presenceCache: Map<string, Record<string, PresenceState>> = new Map();
+  
   private presenceCallbacks: PresenceCallback[] = [];
   private memoryUpdateCallbacks: MemoryUpdateCallback[] = [];
   private typingCallbacks: TypingCallback[] = [];
@@ -162,6 +165,9 @@ class RealtimeSyncManager {
             };
           }
         });
+        
+        // Cache presence state for quick lookups
+        this.presenceCache.set(connectionId, presences);
         
         // Notify callbacks with connectionId
         this.presenceCallbacks.forEach(cb => cb(connectionId, presences));
@@ -442,6 +448,14 @@ class RealtimeSyncManager {
       totalChannels: this.channels.size,
       connectedChannels,
     };
+  }
+
+  /**
+   * Get presence state for a specific connection
+   * Used to check if partner is actively viewing the chat
+   */
+  getPresenceState(connectionId: string): Record<string, PresenceState> | null {
+    return this.presenceCache.get(connectionId) || null;
   }
 
   /**
