@@ -57,7 +57,7 @@ export default defineConfig({
   root: './',
   build: {
     outDir: 'build',
-    sourcemap: false,  // TEMPORARILY DISABLED TO DEBUG
+    sourcemap: false,
     emptyOutDir: true,
     rollupOptions: {
       external: [
@@ -69,6 +69,10 @@ export default defineConfig({
       ],
       output: {
         manualChunks: undefined,
+        // Force new bundle hash by adding build timestamp
+        entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+        chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`,
       },
     },
   },
