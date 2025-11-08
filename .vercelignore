@@ -1,4 +1,8 @@
-supabase/
+# Ignore ONLY the backend Edge Functions directory
+# DO NOT exclude utils/supabase/ - it contains frontend config!
+supabase/functions/
+
+# Also ignore documentation and scripts
 *.md
 *.sh
 docs/
