@@ -23,6 +23,7 @@ import { autoTranscribeVoiceNote, getLanguageCode } from '../utils/aiService'; /
 import { realtimeSync, type PresenceState, type MemoryUpdate } from '../utils/realtimeSync'; // Phase 5
 import { initializeDailyPromptScheduler } from '../utils/dailyPromptScheduler'; // Daily prompts
 import { subscribeToPushNotifications, isPushSubscribed, getNotificationPreferences } from '../utils/notificationService'; // Push notifications
+import { canReceivePushNotifications, isPWAMode, getNotificationCapabilityMessage } from '../utils/pwaDetection'; // PWA detection
 import { NotificationOnboardingDialog } from './NotificationOnboardingDialog'; // First-time notification prompt
 import { toast } from 'sonner';
 import type { UserType, UserProfile, Storyteller, LegacyKeeper, Memory, DisplayLanguage } from '../App';
@@ -366,6 +367,7 @@ export function AppContent() {
 
   /**
    * Notification Onboarding: Show on first dashboard load if not subscribed
+   * PWA-aware: Only prompts users who can actually receive push notifications
    */
   useEffect(() => {
     const checkNotificationOnboarding = async () => {
@@ -386,6 +388,25 @@ export function AppContent() {
         return;
       }
 
+      // Check capability first - don't show for unsupported platforms
+      const capability = getNotificationCapabilityMessage();
+      const canPush = canReceivePushNotifications();
+      
+      console.log('📱 Notification capability check:', {
+        canReceive: capability.canReceive,
+        isLimited: capability.isLimited,
+        isPWA: isPWAMode(),
+        message: capability.message,
+      });
+
+      // For iOS Safari web users (can't receive push), show install prompt instead
+      // For all others, show the onboarding dialog (includes PWA and web with limited support)
+      if (!canPush && !capability.isLimited) {
+        // iOS Safari web - can't receive push at all
+        console.log('ℹ️ Platform cannot receive push notifications - will show install prompt in dialog');
+        // Still show the dialog - it will display the install prompt
+      }
+
       // Check if already subscribed
       const alreadySubscribed = await isPushSubscribed();
       if (alreadySubscribed) {
@@ -396,6 +417,7 @@ export function AppContent() {
       }
 
       // Show the onboarding dialog after a short delay
+      // The dialog will handle showing different UI based on capability
       setTimeout(() => {
         console.log('🔔 Showing notification onboarding for first-time user');
         setShowNotificationOnboarding(true);
