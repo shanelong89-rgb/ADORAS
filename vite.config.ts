@@ -11,7 +11,16 @@ function excludeBackendFiles() {
     name: 'exclude-backend-files',
     // Block imports during resolution phase
     resolveId(source: string) {
-      if (source.includes('supabase/functions') || source.includes('supabase\\functions')) {
+      // Block any imports that reference backend directories or packages
+      if (
+        source.includes('supabase/functions') || 
+        source.includes('supabase\\functions') ||
+        source === '@supabase/functions-js' ||
+        source === 'hono' ||
+        source.startsWith('npm:') ||
+        source.startsWith('node:')
+      ) {
+        console.log(`🚫 Blocked backend import: ${source}`);
         return { id: source, external: true };
       }
       return null;
@@ -19,6 +28,7 @@ function excludeBackendFiles() {
     // Block files during load phase
     load(id: string) {
       if (id.includes('supabase/functions') || id.includes('supabase\\functions')) {
+        console.log(`🚫 Blocked backend file load: ${id}`);
         return { code: 'export default {}', moduleSideEffects: false };
       }
       return null;
@@ -31,7 +41,7 @@ export default defineConfig({
   plugins: [
     react({
       // Exclude backend files from React plugin processing
-      exclude: [/supabase\/functions/],
+      exclude: [/supabase[\\/]functions/, /supabase\\functions/],
     }),
     excludeBackendFiles(),
   ],
@@ -44,7 +54,9 @@ export default defineConfig({
       external: [
         /^npm:/,  // Exclude all npm: imports (Deno-specific)
         /^node:/,  // Exclude all node: imports (Deno-specific)
-        /supabase\/functions/,  // Exclude all Supabase Edge Functions (backend code)
+        /supabase[\\/]functions/,  // Exclude all Supabase Edge Functions (backend code)
+        '@supabase/functions-js',  // Explicitly exclude Deno package
+        'hono',  // Explicitly exclude Hono framework
       ],
       output: {
         manualChunks: undefined,
@@ -59,14 +71,15 @@ export default defineConfig({
       'npm:hono',
     ],
     include: ['react', 'react-dom'],
-    // Don't scan backend directory for dependencies
+    // Don't scan backend directory for dependencies - CRITICAL
     entries: [
       'index.html',
       'main.tsx',
       'App.tsx',
       'components/**/*.tsx',
       'utils/**/*.ts',
-      '!supabase/**',
+      '!supabase/**',  // Exclude ALL supabase directory
+      '!**/supabase/**',  // Exclude nested supabase directories
     ],
   },
   publicDir: 'public',
@@ -74,6 +87,14 @@ export default defineConfig({
     port: 3000,
     host: true,
     strictPort: true,
+    fs: {
+      // Strictly prevent access to backend files
+      deny: [
+        '**/supabase/functions/**',
+        '**/@supabase/functions-js/**',
+        '**/hono/**',
+      ],
+    },
     hmr: {
       protocol: 'ws',
       host: 'localhost',
