@@ -25,6 +25,7 @@ import { initializeDailyPromptScheduler } from '../utils/dailyPromptScheduler'; 
 import { subscribeToPushNotifications, isPushSubscribed, getNotificationPreferences } from '../utils/notificationService'; // Push notifications
 import { canReceivePushNotifications, isPWAMode, getNotificationCapabilityMessage } from '../utils/pwaDetection'; // PWA detection
 import { NotificationOnboardingDialog } from './NotificationOnboardingDialog'; // First-time notification prompt
+import { projectId, publicAnonKey } from '../utils/supabase/info'; // Supabase credentials
 import { toast } from 'sonner';
 import type { UserType, UserProfile, Storyteller, LegacyKeeper, Memory, DisplayLanguage } from '../App';
 import type { ConnectionWithPartner, Memory as ApiMemory } from '../utils/api/types';
@@ -380,90 +381,90 @@ export function AppContent() {
    * - Existing accounts need auto-subscribe too!
    */
   useEffect(() => {
-    const handleNotificationSetup = async () => {
-      // Only show if user is on dashboard and has a connection
+    const handleBackendFirstSubscription = async () => {
+      // Only run on dashboard with connection
       if (currentScreen !== 'dashboard' || !user || !isConnected) {
         return;
       }
 
-      const isStandalone = isPWAMode();
-      
-      // Check if already subscribed
-      const alreadySubscribed = await isPushSubscribed();
-      if (alreadySubscribed) {
-        if (!hasCheckedNotificationOnboarding) {
-          console.log('✅ User already subscribed to push notifications');
-          setHasCheckedNotificationOnboarding(true);
-        }
+      // Only run once per session
+      if (hasCheckedNotificationOnboarding) {
         return;
       }
 
-      // **STRATEGY: Web vs PWA**
-      
-      // WEB USERS: Auto-subscribe EVERY dashboard load until subscribed
-      // This ensures existing users get subscribed too!
-      if (!isStandalone) {
-        // Skip if already checked this session
-        if (hasCheckedNotificationOnboarding) {
-          return;
-        }
+      console.log('📱 Backend-first subscription: Enabling notifications on backend...', {
+        userId: user.id,
+      });
 
-        console.log('🌐 Web user detected - auto-subscribing to push notifications...', {
-          userId: user.id,
-        });
-        
-        // Check platform capabilities
-        const canPush = canReceivePushNotifications();
-        const capability = getNotificationCapabilityMessage();
-        
-        if (!canPush && !capability.isLimited) {
-          // iOS Safari web - can't receive push at all
-          console.log('⚠️ iOS Safari web detected - cannot receive push notifications');
-          console.log('ℹ️ User should install PWA for full functionality');
-          setHasCheckedNotificationOnboarding(true);
-          return;
-        }
-
-        // Auto-subscribe web users (browser will show native permission prompt)
-        try {
-          const success = await subscribeToPushNotifications(user.id);
-          if (success) {
-            console.log('✅ Web user auto-subscribed to push notifications');
-            toast.success('🔔 Notifications enabled! You\'ll receive updates when your partner shares memories.');
-          } else {
-            console.log('ℹ️ User declined push notifications or browser doesn\'t support them');
-            // Don't mark as checked so we try again next session
-            // This way users who accidentally declined can be prompted again
+      try {
+        // STEP 1: Enable on backend (ALWAYS succeeds, bypasses browser permission)
+        const response = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/notifications/enable`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${publicAnonKey}`,
+            },
+            body: JSON.stringify({
+              userId: user.id,
+            }),
           }
-        } catch (error) {
-          console.error('❌ Auto-subscribe failed:', error);
+        );
+
+        const data = await response.json();
+
+        if (data.success) {
+          console.log('✅ Backend subscription enabled:', {
+            backendEnabled: data.backendEnabled,
+            preferences: data.preferences,
+          });
+          
+          // STEP 2: Try browser push (optional, may fail if blocked)
+          const isStandalone = isPWAMode();
+          
+          if (!isStandalone) {
+            // Web users: Try to get browser push permission
+            console.log('🌐 Attempting browser push subscription...');
+            
+            try {
+              const pushSuccess = await subscribeToPushNotifications(user.id);
+              if (pushSuccess) {
+                console.log('✅ Browser push also enabled');
+                toast.success('🔔 Notifications enabled! You\'ll receive updates when your partner shares memories.');
+              } else {
+                console.log('ℹ️ Browser push unavailable (blocked or unsupported)');
+                console.log('   → Notifications will still be stored in backend');
+                console.log('   → Enable push in browser settings for real-time delivery');
+              }
+            } catch (error) {
+              console.log('ℹ️ Browser push unavailable, but backend subscription active');
+              console.log('   → Notifications stored in backend ✅');
+              console.log('   → In-app badges will work ✅');
+              console.log('   → Enable browser permission for push delivery');
+            }
+          } else {
+            // PWA users: Show onboarding dialog if they haven't seen it
+            const hasSeenPrompt = localStorage.getItem('adoras_notification_prompt_shown');
+            if (!hasSeenPrompt) {
+              console.log('📱 PWA user - showing notification onboarding dialog');
+              setTimeout(() => {
+                setShowNotificationOnboarding(true);
+                localStorage.setItem('adoras_notification_prompt_shown', 'true');
+              }, 1500);
+            }
+          }
+        } else {
+          console.error('❌ Backend subscription failed:', data);
         }
-        
-        setHasCheckedNotificationOnboarding(true);
-        return;
+      } catch (error) {
+        console.error('❌ Backend subscription error:', error);
       }
 
-      // PWA USERS: Show nice onboarding dialog (once per localStorage)
-      const hasSeenPrompt = localStorage.getItem('adoras_notification_prompt_shown');
-      
-      if (hasSeenPrompt || hasCheckedNotificationOnboarding) {
-        setHasCheckedNotificationOnboarding(true);
-        return;
-      }
-
-      console.log('📱 PWA user detected - showing notification onboarding dialog');
-      
-      // Show the onboarding dialog after a short delay
-      // PWA users get the nice UX with explanation of benefits
-      setTimeout(() => {
-        console.log('🔔 Showing notification onboarding dialog for PWA user');
-        setShowNotificationOnboarding(true);
-        localStorage.setItem('adoras_notification_prompt_shown', 'true');
-        setHasCheckedNotificationOnboarding(true);
-      }, 1500);
+      setHasCheckedNotificationOnboarding(true);
     };
 
-    handleNotificationSetup();
+    handleBackendFirstSubscription();
   }, [currentScreen, user, isConnected, hasCheckedNotificationOnboarding]);
 
   /**
