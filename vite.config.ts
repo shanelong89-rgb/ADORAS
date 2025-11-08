@@ -48,7 +48,7 @@ export default defineConfig({
   root: './',
   build: {
     outDir: 'build',
-    sourcemap: true,
+    sourcemap: false,  // TEMPORARILY DISABLED TO DEBUG
     emptyOutDir: true,
     rollupOptions: {
       external: [
