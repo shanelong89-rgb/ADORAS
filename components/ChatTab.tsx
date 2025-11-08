@@ -1587,11 +1587,11 @@ export function ChatTab({
             <AvatarFallback className="text-xs bg-primary/10 text-primary">{senderProfile.name[0]}</AvatarFallback>
           </Avatar>
           <div className={`space-y-2 ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col min-w-0 flex-1`}>
-            <div className={`px-3 py-2.5 rounded-2xl shadow-sm overflow-hidden ${
+            <div className={`px-3 py-2.5 rounded-2xl overflow-hidden ${
               isOwnMessage 
                 ? 'bg-[rgb(241,241,241)] text-black rounded-br-md' 
-                : 'bg-white text-black border border-border rounded-bl-md'
-            }`} style={{ overflowWrap: 'break-word', wordWrap: 'break-word', wordBreak: 'break-word' }}>
+                : 'bg-white text-black rounded-bl-md'
+            }`} style={{ overflowWrap: 'break-word', wordWrap: 'break-word', wordBreak: 'break-word', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
               {memory.type === 'text' && (
                 <p className="text-sm leading-relaxed text-black whitespace-pre-wrap" style={{ overflowWrap: 'break-word', wordWrap: 'break-word', wordBreak: 'break-word' }}>{memory.content}</p>
               )}
