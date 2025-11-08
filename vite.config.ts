@@ -32,9 +32,18 @@ function excludeBackendFiles() {
     },
     // Block files during load phase
     load(id: string) {
-      // Return empty module for blocked imports
+      // Return mock module for @supabase/functions-js
       if (id === '\0virtual:empty') {
-        return 'export default {}';
+        console.log('✅ Returning mock FunctionsClient for blocked import');
+        // Return a stub that satisfies @supabase/supabase-js imports
+        return `
+          export class FunctionsClient {
+            constructor() {}
+            invoke() { return Promise.resolve({ data: null, error: new Error('Functions not available in browser') }); }
+            setAuth() { return this; }
+          }
+          export default FunctionsClient;
+        `;
       }
       if (id.includes('supabase/functions') || id.includes('supabase\\functions')) {
         console.error(`\n❌ BLOCKED BACKEND FILE: ${id}`);
