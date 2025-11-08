@@ -5,10 +5,35 @@ import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Vercel build configuration
+// Custom plugin to completely block backend files from being processed
+function excludeBackendFiles() {
+  return {
+    name: 'exclude-backend-files',
+    // Block imports during resolution phase
+    resolveId(source: string) {
+      if (source.includes('supabase/functions') || source.includes('supabase\\functions')) {
+        return { id: source, external: true };
+      }
+      return null;
+    },
+    // Block files during load phase
+    load(id: string) {
+      if (id.includes('supabase/functions') || id.includes('supabase\\functions')) {
+        return { code: 'export default {}', moduleSideEffects: false };
+      }
+      return null;
+    },
+  };
+}
+
+// Production-ready Vercel configuration
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      // Exclude backend files from React plugin processing
+      exclude: [/supabase\/functions/],
+    }),
+    excludeBackendFiles(),
   ],
   root: './',
   build: {
@@ -18,12 +43,31 @@ export default defineConfig({
     rollupOptions: {
       external: [
         /^npm:/,  // Exclude all npm: imports (Deno-specific)
+        /^node:/,  // Exclude all node: imports (Deno-specific)
         /supabase\/functions/,  // Exclude all Supabase Edge Functions (backend code)
       ],
+      output: {
+        manualChunks: undefined,
+      },
     },
   },
   optimizeDeps: {
-    exclude: ['supabase/functions'],  // Don't pre-bundle backend code
+    exclude: [
+      'supabase/functions',
+      '@supabase/functions-js',
+      'hono',
+      'npm:hono',
+    ],
+    include: ['react', 'react-dom'],
+    // Don't scan backend directory for dependencies
+    entries: [
+      'index.html',
+      'main.tsx',
+      'App.tsx',
+      'components/**/*.tsx',
+      'utils/**/*.ts',
+      '!supabase/**',
+    ],
   },
   publicDir: 'public',
   server: {
