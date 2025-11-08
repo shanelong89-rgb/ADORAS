@@ -35,7 +35,7 @@
   /* System colors */
   --destructive: 0 72% 51%; /* HSL for #dc2626 */
   --destructive-foreground: 0 0% 100%; /* HSL for white */
-  --border: 152 13% 24%; /* Base green color for borders */
+  --border: 0 0% 90%; /* Subtle light gray for borders - matching Figma */
   --input: 0 0% 100%; /* HSL for white */
   --ring: 152 13% 24%; /* HSL for rgb(54, 69, 59) */
   /* Typography */
