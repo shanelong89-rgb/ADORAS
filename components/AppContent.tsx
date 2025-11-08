@@ -369,50 +369,48 @@ export function AppContent() {
    * Auto-subscribe web users and show notification dialog for PWA users
    * 
    * STRATEGY:
-   * - Web users: Auto-subscribe silently (no dialog, browser shows permission)
-   * - PWA users: Show nice onboarding dialog explaining benefits
+   * - Web users: Auto-subscribe EVERY TIME until subscribed (for existing accounts)
+   * - PWA users: Show nice onboarding dialog explaining benefits (once)
    * - All users: Tracked in backend storage from account creation
    * 
    * REASONING:
    * - Web push is limited anyway (only works when browser open)
    * - PWA users get better UX with explanation
    * - Backend tracks everyone for future message delivery
+   * - Existing accounts need auto-subscribe too!
    */
   useEffect(() => {
     const handleNotificationSetup = async () => {
-      // Only check once per session
-      if (hasCheckedNotificationOnboarding) {
-        return;
-      }
-
       // Only show if user is on dashboard and has a connection
       if (currentScreen !== 'dashboard' || !user || !isConnected) {
         return;
       }
 
       const isStandalone = isPWAMode();
-      const hasSeenPrompt = localStorage.getItem('adoras_notification_prompt_shown');
       
-      console.log('🔔 Checking notification setup...', {
-        isPWA: isStandalone,
-        hasSeenPrompt,
-        userId: user.id,
-      });
-
       // Check if already subscribed
       const alreadySubscribed = await isPushSubscribed();
       if (alreadySubscribed) {
-        console.log('✅ User already subscribed to push notifications');
-        localStorage.setItem('adoras_notification_prompt_shown', 'true');
-        setHasCheckedNotificationOnboarding(true);
+        if (!hasCheckedNotificationOnboarding) {
+          console.log('✅ User already subscribed to push notifications');
+          setHasCheckedNotificationOnboarding(true);
+        }
         return;
       }
 
       // **STRATEGY: Web vs PWA**
       
-      // WEB USERS: Auto-subscribe silently
+      // WEB USERS: Auto-subscribe EVERY dashboard load until subscribed
+      // This ensures existing users get subscribed too!
       if (!isStandalone) {
-        console.log('🌐 Web user detected - auto-subscribing to push notifications...');
+        // Skip if already checked this session
+        if (hasCheckedNotificationOnboarding) {
+          return;
+        }
+
+        console.log('🌐 Web user detected - auto-subscribing to push notifications...', {
+          userId: user.id,
+        });
         
         // Check platform capabilities
         const canPush = canReceivePushNotifications();
@@ -422,7 +420,6 @@ export function AppContent() {
           // iOS Safari web - can't receive push at all
           console.log('⚠️ iOS Safari web detected - cannot receive push notifications');
           console.log('ℹ️ User should install PWA for full functionality');
-          localStorage.setItem('adoras_notification_prompt_shown', 'true');
           setHasCheckedNotificationOnboarding(true);
           return;
         }
@@ -435,18 +432,21 @@ export function AppContent() {
             toast.success('🔔 Notifications enabled! You\'ll receive updates when your partner shares memories.');
           } else {
             console.log('ℹ️ User declined push notifications or browser doesn\'t support them');
+            // Don't mark as checked so we try again next session
+            // This way users who accidentally declined can be prompted again
           }
         } catch (error) {
           console.error('❌ Auto-subscribe failed:', error);
         }
         
-        localStorage.setItem('adoras_notification_prompt_shown', 'true');
         setHasCheckedNotificationOnboarding(true);
         return;
       }
 
-      // PWA USERS: Show nice onboarding dialog
-      if (hasSeenPrompt) {
+      // PWA USERS: Show nice onboarding dialog (once per localStorage)
+      const hasSeenPrompt = localStorage.getItem('adoras_notification_prompt_shown');
+      
+      if (hasSeenPrompt || hasCheckedNotificationOnboarding) {
         setHasCheckedNotificationOnboarding(true);
         return;
       }
