@@ -798,9 +798,24 @@ notifications.post('/make-server-deded1eb/notifications/new-memory', async (c) =
       return c.json({ error: 'userId, senderName, and memoryType are required' }, 400);
     }
 
-    console.log('📱 Sending new memory notification to user:', userId);
+    // STEP 1: Store notification in database (works for both web and PWA users)
+    console.log('💾 [STORE] Storing notification in database for later retrieval...');
+    const notificationKey = `notification:${userId}:${memoryId}`;
+    const notificationData = {
+      userId,
+      senderName,
+      memoryType,
+      memoryId,
+      previewText,
+      mediaUrl,
+      timestamp: new Date().toISOString(),
+      read: false,
+    };
+    await kv.set(notificationKey, notificationData);
+    console.log('✅ [STORE] Notification stored in database');
 
-    // Get user's notification preferences
+    // STEP 2: Get user's notification preferences
+    console.log('📱 Checking user notification preferences...');
     const prefsKey = `notif_prefs:${userId}`;
     const preferences = await kv.get(prefsKey);
 
@@ -817,7 +832,9 @@ notifications.post('/make-server-deded1eb/notifications/new-memory', async (c) =
       console.log('⚠️ New memory notifications disabled for user:', userId);
       return c.json({ 
         success: true,
-        message: 'New memory notifications disabled for this user',
+        message: 'Notification stored but push disabled by user preferences',
+        stored: true,
+        pushed: false,
         sent: false 
       });
     }
@@ -849,7 +866,7 @@ notifications.post('/make-server-deded1eb/notifications/new-memory', async (c) =
         : previewText;
     }
 
-    // Send the notification
+    // STEP 3: Try to send push notification (gracefully handle no subscriptions)
     const notificationPayload = {
       userId,
       title: `${emoji} ${senderName}`,
@@ -867,10 +884,11 @@ notifications.post('/make-server-deded1eb/notifications/new-memory', async (c) =
       },
     };
 
-    console.log('📱 Calling /send endpoint with payload:', notificationPayload);
+    console.log('📱 [PUSH] Attempting push notification delivery...');
+    console.log('📱 [PUSH] Calling /send endpoint with payload:', notificationPayload);
 
     const sendUrl = c.req.url.replace('/new-memory', '/send');
-    console.log('📱 Send URL:', sendUrl);
+    console.log('📱 [PUSH] Send URL:', sendUrl);
 
     const response = await fetch(sendUrl, {
       method: 'POST',
@@ -881,28 +899,139 @@ notifications.post('/make-server-deded1eb/notifications/new-memory', async (c) =
       body: JSON.stringify(notificationPayload),
     });
 
-    console.log('📱 /send response status:', response.status, response.statusText);
+    console.log('📱 [PUSH] Response status:', response.status, response.statusText);
 
+    // Handle response - don't fail if no subscriptions exist
     if (!response.ok) {
       const error = await response.json();
-      console.error('❌ /send failed:', error);
-      return c.json({ error: error.error || 'Failed to send notification' }, response.status);
+      console.error('⚠️ [PUSH] Push delivery failed:', error);
+      
+      // Still return success since notification is stored
+      return c.json({ 
+        success: true,
+        message: 'Notification stored but push delivery unavailable',
+        stored: true,
+        pushed: false,
+        sent: 0,
+        reason: error.error || 'No active push subscriptions'
+      });
     }
 
     const result = await response.json();
-    console.log('✅ /send success:', result);
+    console.log('✅ [PUSH] Push delivered:', result);
 
     return c.json({ 
       success: true,
       sent: true,
-      message: 'New memory notification sent',
-      result 
+      message: 'Notification stored and push delivered',
+      stored: true,
+      pushed: true,
+      pushResult: result 
     });
 
   } catch (error) {
     console.error('Error sending new memory notification:', error);
     return c.json({ 
       error: 'Failed to send new memory notification',
+      details: error.message 
+    }, 500);
+  }
+});
+
+/**
+ * Get unread notifications for a user (for web users without push)
+ * GET /make-server-deded1eb/notifications/unread/:userId
+ * 
+ * Returns notifications stored in database that haven't been read
+ */
+notifications.get('/make-server-deded1eb/notifications/unread/:userId', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+
+    if (!userId) {
+      return c.json({ error: 'userId is required' }, 400);
+    }
+
+    console.log('📬 [UNREAD] Getting unread notifications for user:', userId);
+
+    // Get all notifications for this user using prefix search
+    const notificationPrefix = `notification:${userId}:`;
+    const allNotifications = await kv.getByPrefix(notificationPrefix);
+
+    console.log('📬 [UNREAD] Found notifications:', allNotifications?.length || 0);
+
+    // Filter for unread only
+    const unreadNotifications = allNotifications
+      ?.filter(notif => !notif.read)
+      ?.sort((a, b) => {
+        const timeA = new Date(a.timestamp).getTime();
+        const timeB = new Date(b.timestamp).getTime();
+        return timeB - timeA; // Most recent first
+      }) || [];
+
+    console.log('📬 [UNREAD] Unread notifications:', unreadNotifications.length);
+
+    return c.json({
+      success: true,
+      notifications: unreadNotifications,
+      count: unreadNotifications.length,
+    });
+
+  } catch (error) {
+    console.error('Error getting unread notifications:', error);
+    return c.json({ 
+      error: 'Failed to get unread notifications',
+      details: error.message 
+    }, 500);
+  }
+});
+
+/**
+ * Mark notification as read
+ * POST /make-server-deded1eb/notifications/mark-read
+ * 
+ * Body: {
+ *   userId: string,
+ *   memoryId: string
+ * }
+ */
+notifications.post('/make-server-deded1eb/notifications/mark-read', async (c) => {
+  try {
+    const { userId, memoryId } = await c.req.json();
+
+    if (!userId || !memoryId) {
+      return c.json({ error: 'userId and memoryId are required' }, 400);
+    }
+
+    console.log('✅ [MARK_READ] Marking notification as read:', { userId, memoryId });
+
+    const notificationKey = `notification:${userId}:${memoryId}`;
+    const notification = await kv.get(notificationKey);
+
+    if (!notification) {
+      console.log('⚠️ [MARK_READ] Notification not found:', notificationKey);
+      return c.json({ 
+        success: true,
+        message: 'Notification not found (may have been deleted)' 
+      });
+    }
+
+    // Update notification to mark as read
+    notification.read = true;
+    notification.readAt = new Date().toISOString();
+    await kv.set(notificationKey, notification);
+
+    console.log('✅ [MARK_READ] Notification marked as read');
+
+    return c.json({ 
+      success: true,
+      message: 'Notification marked as read' 
+    });
+
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return c.json({ 
+      error: 'Failed to mark notification as read',
       details: error.message 
     }, 500);
   }
