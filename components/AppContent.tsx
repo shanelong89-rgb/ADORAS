@@ -366,11 +366,20 @@ export function AppContent() {
   }, [activeStorytellerId, activeLegacyKeeperId, userType, realtimeConnected]);
 
   /**
-   * Notification Onboarding: Show on first dashboard load if not subscribed
-   * PWA-aware: Only prompts users who can actually receive push notifications
+   * Auto-subscribe web users and show notification dialog for PWA users
+   * 
+   * STRATEGY:
+   * - Web users: Auto-subscribe silently (no dialog, browser shows permission)
+   * - PWA users: Show nice onboarding dialog explaining benefits
+   * - All users: Tracked in backend storage from account creation
+   * 
+   * REASONING:
+   * - Web push is limited anyway (only works when browser open)
+   * - PWA users get better UX with explanation
+   * - Backend tracks everyone for future message delivery
    */
   useEffect(() => {
-    const checkNotificationOnboarding = async () => {
+    const handleNotificationSetup = async () => {
       // Only check once per session
       if (hasCheckedNotificationOnboarding) {
         return;
@@ -381,52 +390,80 @@ export function AppContent() {
         return;
       }
 
-      // Check if user has seen the prompt before
+      const isStandalone = isPWAMode();
       const hasSeenPrompt = localStorage.getItem('adoras_notification_prompt_shown');
-      if (hasSeenPrompt) {
-        setHasCheckedNotificationOnboarding(true);
-        return;
-      }
-
-      // Check capability first - don't show for unsupported platforms
-      const capability = getNotificationCapabilityMessage();
-      const canPush = canReceivePushNotifications();
       
-      console.log('📱 Notification capability check:', {
-        canReceive: capability.canReceive,
-        isLimited: capability.isLimited,
-        isPWA: isPWAMode(),
-        message: capability.message,
+      console.log('🔔 Checking notification setup...', {
+        isPWA: isStandalone,
+        hasSeenPrompt,
+        userId: user.id,
       });
-
-      // For iOS Safari web users (can't receive push), show install prompt instead
-      // For all others, show the onboarding dialog (includes PWA and web with limited support)
-      if (!canPush && !capability.isLimited) {
-        // iOS Safari web - can't receive push at all
-        console.log('ℹ️ Platform cannot receive push notifications - will show install prompt in dialog');
-        // Still show the dialog - it will display the install prompt
-      }
 
       // Check if already subscribed
       const alreadySubscribed = await isPushSubscribed();
       if (alreadySubscribed) {
-        // Already subscribed, mark as seen
+        console.log('✅ User already subscribed to push notifications');
         localStorage.setItem('adoras_notification_prompt_shown', 'true');
         setHasCheckedNotificationOnboarding(true);
         return;
       }
 
+      // **STRATEGY: Web vs PWA**
+      
+      // WEB USERS: Auto-subscribe silently
+      if (!isStandalone) {
+        console.log('🌐 Web user detected - auto-subscribing to push notifications...');
+        
+        // Check platform capabilities
+        const canPush = canReceivePushNotifications();
+        const capability = getNotificationCapabilityMessage();
+        
+        if (!canPush && !capability.isLimited) {
+          // iOS Safari web - can't receive push at all
+          console.log('⚠️ iOS Safari web detected - cannot receive push notifications');
+          console.log('ℹ️ User should install PWA for full functionality');
+          localStorage.setItem('adoras_notification_prompt_shown', 'true');
+          setHasCheckedNotificationOnboarding(true);
+          return;
+        }
+
+        // Auto-subscribe web users (browser will show native permission prompt)
+        try {
+          const success = await subscribeToPushNotifications(user.id);
+          if (success) {
+            console.log('✅ Web user auto-subscribed to push notifications');
+            toast.success('🔔 Notifications enabled! You\'ll receive updates when your partner shares memories.');
+          } else {
+            console.log('ℹ️ User declined push notifications or browser doesn\'t support them');
+          }
+        } catch (error) {
+          console.error('❌ Auto-subscribe failed:', error);
+        }
+        
+        localStorage.setItem('adoras_notification_prompt_shown', 'true');
+        setHasCheckedNotificationOnboarding(true);
+        return;
+      }
+
+      // PWA USERS: Show nice onboarding dialog
+      if (hasSeenPrompt) {
+        setHasCheckedNotificationOnboarding(true);
+        return;
+      }
+
+      console.log('📱 PWA user detected - showing notification onboarding dialog');
+      
       // Show the onboarding dialog after a short delay
-      // The dialog will handle showing different UI based on capability
+      // PWA users get the nice UX with explanation of benefits
       setTimeout(() => {
-        console.log('🔔 Showing notification onboarding for first-time user');
+        console.log('🔔 Showing notification onboarding dialog for PWA user');
         setShowNotificationOnboarding(true);
         localStorage.setItem('adoras_notification_prompt_shown', 'true');
         setHasCheckedNotificationOnboarding(true);
       }, 1500);
     };
 
-    checkNotificationOnboarding();
+    handleNotificationSetup();
   }, [currentScreen, user, isConnected, hasCheckedNotificationOnboarding]);
 
   /**
