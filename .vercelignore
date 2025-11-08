@@ -1,6 +1,5 @@
 # Exclude Supabase Edge Functions from Vercel build
 supabase/
-supabase/**
 
 # Exclude all markdown documentation
 *.md
