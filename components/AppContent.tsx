@@ -352,7 +352,10 @@ export function AppContent() {
       setRealtimeConnected(false);
       setPresences({});
     };
-  }, [userType, activeStorytellerId, activeLegacyKeeperId, user, storytellers, legacyKeepers]);
+    // CRITICAL: Don't include storytellers/legacyKeepers in deps!
+    // They change on every message (lastMessage updates), causing constant disconnects
+    // Only reconnect when user, userType, or active connection IDs change
+  }, [userType, activeStorytellerId, activeLegacyKeeperId, user]);
 
   /**
    * Update active connection in realtime sync when switching chats
@@ -1267,21 +1270,20 @@ export function AppContent() {
           ? storytellers.map(s => s.id)
           : legacyKeepers.map(k => k.id);
         
-        if (allConnectionIds.length > 0) {
-          // Load connections sequentially to avoid race conditions
-          // Active connection first, then others
-          const activeFirst = [
-            currentActiveId,
-            ...allConnectionIds.filter(id => id !== currentActiveId)
-          ].filter(Boolean);
+        // Skip active connection - Realtime keeps it updated
+        // Only refresh background connections to reduce API calls
+        const backgroundConnections = allConnectionIds.filter(id => id !== currentActiveId);
+        
+        if (backgroundConnections.length > 0) {
+          console.log(`   📦 Refreshing ${backgroundConnections.length} BACKGROUND connections (skipping active: ${currentActiveId})`);
           
-          console.log(`   📦 Refreshing ${activeFirst.length} connections (active first)`);
-          
-          for (const id of activeFirst) {
+          for (const id of backgroundConnections) {
             await loadMemoriesForConnection(id);
           }
           
           console.log('✅ Periodic refresh complete');
+        } else {
+          console.log('ℹ️ Only active connection - skipping periodic refresh (Realtime keeps it updated)');
         }
       } catch (error) {
         // If auth fails, log it but don't crash
@@ -1294,7 +1296,10 @@ export function AppContent() {
     const interval = setInterval(refreshAllConnections, 120000);
     
     return () => clearInterval(interval);
-  }, [currentScreen, user, isAuthenticated, userType, storytellers, legacyKeepers, activeStorytellerId, activeLegacyKeeperId]);
+    // CRITICAL: Don't include storytellers/legacyKeepers in deps!
+    // They change on EVERY message (lastMessage updates), which would restart the interval
+    // Only restart periodic refresh when switching users/connections, NOT on every message
+  }, [currentScreen, user, isAuthenticated, userType, activeStorytellerId, activeLegacyKeeperId]);
 
   const handleWelcomeNext = () => {
     setCurrentScreen('userType');
