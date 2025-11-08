@@ -1,5 +1,7 @@
+// Cache bust: 2024-11-08-10-45
 import React, { useEffect } from 'react';
 import { PWAMetaTags } from './components/PWAMetaTags';
+import { PWAUpdateNotification } from './components/PWAUpdateNotification';
 import { ErrorBoundary } from './components/ErrorBoundary'; // Phase 3f
 import { DebugPanel, useDebugPanel } from './components/DebugPanel'; // Phase 3f
 import { ServerStatusBanner } from './components/ServerStatusBanner'; // Backend deployment status
@@ -222,6 +224,7 @@ export default function App() {
         </div>
         {/* Overlay components - Fixed positioning to not affect layout height */}
         <PWAMetaTags style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
+        <PWAUpdateNotification />
         <DebugPanel isOpen={isOpen} onClose={() => setIsOpen(false)} style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
         <ServerStatusBanner style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
         <GroqAPIKeySetup
