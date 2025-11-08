@@ -420,39 +420,31 @@ export function AppContent() {
             preferences: data.preferences,
           });
           
-          // STEP 2: Try browser push (optional, may fail if blocked)
-          const isStandalone = isPWAMode();
+          // STEP 2: Auto-subscribe to browser push (ALL USERS - web and PWA)
+          console.log('📱 Auto-subscribing to browser push notifications...');
           
-          if (!isStandalone) {
-            // Web users: Try to get browser push permission
-            console.log('🌐 Attempting browser push subscription...');
-            
-            try {
-              const pushSuccess = await subscribeToPushNotifications(user.id);
-              if (pushSuccess) {
-                console.log('✅ Browser push also enabled');
+          try {
+            const pushSuccess = await subscribeToPushNotifications(user.id);
+            if (pushSuccess) {
+              console.log('✅ Browser push subscription created');
+              
+              const isStandalone = isPWAMode();
+              if (!isStandalone) {
+                // Only show toast for web users
                 toast.success('🔔 Notifications enabled! You\'ll receive updates when your partner shares memories.');
               } else {
-                console.log('ℹ️ Browser push unavailable (blocked or unsupported)');
-                console.log('   → Notifications will still be stored in backend');
-                console.log('   → Enable push in browser settings for real-time delivery');
+                console.log('🎉 PWA user fully subscribed - push notifications will work!');
               }
-            } catch (error) {
-              console.log('ℹ️ Browser push unavailable, but backend subscription active');
-              console.log('   → Notifications stored in backend ✅');
-              console.log('   → In-app badges will work ✅');
-              console.log('   → Enable browser permission for push delivery');
+            } else {
+              console.log('ℹ️ Browser push unavailable (blocked or unsupported)');
+              console.log('   → Notifications will still be stored in backend');
+              console.log('   → Enable push in device/browser settings for real-time delivery');
             }
-          } else {
-            // PWA users: Show onboarding dialog if they haven't seen it
-            const hasSeenPrompt = localStorage.getItem('adoras_notification_prompt_shown');
-            if (!hasSeenPrompt) {
-              console.log('📱 PWA user - showing notification onboarding dialog');
-              setTimeout(() => {
-                setShowNotificationOnboarding(true);
-                localStorage.setItem('adoras_notification_prompt_shown', 'true');
-              }, 1500);
-            }
+          } catch (error) {
+            console.log('ℹ️ Browser push unavailable, but backend subscription active');
+            console.log('   → Notifications stored in backend ✅');
+            console.log('   → In-app badges will work ✅');
+            console.log('   → Enable browser/device permission for push delivery');
           }
         } else {
           console.error('❌ Backend subscription failed:', data);
@@ -1222,25 +1214,7 @@ export function AppContent() {
         // Navigate to dashboard AFTER data is set
         setCurrentScreen('dashboard');
         
-        // Check if this is first login (show notification onboarding)
-        const hasSeenNotificationPrompt = localStorage.getItem('adoras_notification_prompt_shown');
-        
-        if (!hasSeenNotificationPrompt) {
-          // Check if user is already subscribed
-          const alreadySubscribed = await isPushSubscribed();
-          
-          // Only show if not already subscribed
-          if (!alreadySubscribed) {
-            // Wait a bit for dashboard to load, then show notification prompt
-            setTimeout(() => {
-              setShowNotificationOnboarding(true);
-              localStorage.setItem('adoras_notification_prompt_shown', 'true');
-            }, 1500); // 1.5 second delay for better UX
-          } else {
-            // Already subscribed, mark as shown
-            localStorage.setItem('adoras_notification_prompt_shown', 'true');
-          }
-        }
+        // Notification subscription handled by separate useEffect (backend-first strategy)
       });
     }
     
