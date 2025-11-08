@@ -194,8 +194,9 @@ export function Dashboard({
 
   useEffect(() => {
     loadPendingRequestsCount();
-    // Refresh every 30 seconds
-    const interval = setInterval(loadPendingRequestsCount, 30000);
+    // Refresh every 5 minutes (reduced from 30s to minimize API calls)
+    // Most users don't receive connection requests frequently
+    const interval = setInterval(loadPendingRequestsCount, 300000);
     return () => clearInterval(interval);
   }, [loadPendingRequestsCount]);
 
