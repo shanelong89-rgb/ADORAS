@@ -1,7 +1,7 @@
 {
-  "buildCommand": "rm -rf node_modules/.vite && npm run build",
+  "buildCommand": "rm -rf node_modules/.vite && rm -rf .vercel/cache && rm -rf node_modules/.cache && npm run build",
   "outputDirectory": "build",
-  "installCommand": "npm install",
+  "installCommand": "npm install --force",
   "framework": "vite",
   "rewrites": [
     {
@@ -29,6 +29,10 @@
         {
           "key": "Content-Type",
           "value": "application/manifest+json"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
         }
       ]
     },
