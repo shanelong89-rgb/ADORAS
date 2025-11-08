@@ -1,8 +1,10 @@
 {
-  "buildCommand": "rm -rf node_modules/.vite && rm -rf .vercel/cache && rm -rf node_modules/.cache && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "build",
   "installCommand": "npm install --force",
   "framework": "vite",
+  "cleanUrls": true,
+  "crons": [],
   "rewrites": [
     {
       "source": "/((?!sw\\.js|manifest\\.json|icon|apple-touch-icon).*)",
