@@ -797,6 +797,39 @@ export function NotificationSettings({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Main Enable/Disable Toggle */}
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+            <div className="flex-1 pr-4">
+              <Label htmlFor="notifications-toggle" className="text-base font-medium cursor-pointer">
+                Push Notifications
+              </Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                {isSubscribed 
+                  ? "You'll receive notifications for new memories and prompts"
+                  : canUsePush
+                    ? "Enable to receive notifications for new memories and prompts"
+                    : "Not available on this platform"}
+              </p>
+            </div>
+            <Switch
+              id="notifications-toggle"
+              checked={isSubscribed}
+              onCheckedChange={async (checked) => {
+                if (checked) {
+                  await handleEnableNotifications();
+                } else {
+                  await handleDisableNotifications();
+                }
+              }}
+              disabled={
+                isLoading ||
+                !canUsePush ||
+                permission === "denied" ||
+                (isIOS && !isStandalone)
+              }
+            />
+          </div>
+
           {/* Generic Permission Denied Warning */}
           {!isIOS && permission === "denied" && (
             <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -827,62 +860,53 @@ export function NotificationSettings({
             </div>
           )}
 
-          <div className="flex gap-2">
-            {!isSubscribed ? (
-              <>
-                <Button
-                  onClick={handleEnableNotifications}
-                  disabled={
-                    isLoading ||
-                    permission === "denied" ||
-                    (isIOS && !isStandalone)
-                  }
-                  className="flex-1"
-                >
-                  <Bell className="w-4 h-4 mr-2" />
-                  {isLoading
-                    ? "Enabling..."
-                    : "Enable Notifications"}
-                </Button>
-                <Button
-                  onClick={() => {
-                    console.log("🔄 Manual refresh triggered");
-                    loadSettings();
-                    toast.info(
-                      "Checking notification status...",
-                    );
-                  }}
-                  variant="outline"
-                  size="icon"
-                  title="Refresh status"
-                >
-                  <Info className="w-4 h-4" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  onClick={handleDisableNotifications}
-                  variant="outline"
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  <BellOff className="w-4 h-4 mr-2" />
-                  {isLoading
-                    ? "Disabling..."
-                    : "Disable Notifications"}
-                </Button>
-                <Button
-                  onClick={handleTestNotification}
-                  variant="outline"
-                  size="icon"
-                  title="Send test notification"
-                >
-                  <TestTube className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-          </div>
+          {/* Action Buttons - Only show if subscribed for testing */}
+          {isSubscribed && (
+            <div className="flex gap-2">
+              <Button
+                onClick={handleTestNotification}
+                variant="outline"
+                className="flex-1"
+              >
+                <TestTube className="w-4 h-4 mr-2" />
+                Send Test Notification
+              </Button>
+              <Button
+                onClick={() => {
+                  console.log("🔄 Manual refresh triggered");
+                  loadSettings();
+                  toast.info(
+                    "Checking notification status...",
+                  );
+                }}
+                variant="outline"
+                size="icon"
+                title="Refresh status"
+              >
+                <Info className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          
+          {/* Refresh button for non-subscribed users */}
+          {!isSubscribed && (
+            <div className="flex justify-center">
+              <Button
+                onClick={() => {
+                  console.log("🔄 Manual refresh triggered");
+                  loadSettings();
+                  toast.info(
+                    "Checking notification status...",
+                  );
+                }}
+                variant="ghost"
+                size="sm"
+              >
+                <Info className="w-4 h-4 mr-2" />
+                Refresh Status
+              </Button>
+            </div>
+          )}
 
           {/* Push Notification Diagnostic Link - Shows when subscription fails */}
           {subscriptionFailed && (
