@@ -683,6 +683,66 @@ export async function clearBadge(): Promise<void> {
 }
 
 /**
+ * Get unread notifications for a user (for web users without push)
+ * Retrieves notifications stored in the database
+ */
+export async function getUnreadNotifications(userId: string): Promise<any[]> {
+  try {
+    console.log('📬 [GET_UNREAD] Fetching unread notifications for user:', userId);
+    
+    const response = await fetch(`${API_BASE}/notifications/unread/${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${publicAnonKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.error('❌ [GET_UNREAD] Failed to fetch:', response.status);
+      return [];
+    }
+
+    const data = await response.json();
+    console.log('📬 [GET_UNREAD] Found', data.count, 'unread notifications');
+    
+    return data.notifications || [];
+  } catch (error) {
+    console.error('❌ [GET_UNREAD] Error fetching unread notifications:', error);
+    return [];
+  }
+}
+
+/**
+ * Mark a notification as read
+ */
+export async function markNotificationAsRead(userId: string, memoryId: string): Promise<boolean> {
+  try {
+    console.log('✅ [MARK_READ] Marking notification as read:', { userId, memoryId });
+    
+    const response = await fetch(`${API_BASE}/notifications/mark-read`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${publicAnonKey}`,
+      },
+      body: JSON.stringify({ userId, memoryId }),
+    });
+
+    if (!response.ok) {
+      console.error('❌ [MARK_READ] Failed:', response.status);
+      return false;
+    }
+
+    const data = await response.json();
+    console.log('✅ [MARK_READ] Success:', data.message);
+    
+    return true;
+  } catch (error) {
+    console.error('❌ [MARK_READ] Error marking notification as read:', error);
+    return false;
+  }
+}
+
+/**
  * CRITICAL: Setup realtime notification listeners
  * This enables instant in-app notifications when the app is open
  * Works alongside push notifications for when app is closed
