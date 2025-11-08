@@ -1124,11 +1124,11 @@ export function NotificationSettings({
                     Start Time
                   </Label>
                   <Select
-                    value={preferences.quietHoursStart || ""}
+                    value={preferences.quietHoursStart || "none"}
                     onValueChange={(value) =>
                       handleUpdatePreference(
                         "quietHoursStart",
-                        value,
+                        value === "none" ? undefined : value,
                       )
                     }
                   >
@@ -1136,7 +1136,7 @@ export function NotificationSettings({
                       <SelectValue placeholder="Not set" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Not set</SelectItem>
+                      <SelectItem value="none">Not set</SelectItem>
                       {Array.from({ length: 24 }, (_, i) => {
                         const hour = i
                           .toString()
@@ -1158,11 +1158,11 @@ export function NotificationSettings({
                     End Time
                   </Label>
                   <Select
-                    value={preferences.quietHoursEnd || ""}
+                    value={preferences.quietHoursEnd || "none"}
                     onValueChange={(value) =>
                       handleUpdatePreference(
                         "quietHoursEnd",
-                        value,
+                        value === "none" ? undefined : value,
                       )
                     }
                   >
@@ -1170,7 +1170,7 @@ export function NotificationSettings({
                       <SelectValue placeholder="Not set" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Not set</SelectItem>
+                      <SelectItem value="none">Not set</SelectItem>
                       {Array.from({ length: 24 }, (_, i) => {
                         const hour = i
                           .toString()
