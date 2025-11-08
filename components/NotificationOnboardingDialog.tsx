@@ -23,6 +23,13 @@ import {
   subscribeToPushNotifications,
   getNotificationPermission,
 } from '../utils/notificationService';
+import {
+  isPWAMode,
+  isIOS as detectIOS,
+  isAndroid as detectAndroid,
+  canReceivePushNotifications,
+  getNotificationCapabilityMessage,
+} from '../utils/pwaDetection';
 
 interface NotificationOnboardingDialogProps {
   open: boolean;
@@ -38,34 +45,40 @@ export function NotificationOnboardingDialog({
   userName,
 }: NotificationOnboardingDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState<'intro' | 'ios-install' | 'enable' | 'success' | 'skip'>('intro');
+  const [currentStep, setCurrentStep] = useState<'intro' | 'ios-install' | 'web-limited' | 'enable' | 'success' | 'skip'>('intro');
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [canUsePush, setCanUsePush] = useState(false);
+  const [capability, setCapability] = useState<ReturnType<typeof getNotificationCapabilityMessage> | null>(null);
 
   useEffect(() => {
-    // Detect platform
-    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const android = /Android/.test(navigator.userAgent);
+    // Use PWA detection utilities
+    const iOS = detectIOS();
+    const android = detectAndroid();
+    const standalone = isPWAMode();
+    const canPush = canReceivePushNotifications();
+    const pushCapability = getNotificationCapabilityMessage();
+    
     setIsIOS(iOS);
     setIsAndroid(android);
-    
-    // Check if running as standalone PWA
-    // iOS-specific: Check navigator.standalone first (Safari-specific property)
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const standalone = isIOSDevice
-      ? (window.navigator as any).standalone === true || window.matchMedia('(display-mode: standalone)').matches
-      : window.matchMedia('(display-mode: standalone)').matches || document.referrer.includes('android-app://');
     setIsStandalone(standalone);
+    setCanUsePush(canPush);
+    setCapability(pushCapability);
     
     // Get current notification permission
     setNotificationPermission(getNotificationPermission());
     
-    // Determine initial step based on platform and state
-    if (iOS && !standalone) {
+    // Determine initial step based on capability
+    if (!pushCapability.canReceive) {
+      // iOS web or unsupported browser - show install prompt
       setCurrentStep('ios-install');
+    } else if (pushCapability.isLimited) {
+      // Desktop/Android web - show limited warning
+      setCurrentStep('web-limited');
     } else {
+      // PWA - full support
       setCurrentStep('intro');
     }
   }, []);
@@ -239,11 +252,20 @@ export function NotificationOnboardingDialog({
                 </Alert>
               )}
 
-              {!isNotificationSupported() && (
+              {capability && !capability.canReceive && (
                 <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
                   <AlertCircle className="h-4 w-4 text-yellow-600" />
                   <AlertDescription className="text-sm text-yellow-800 dark:text-yellow-200">
-                    Your browser doesn't support push notifications. Try using Chrome, Safari, or Edge.
+                    {capability.message}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {capability && capability.isLimited && (
+                <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-sm text-blue-800 dark:text-blue-200">
+                    {capability.message}
                   </AlertDescription>
                 </Alert>
               )}
@@ -259,7 +281,7 @@ export function NotificationOnboardingDialog({
               </Button>
               <Button
                 onClick={handleEnableNotifications}
-                disabled={isLoading || !isNotificationSupported()}
+                disabled={isLoading || !canUsePush}
                 className="w-full sm:w-auto bg-[#36453B] hover:bg-[#36453B]/90"
               >
                 {isLoading ? (
@@ -365,6 +387,101 @@ export function NotificationOnboardingDialog({
                 className="w-full"
               >
                 I'll Do This Later
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {/* WEB BROWSER LIMITED SUPPORT STEP */}
+        {currentStep === 'web-limited' && (
+          <>
+            <DialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-yellow-600 rounded-full">
+                  <AlertCircle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl">Limited Notification Support</DialogTitle>
+                  <DialogDescription>
+                    Notifications work only when browser is open
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20">
+                <Info className="h-4 w-4 text-yellow-600" />
+                <AlertTitle className="text-yellow-900 dark:text-yellow-100 mb-2">
+                  How it works
+                </AlertTitle>
+                <AlertDescription className="text-sm text-yellow-800 dark:text-yellow-200">
+                  {capability?.message}
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-3">
+                <p className="font-medium">You have two options:</p>
+                
+                <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+                  <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Option 1: Enable Limited Notifications</p>
+                    <p className="text-sm text-muted-foreground">
+                      You'll get notified when your browser is running. Real-time updates work when the app is open.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+                  <Smartphone className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">Option 2: Install App for Full Support</p>
+                    <p className="text-sm text-muted-foreground">
+                      Get notifications even when the app is closed. Works like a native app.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={handleSkip}
+                className="w-full sm:w-auto"
+              >
+                Skip for Now
+              </Button>
+              <Button
+                onClick={handleEnableNotifications}
+                disabled={isLoading}
+                variant="outline"
+                className="w-full sm:w-auto"
+              >
+                {isLoading ? (
+                  <>
+                    <span className="mr-2">⏳</span>
+                    Enabling...
+                  </>
+                ) : (
+                  <>
+                    <Bell className="w-4 h-4 mr-2" />
+                    Enable Limited Notifications
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => {
+                  onOpenChange(false);
+                  toast.info('Look for the Install/Add to Home Screen option in your browser menu', {
+                    duration: 6000,
+                  });
+                }}
+                className="w-full sm:w-auto bg-[#36453B] hover:bg-[#36453B]/90"
+              >
+                <Smartphone className="w-4 h-4 mr-2" />
+                Install App
               </Button>
             </DialogFooter>
           </>
