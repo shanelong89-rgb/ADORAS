@@ -2174,87 +2174,67 @@ export function AppContent() {
           console.log('📡 Memory update broadcasted to connected users');
         }
 
-        // Send iMessage-style push notification to partner
+        // Send iMessage-style push notification to partner (NON-BLOCKING - fire and forget)
         if (partnerProfile && user) {
-          try {
-            console.log('📱 Starting notification flow...', {
-              hasPartnerProfile: !!partnerProfile,
-              hasUser: !!user,
-              userName: user.name,
-              userType,
-              activeStorytellerId,
-              activeLegacyKeeperId,
-              connectionsCount: connections.length,
-            });
+          // Fire-and-forget: Don't await this - let it happen in background
+          (async () => {
+            try {
+              const { notifyNewMemory } = await import('../utils/notificationService');
+              
+              let previewText = memory.content || '';
+              if (memory.type === 'photo') {
+                previewText = memory.photoCaption || 'Sent a photo';
+              } else if (memory.type === 'video') {
+                previewText = 'Sent a video';
+              } else if (memory.type === 'voice') {
+                previewText = memory.englishTranslation || 'Sent a voice note';
+              } else if (memory.type === 'document') {
+                previewText = memory.documentFileName || 'Sent a document';
+              }
 
-            const { notifyNewMemory } = await import('../utils/notificationService');
-            
-            let previewText = memory.content || '';
-            if (memory.type === 'photo') {
-              previewText = memory.photoCaption || 'Sent a photo';
-            } else if (memory.type === 'video') {
-              previewText = 'Sent a video';
-            } else if (memory.type === 'voice') {
-              previewText = memory.englishTranslation || 'Sent a voice note';
-            } else if (memory.type === 'document') {
-              previewText = memory.documentFileName || 'Sent a document';
+              // Get partner's userId from the connection
+              const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+              const connectionRecord = connections.find(c => c.connection?.id === activeConnectionId);
+
+              if (connectionRecord && connectionRecord.partner) {
+                const partnerUserId = connectionRecord.partner.id;
+
+                // Check if partner is actively viewing this chat (via Realtime presence)
+                const presenceState = realtimeSync.getPresenceState(activeConnectionId);
+                const partnerIsActive = presenceState?.[partnerUserId]?.online === true;
+
+                console.log('📱 Push notification check:', {
+                  partnerUserId,
+                  partnerIsActive,
+                  willSendPush: !partnerIsActive,
+                  reason: partnerIsActive ? 'Partner is actively viewing chat - skip push' : 'Partner is not active - send push'
+                });
+
+                // Only send push notification if partner is NOT actively viewing the chat
+                // If they're active, they'll see the message instantly via Realtime
+                if (!partnerIsActive) {
+                  // Fire-and-forget: Don't block on notification
+                  notifyNewMemory({
+                    userId: partnerUserId,
+                    senderName: user.name || 'Someone',
+                    memoryType: memory.type as any,
+                    memoryId: newMemory.id,
+                    previewText,
+                    mediaUrl: uploadedMediaUrl,
+                  }).then(() => {
+                    console.log('📱 Background push notification sent');
+                  }).catch((err) => {
+                    console.log('ℹ️ Push notification failed (non-critical):', err);
+                  });
+                } else {
+                  console.log('✅ Partner is viewing chat - message delivered via Realtime (no push needed)');
+                }
+              }
+            } catch (notifError) {
+              // Silent fail - notifications are non-critical for message delivery
+              console.log('ℹ️ Notification skipped:', notifError);
             }
-
-            // Get partner's userId from the connection
-            // FIXED: activeStorytellerId/activeLegacyKeeperId are CONNECTION IDs, not user IDs
-            const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
-            const connectionRecord = connections.find(c => c.connection?.id === activeConnectionId);
-
-            console.log('📱 Connection lookup:', {
-              foundConnection: !!connectionRecord,
-              connectionId: connectionRecord?.connection?.id,
-              partnerId: connectionRecord?.partner?.id,
-              partnerName: connectionRecord?.partner?.name,
-              activeConnectionId,
-              activeStorytellerId,
-              activeLegacyKeeperId,
-              userType,
-              totalConnections: connections.length,
-              allConnectionIds: connections.map(c => c.connection?.id),
-            });
-
-            if (connectionRecord && connectionRecord.partner) {
-              const partnerUserId = connectionRecord.partner.id;
-
-              console.log('📱 Sending notification to partner:', {
-                partnerUserId,
-                senderName: user.name,
-                memoryType: memory.type,
-                previewText,
-                hasMediaUrl: !!uploadedMediaUrl,
-              });
-
-              const result = await notifyNewMemory({
-                userId: partnerUserId,
-                senderName: user.name || 'Someone',
-                memoryType: memory.type as any,
-                memoryId: newMemory.id,
-                previewText,
-                mediaUrl: uploadedMediaUrl,
-              });
-
-              console.log('📱 Push notification result:', result);
-            } else {
-              console.log('ℹ️ No partner connection yet - skipping notification (this is normal for new users)');
-            }
-          } catch (notifError) {
-            console.error('❌ Failed to send push notification:', notifError);
-            console.error('   Error details:', {
-              message: notifError instanceof Error ? notifError.message : String(notifError),
-              stack: notifError instanceof Error ? notifError.stack : undefined,
-            });
-            // Don't block memory creation if notification fails
-          }
-        } else {
-          console.log('📱 Skipping notification:', {
-            hasPartnerProfile: !!partnerProfile,
-            hasUser: !!user,
-          });
+          })();
         }
         
         // Show success toast
