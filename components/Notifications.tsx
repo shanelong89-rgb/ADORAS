@@ -10,12 +10,10 @@ interface NotificationsProps {
 }
 
 export function Notifications({ isOpen, onClose, userId }: NotificationsProps) {
-  console.log('🔔 Notifications Dialog Rendering:', { 
-    isOpen, 
-    userId,
-    hasUserId: !!userId,
-    userIdType: typeof userId 
-  });
+  // PERFORMANCE: Only log when dialog opens (not on every render)
+  if (isOpen) {
+    console.log('🔔 Notifications Dialog Opened:', { userId });
+  }
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
