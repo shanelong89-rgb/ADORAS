@@ -106,9 +106,6 @@ export function Dashboard({
     const stored = localStorage.getItem(`lastChatRead_${userProfile.id}`);
     return stored ? parseInt(stored) : Date.now();
   });
-  
-  // Force badge re-calculation after marking messages as read
-  const [badgeUpdateTrigger, setBadgeUpdateTrigger] = useState(0);
 
   // DEFENSIVE: Validate that memories match the active connection
   // CRITICAL FIX: Always prefer global memories unless per-connection cache has MORE memories
@@ -161,7 +158,7 @@ export function Dashboard({
     }).length;
     
     return unreadCount;
-  }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper, activeStorytellerId, activeLegacyKeeperId, activeTab, badgeUpdateTrigger]);
+  }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper, activeStorytellerId, activeLegacyKeeperId, activeTab]);
 
   // Calculate unread message count across ALL connections for Chat tab badge
   const unreadMessageCount = React.useMemo(() => {
@@ -246,13 +243,10 @@ export function Dashboard({
           }
         });
         
-        // Trigger badge re-calculation by updating timestamp AND trigger
+        // Trigger badge re-calculation by updating timestamp
         const now = Date.now();
         localStorage.setItem(`lastChatRead_${userProfile.id}_${connectionId}`, now.toString());
         setLastChatReadTimestamp(now);
-        
-        // Force immediate badge recalculation after state updates
-        setBadgeUpdateTrigger(prev => prev + 1);
         
         console.log(`✅ Local state updated - badges should clear immediately`);
       }
@@ -331,13 +325,6 @@ export function Dashboard({
       // Skip if not a relevant message type
       if (newMemory.type !== 'text' && newMemory.type !== 'voice') {
         console.log('   ℹ️ Skipping notification - not a text/voice message');
-        return;
-      }
-      
-      // Skip if user is actively viewing the chat tab
-      // In-chat notifications only make sense when user is on prompts/media tabs
-      if (activeTab === 'chat') {
-        console.log('   ℹ️ Skipping notification - user is actively viewing chat');
         return;
       }
       
@@ -627,9 +614,6 @@ export function Dashboard({
                               onClick={() => {
                                 onSwitchStoryteller?.(storyteller.id);
                                 setIsMenuOpen(false);
-                                // Switch to chat tab and scroll to bottom
-                                setActiveTab('chat');
-                                setShouldScrollChatToBottom(true);
                                 // Mark messages as read for this connection when switching to them
                                 const now = Date.now();
                                 localStorage.setItem(`lastChatRead_${userProfile.id}_${storyteller.id}`, now.toString());
@@ -696,9 +680,6 @@ export function Dashboard({
                               onClick={() => {
                                 onSwitchLegacyKeeper?.(legacyKeeper.id);
                                 setIsMenuOpen(false);
-                                // Switch to chat tab and scroll to bottom
-                                setActiveTab('chat');
-                                setShouldScrollChatToBottom(true);
                                 // Mark messages as read for this connection when switching to them
                                 const now = Date.now();
                                 localStorage.setItem(`lastChatRead_${userProfile.id}_${legacyKeeper.id}`, now.toString());
