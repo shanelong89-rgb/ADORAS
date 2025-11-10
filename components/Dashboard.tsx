@@ -620,6 +620,9 @@ export function Dashboard({
                               onClick={() => {
                                 onSwitchStoryteller?.(storyteller.id);
                                 setIsMenuOpen(false);
+                                // Switch to chat tab and scroll to bottom
+                                setActiveTab('chat');
+                                setShouldScrollChatToBottom(true);
                                 // Mark messages as read for this connection when switching to them
                                 const now = Date.now();
                                 localStorage.setItem(`lastChatRead_${userProfile.id}_${storyteller.id}`, now.toString());
@@ -686,6 +689,9 @@ export function Dashboard({
                               onClick={() => {
                                 onSwitchLegacyKeeper?.(legacyKeeper.id);
                                 setIsMenuOpen(false);
+                                // Switch to chat tab and scroll to bottom
+                                setActiveTab('chat');
+                                setShouldScrollChatToBottom(true);
                                 // Mark messages as read for this connection when switching to them
                                 const now = Date.now();
                                 localStorage.setItem(`lastChatRead_${userProfile.id}_${legacyKeeper.id}`, now.toString());
