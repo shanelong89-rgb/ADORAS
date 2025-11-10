@@ -106,6 +106,9 @@ export function Dashboard({
     const stored = localStorage.getItem(`lastChatRead_${userProfile.id}`);
     return stored ? parseInt(stored) : Date.now();
   });
+  
+  // Force badge re-calculation after marking messages as read
+  const [badgeUpdateTrigger, setBadgeUpdateTrigger] = useState(0);
 
   // DEFENSIVE: Validate that memories match the active connection
   // CRITICAL FIX: Always prefer global memories unless per-connection cache has MORE memories
@@ -158,7 +161,7 @@ export function Dashboard({
     }).length;
     
     return unreadCount;
-  }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper, activeStorytellerId, activeLegacyKeeperId, activeTab]);
+  }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper, activeStorytellerId, activeLegacyKeeperId, activeTab, badgeUpdateTrigger]);
 
   // Calculate unread message count across ALL connections for Chat tab badge
   const unreadMessageCount = React.useMemo(() => {
@@ -243,10 +246,13 @@ export function Dashboard({
           }
         });
         
-        // Trigger badge re-calculation by updating timestamp
+        // Trigger badge re-calculation by updating timestamp AND trigger
         const now = Date.now();
         localStorage.setItem(`lastChatRead_${userProfile.id}_${connectionId}`, now.toString());
         setLastChatReadTimestamp(now);
+        
+        // Force immediate badge recalculation after state updates
+        setBadgeUpdateTrigger(prev => prev + 1);
         
         console.log(`✅ Local state updated - badges should clear immediately`);
       }
