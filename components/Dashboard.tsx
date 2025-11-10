@@ -334,6 +334,13 @@ export function Dashboard({
         return;
       }
       
+      // Skip if user is actively viewing the chat tab
+      // In-chat notifications only make sense when user is on prompts/media tabs
+      if (activeTab === 'chat') {
+        console.log('   ℹ️ Skipping notification - user is actively viewing chat');
+        return;
+      }
+      
       // Throttle notifications to prevent spam (max 1 per second)
       const now = Date.now();
       if (now - lastNotificationTimeRef.current < 1000) {
