@@ -520,26 +520,10 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id]);
 
   /**
-   * FIX #4: Sync unread counts to sidebar whenever they change
-   * This is separate from updateSidebarLastMessage to prevent cascading re-renders
+   * REMOVED INEFFECTIVE FIX: Syncing unread counts to storytellers/legacyKeepers arrays
+   * Dashboard doesn't use these properties - it calculates badges from memoriesByStoryteller/Keeper
+   * The real issue is that Dashboard's getUnreadCountForConnection callback isn't triggering re-renders
    */
-  useEffect(() => {
-    if (userType === 'keeper' && storytellers.length > 0) {
-      setStorytellers(prev => 
-        prev.map(storyteller => ({
-          ...storyteller,
-          unreadCount: unreadCounts[storyteller.id] || 0,
-        }))
-      );
-    } else if (userType === 'teller' && legacyKeepers.length > 0) {
-      setLegacyKeepers(prev =>
-        prev.map(keeper => ({
-          ...keeper,
-          unreadCount: unreadCounts[keeper.id] || 0,
-        }))
-      );
-    }
-  }, [unreadCounts, userType]); // Only re-run when unreadCounts change
 
   /**
    * Phase 3e: Clear expired cache and prefetch media on mount
