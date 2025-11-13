@@ -25,7 +25,7 @@ import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Menu, Zap, MessageCircle, Image, User, Check, UserPlus, Bell, Shield, Database, HelpCircle, LogOut, List, Users } from 'lucide-react';
 import { useAuth } from '../utils/api/AuthContext';
-import type { PresenceState } from '../utils/realtimeSync';
+import { realtimeSync, type PresenceState } from '../utils/realtimeSync';
 import { useTranslation } from '../utils/i18n';
 import { NotificationMiniBadge } from './NotificationBadge';
 import { apiClient } from '../utils/api/client';
@@ -102,6 +102,56 @@ export function Dashboard({
   React.useEffect(() => {
     setBadgeVersion(v => v + 1);
   }, [memoriesByStoryteller, memoriesByLegacyKeeper]);
+
+  // ===== NEW: Subscribe to user-level real-time updates for ALL connections =====
+  React.useEffect(() => {
+    if (!userProfile?.id) return;
+    
+    console.log('📡 Setting up user-level sidebar updates for:', userProfile.id);
+    
+    // Subscribe to lightweight user-level updates
+    realtimeSync.subscribeToUserUpdates(userProfile.id, (update) => {
+      console.log('📬 Processing sidebar update:', update);
+      
+      // Update last message in storytellers/legacyKeepers arrays
+      if (userType === 'keeper' && onSwitchStoryteller) {
+        // Update storytellers list with new last message
+        const currentStorytellers = storytellers;
+        const updatedStorytellers = currentStorytellers.map((st) => 
+          st.id === update.connectionId
+            ? { 
+                ...st, 
+                lastMessage: update.lastMessage.preview,
+                lastMessageTime: update.lastMessage.timestamp,
+              }
+            : st
+        );
+        // Force badge re-calculation by incrementing version
+        setBadgeVersion(v => v + 1);
+      } else if (userType === 'teller' && onSwitchLegacyKeeper) {
+        // Update legacy keepers list with new last message
+        const currentLegacyKeepers = legacyKeepers;
+        const updatedLegacyKeepers = currentLegacyKeepers.map((lk) => 
+          lk.id === update.connectionId
+            ? { 
+                ...lk, 
+                lastMessage: update.lastMessage.preview,
+                lastMessageTime: update.lastMessage.timestamp,
+              }
+            : lk
+        );
+        // Force badge re-calculation by incrementing version
+        setBadgeVersion(v => v + 1);
+      }
+      
+      console.log('✅ Sidebar state updated for connection:', update.connectionId);
+    });
+    
+    return () => {
+      // Cleanup handled by realtimeSync.disconnectAll()
+    };
+  }, [userProfile?.id, userType]);
+  // ===== END NEW =====
   const [showPrivacySecurity, setShowPrivacySecurity] = useState(false);
   const [showStorageData, setShowStorageData] = useState(false);
   const [showHelpFeedback, setShowHelpFeedback] = useState(false);
@@ -708,7 +758,7 @@ export function Dashboard({
                         <div className="space-y-1 sm:space-y-1.5">
                           {storytellers.map((storyteller) => (
                             <button
-                              key={`${storyteller.id}-${badgeVersion}`}
+                              key={`${storyteller.id}-${badgeVersion}-${getUnreadCountForConnection(storyteller.id)}`}
                               onClick={() => {
                                 onSwitchStoryteller?.(storyteller.id);
                                 setIsMenuOpen(false);
@@ -774,7 +824,7 @@ export function Dashboard({
                         <div className="space-y-1 sm:space-y-1.5">
                           {legacyKeepers.map((legacyKeeper) => (
                             <button
-                              key={`${legacyKeeper.id}-${badgeVersion}`}
+                              key={`${legacyKeeper.id}-${badgeVersion}-${getUnreadCountForConnection(legacyKeeper.id)}`}
                               onClick={() => {
                                 onSwitchLegacyKeeper?.(legacyKeeper.id);
                                 setIsMenuOpen(false);
