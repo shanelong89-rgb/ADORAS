@@ -498,6 +498,7 @@ export function AppContent() {
   /**
    * FIX #2: Calculate unread counts whenever memories change
    * This fixes Badge Bug #2 - Check read status, not just timestamps
+   * The sidebar will be updated by updateSidebarLastMessage() which now includes unread counts
    */
   useEffect(() => {
     const calculateAllUnreadCounts = () => {
@@ -513,27 +514,10 @@ export function AppContent() {
       
       setUnreadCounts(newCounts);
       console.log('📊 Unread counts updated:', newCounts);
-      
-      // FIX #2: Also update sidebar with new unread counts
-      if (userType === 'keeper' && storytellers.length > 0) {
-        setStorytellers(prev => 
-          prev.map(storyteller => ({
-            ...storyteller,
-            unreadCount: newCounts[storyteller.id] || 0,
-          }))
-        );
-      } else if (userType === 'teller' && legacyKeepers.length > 0) {
-        setLegacyKeepers(prev =>
-          prev.map(keeper => ({
-            ...keeper,
-            unreadCount: newCounts[keeper.id] || 0,
-          }))
-        );
-      }
     };
     
     calculateAllUnreadCounts();
-  }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id, storytellers.length, legacyKeepers.length]);
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id]);
 
   /**
    * Phase 3e: Clear expired cache and prefetch media on mount
@@ -823,6 +807,9 @@ export function AppContent() {
     // Get latest message info using current memory state
     const lastMessageInfo = getLastMessageForConnection(connectionId);
     
+    // FIX #4: Also update unread count when updating sidebar
+    const currentUnreadCount = unreadCounts[connectionId] || 0;
+    
     if (userType === 'keeper') {
       setStorytellers(prev => 
         prev.map(storyteller => 
@@ -831,6 +818,7 @@ export function AppContent() {
                 ...storyteller,
                 lastMessage: lastMessageInfo?.message,
                 lastMessageTime: lastMessageInfo?.time,
+                unreadCount: currentUnreadCount, // FIX #4: Update unread count
               }
             : storyteller
         )
@@ -843,12 +831,13 @@ export function AppContent() {
                 ...keeper,
                 lastMessage: lastMessageInfo?.message,
                 lastMessageTime: lastMessageInfo?.time,
+                unreadCount: currentUnreadCount, // FIX #4: Update unread count
               }
             : keeper
         )
       );
     }
-  }, [userType, getLastMessageForConnection]);
+  }, [userType, getLastMessageForConnection, unreadCounts]); // FIX #4: Add unreadCounts dependency
 
   /**
    * Phase 1d-4: Transform API connections to Storyteller format (for Keepers)
