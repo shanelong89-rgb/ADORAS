@@ -254,8 +254,24 @@ export function Dashboard({
     }
   }, [unreadMessageCount, activeTab]);
 
+  // Track last mark-as-read time to prevent duplicates
+  const lastMarkAsReadTime = React.useRef<Record<string, number>>({});
+  const markAsReadCooldown = 1000; // 1 second cooldown to prevent duplicate calls
+
   // Helper function to mark messages as read
   const markConnectionAsRead = React.useCallback(async (connectionId: string) => {
+    // 🔥 CRITICAL: Prevent duplicate mark-as-read calls within 1 second
+    // This prevents 5x redundant API calls when switching connections
+    const now = Date.now();
+    const lastCall = lastMarkAsReadTime.current[connectionId] || 0;
+    
+    if (now - lastCall < markAsReadCooldown) {
+      console.log(`⏭️ Skipping mark-as-read (cooldown: ${Math.floor((now - lastCall) / 1000)}s) for ${connectionId}`);
+      return { success: true, skipped: true };
+    }
+    
+    lastMarkAsReadTime.current[connectionId] = now;
+    
     try {
       const result = await apiClient.markMessagesAsRead(connectionId);
       
