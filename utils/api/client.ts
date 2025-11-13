@@ -5,6 +5,7 @@
 
 import { projectId, publicAnonKey } from '../supabase/info';
 import { pwaInstaller } from '../pwaInstaller';
+import { getSupabaseClient } from '../supabase/client';
 import type {
   SignupRequest,
   SignupResponse,
@@ -37,6 +38,7 @@ const BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-dede
 class AdorasAPIClient {
   private accessToken: string | null = null;
   private useSessionStorage: boolean = false;
+  private supabase = getSupabaseClient();
 
   /**
    * Set access token for authenticated requests
@@ -94,6 +96,53 @@ class AdorasAPIClient {
   }
 
   /**
+   * Refresh JWT token if it's about to expire
+   * Prevents 401 errors from expired tokens
+   */
+  private async refreshTokenIfNeeded(): Promise<string | null> {
+    try {
+      const { data: { session }, error } = await this.supabase.auth.getSession();
+      
+      if (error || !session) {
+        console.warn('🔄 Session expired or invalid - please sign in again');
+        // Clear invalid token
+        this.setAccessToken(null);
+        return null;
+      }
+      
+      const expiresAt = session.expires_at || 0;
+      const now = Math.floor(Date.now() / 1000);
+      const timeUntilExpiry = expiresAt - now;
+      
+      // If token expires in < 5 minutes (300 seconds), refresh it
+      if (timeUntilExpiry < 300) {
+        console.log(`🔄 Token expires in ${Math.floor(timeUntilExpiry / 60)} minutes, refreshing...`);
+        
+        const { data: refreshData, error: refreshError } = await this.supabase.auth.refreshSession();
+        
+        if (refreshError || !refreshData.session) {
+          console.error('❌ Failed to refresh token:', refreshError);
+          // Clear invalid token
+          this.setAccessToken(null);
+          return null;
+        }
+        
+        console.log('✅ Token refreshed successfully');
+        // Update stored token
+        const newToken = refreshData.session.access_token;
+        this.setAccessToken(newToken, !this.useSessionStorage);
+        return newToken;
+      }
+      
+      // Token is still valid
+      return session.access_token;
+    } catch (error) {
+      console.error('❌ Error refreshing token:', error);
+      return null;
+    }
+  }
+
+  /**
    * Make authenticated request with retry logic
    */
   private async request<T>(
@@ -102,7 +151,15 @@ class AdorasAPIClient {
     requiresAuth: boolean = true,
     retryCount: number = 0
   ): Promise<T> {
-    const token = this.getAccessToken();
+    // Refresh token if needed (for authenticated requests)
+    let token = this.getAccessToken();
+    if (requiresAuth && token) {
+      const refreshedToken = await this.refreshTokenIfNeeded();
+      if (refreshedToken) {
+        token = refreshedToken;
+      }
+    }
+    
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
       ...options.headers,
