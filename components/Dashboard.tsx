@@ -103,38 +103,6 @@ export function Dashboard({
     setBadgeVersion(v => v + 1);
   }, [memoriesByStoryteller, memoriesByLegacyKeeper]);
 
-  // ===== NEW: Subscribe to user-level real-time updates for ALL connections =====
-  React.useEffect(() => {
-    if (!userProfile?.id) return;
-    
-    console.log('📡 Setting up user-level sidebar updates for:', userProfile.id);
-    
-    // Subscribe to lightweight user-level updates  
-    realtimeSync.subscribeToUserUpdates(userProfile.id, (update) => {
-      console.log('📬 Processing sidebar update:', update);
-      
-      if (update.action === 'increment_unread') {
-        // Get current active connection
-        const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
-        
-        // Only increment if NOT viewing this chat
-        if (update.connectionId !== activeConnectionId) {
-          setUnreadCounts((prev) => ({
-            ...prev,
-            [update.connectionId]: (prev[update.connectionId] || 0) + 1,
-          }));
-          console.log(`📬 +1 badge for ${update.connectionId} (viewing ${activeConnectionId || 'none'})`);
-        } else {
-          console.log(`ℹ️ Skip badge for ${update.connectionId} (currently active)`);
-        }
-      }
-    });
-    
-    return () => {
-      // Cleanup handled by realtimeSync.disconnectAll()
-    };
-  }, [userProfile?.id, userType]);
-  // ===== END NEW =====
   const [showPrivacySecurity, setShowPrivacySecurity] = useState(false);
   const [showStorageData, setShowStorageData] = useState(false);
   const [showHelpFeedback, setShowHelpFeedback] = useState(false);
