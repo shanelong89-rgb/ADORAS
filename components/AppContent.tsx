@@ -136,6 +136,17 @@ export function AppContent() {
   /**
    * Phase 5: Setup real-time sync for ALL connections (multi-channel support)
    */
+  // Track previous connection ID to detect changes vs initial setup
+  const prevRealtimeConnectionRef = useRef<{
+    userType: string | null;
+    userId: string | undefined;
+    connectionId: string | undefined;
+  }>({
+    userType: null,
+    userId: undefined,
+    connectionId: undefined,
+  });
+
   useEffect(() => {
     let unsubscribePresence: (() => void) | null = null;
     let unsubscribeMemoryUpdates: (() => void) | null = null;
@@ -154,6 +165,39 @@ export function AppContent() {
         console.log('ℹ️ No active connection to subscribe to');
         return;
       }
+
+      // Check if this is a TRUE change (not initial setup)
+      const prev = prevRealtimeConnectionRef.current;
+      const isUserChanged = prev.userId !== user.id;
+      const isTypeChanged = prev.userType !== userType;
+      const isConnectionChanged = prev.connectionId !== undefined && prev.connectionId !== activeConnectionId;
+      
+      // Only cleanup if user, type, or connection actually changed (not initial setup)
+      if (isUserChanged || isTypeChanged) {
+        console.log(`🔄 User or type changed - reconnecting realtime`);
+        await realtimeSync.disconnectAll();
+      } else if (isConnectionChanged) {
+        console.log(`🔄 Connection changed from ${prev.connectionId} to ${activeConnectionId} - switching channel`);
+        // Don't disconnect all - just switch active connection
+        realtimeSync.setActiveConnection(activeConnectionId);
+        
+        // Update ref and return early - no need to resubscribe
+        prevRealtimeConnectionRef.current = {
+          userType,
+          userId: user.id,
+          connectionId: activeConnectionId,
+        };
+        return;
+      } else {
+        console.log(`ℹ️ Initial realtime setup for ${activeConnectionId}`);
+      }
+      
+      // Update tracking ref
+      prevRealtimeConnectionRef.current = {
+        userType,
+        userId: user.id,
+        connectionId: activeConnectionId,
+      };
 
       // Subscribe ONLY to the active connection
       const allConnectionIds = [activeConnectionId];
@@ -335,9 +379,8 @@ export function AppContent() {
 
     setupRealtime();
 
-    // Cleanup on unmount or connection change
+    // Cleanup on unmount or when effect re-runs
     return () => {
-      console.log('🧹 Cleaning up realtime sync...');
       isCleanedUp = true; // Mark as cleaned up to prevent stale callbacks
       
       if (unsubscribePresence) {
@@ -346,14 +389,10 @@ export function AppContent() {
       if (unsubscribeMemoryUpdates) {
         unsubscribeMemoryUpdates();
       }
-      realtimeSync.disconnectAll();
-      setRealtimeConnected(false);
+      // Don't call disconnectAll here - setupRealtime handles disconnection intelligently
       setPresences({});
     };
-    // CRITICAL: Don't include storytellers/legacyKeepers in deps!
-    // They change on every message (lastMessage updates), causing constant disconnects
-    // Only reconnect when user ID, userType, or active connection IDs change
-    // IMPORTANT: Use user?.id not user - full user object changes frequently!
+    // Watch for changes - but setupRealtime() will decide if cleanup is needed
   }, [userType, activeStorytellerId, activeLegacyKeeperId, user?.id]);
 
   /**
