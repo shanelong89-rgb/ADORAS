@@ -109,25 +109,25 @@ export function Dashboard({
     
     console.log('📡 Setting up user-level sidebar updates for:', userProfile.id);
     
-    // Subscribe to lightweight user-level updates
+    // Subscribe to lightweight user-level updates  
     realtimeSync.subscribeToUserUpdates(userProfile.id, (update) => {
       console.log('📬 Processing sidebar update:', update);
       
-      // CRITICAL: Increment unread count for inactive connections only!
-      const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
-      
-      if (update.action === 'increment_unread' && update.connectionId !== activeConnectionId) {
-        setUnreadCounts((prev) => ({
-          ...prev,
-          [update.connectionId]: (prev[update.connectionId] || 0) + 1,
-        }));
-        console.log(`✅ Incremented unread count for inactive connection: ${update.connectionId}`);
+      if (update.action === 'increment_unread') {
+        // Get current active connection
+        const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
         
-        // Force sidebar re-render
-        setBadgeVersion(v => v + 1);
+        // Only increment if NOT viewing this chat
+        if (update.connectionId !== activeConnectionId) {
+          setUnreadCounts((prev) => ({
+            ...prev,
+            [update.connectionId]: (prev[update.connectionId] || 0) + 1,
+          }));
+          console.log(`📬 +1 badge for ${update.connectionId} (viewing ${activeConnectionId || 'none'})`);
+        } else {
+          console.log(`ℹ️ Skip badge for ${update.connectionId} (currently active)`);
+        }
       }
-      
-      console.log('✅ Sidebar badges updated for connection:', update.connectionId);
     });
     
     return () => {
