@@ -352,8 +352,9 @@ export function AppContent() {
     };
     // CRITICAL: Don't include storytellers/legacyKeepers in deps!
     // They change on every message (lastMessage updates), causing constant disconnects
-    // Only reconnect when user, userType, or active connection IDs change
-  }, [userType, activeStorytellerId, activeLegacyKeeperId, user]);
+    // Only reconnect when user ID, userType, or active connection IDs change
+    // IMPORTANT: Use user?.id not user - full user object changes frequently!
+  }, [userType, activeStorytellerId, activeLegacyKeeperId, user?.id]);
 
   /**
    * Update active connection in realtime sync when switching chats
