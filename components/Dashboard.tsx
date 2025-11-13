@@ -113,38 +113,21 @@ export function Dashboard({
     realtimeSync.subscribeToUserUpdates(userProfile.id, (update) => {
       console.log('📬 Processing sidebar update:', update);
       
-      // Update last message in storytellers/legacyKeepers arrays
-      if (userType === 'keeper' && onSwitchStoryteller) {
-        // Update storytellers list with new last message
-        const currentStorytellers = storytellers;
-        const updatedStorytellers = currentStorytellers.map((st) => 
-          st.id === update.connectionId
-            ? { 
-                ...st, 
-                lastMessage: update.lastMessage.preview,
-                lastMessageTime: update.lastMessage.timestamp,
-              }
-            : st
-        );
-        // Force badge re-calculation by incrementing version
-        setBadgeVersion(v => v + 1);
-      } else if (userType === 'teller' && onSwitchLegacyKeeper) {
-        // Update legacy keepers list with new last message
-        const currentLegacyKeepers = legacyKeepers;
-        const updatedLegacyKeepers = currentLegacyKeepers.map((lk) => 
-          lk.id === update.connectionId
-            ? { 
-                ...lk, 
-                lastMessage: update.lastMessage.preview,
-                lastMessageTime: update.lastMessage.timestamp,
-              }
-            : lk
-        );
-        // Force badge re-calculation by incrementing version
+      // CRITICAL: Increment unread count for inactive connections only!
+      const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+      
+      if (update.action === 'increment_unread' && update.connectionId !== activeConnectionId) {
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [update.connectionId]: (prev[update.connectionId] || 0) + 1,
+        }));
+        console.log(`✅ Incremented unread count for inactive connection: ${update.connectionId}`);
+        
+        // Force sidebar re-render
         setBadgeVersion(v => v + 1);
       }
       
-      console.log('✅ Sidebar state updated for connection:', update.connectionId);
+      console.log('✅ Sidebar badges updated for connection:', update.connectionId);
     });
     
     return () => {
