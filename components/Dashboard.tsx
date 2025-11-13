@@ -107,25 +107,39 @@ export function Dashboard({
     return stored ? parseInt(stored) : Date.now();
   });
 
-  // DEFENSIVE: Validate that memories match the active connection
-  // CRITICAL FIX: Always prefer global memories unless per-connection cache has MORE memories
+  // 🔧 CONNECTION SWITCH: Loading state and error handling
+  const [isSwitchingConnection, setIsSwitchingConnection] = useState(false);
+  const [connectionSwitchError, setConnectionSwitchError] = useState<string | null>(null);
+
+  // SIMPLIFIED: Filter memories strictly by active connection + sort by timestamp DESC
   const validatedMemories = React.useMemo(() => {
     const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
-    const expectedMemories = userType === 'keeper' 
+    
+    // CRITICAL: Always filter by active connection first
+    if (!activeConnectionId) {
+      console.log('⚠️ No active connection, returning empty memories');
+      return [];
+    }
+
+    // Get per-connection memories (authoritative source)
+    const connectionMemories = userType === 'keeper' 
       ? (memoriesByStoryteller[activeConnectionId] || [])
       : (memoriesByLegacyKeeper[activeConnectionId] || []);
+
+    // Ensure global memories are also filtered by connection
+    const filteredGlobalMemories = memories.filter(m => {
+      // Match by connection context or sender type
+      const isForConnection = m.conversationContext === activeConnectionId || 
+                             m.sender === (userType === 'keeper' ? 'teller' : 'keeper');
+      return isForConnection;
+    });
+
+    // Use per-connection if available, otherwise filtered global
+    // But ensure we get the LATEST messages from either source
+    const combined = connectionMemories.length > 0 ? connectionMemories : filteredGlobalMemories;
     
-    // FIXED: If global memories has MORE items, it's more up-to-date (realtime updates hit global first)
-    // Only use expectedMemories if it has more than global (shouldn't happen, but defensive)
-    if (memories.length >= expectedMemories.length) {
-      // Global memories is authoritative
-      return memories;
-    }
-    
-    // Edge case: Per-connection cache has more memories than global
-    // This can happen during rapid switching, use the one with more data
-    console.warn(`⚠️ Per-connection cache has more memories (${expectedMemories.length}) than global (${memories.length})`);
-    return expectedMemories;
+    // Sort by timestamp DESC (newest first) for consistent order
+    return combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [memories, userType, activeStorytellerId, activeLegacyKeeperId, memoriesByStoryteller, memoriesByLegacyKeeper]);
 
   // Refs for tab content containers to handle scrolling
@@ -134,31 +148,52 @@ export function Dashboard({
 
   // Calculate unread message count per connection for sidebar badges
   const getUnreadCountForConnection = React.useCallback((connectionId: string) => {
-    // 🔔 CRITICAL: Don't show badge for the ACTIVE connection
-    // If user is viewing this chat, messages aren't "unread" for badge purposes
+    // Strict validation
+    if (!connectionId || !userProfile?.id) {
+      console.warn('⚠️ Invalid parameters for unread count:', { connectionId, userId: userProfile?.id });
+      return 0;
+    }
+
+    // Don't show badge when actively viewing this specific connection
     const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
     if (connectionId === activeConnectionId && activeTab === 'chat') {
-      return 0; // No badge when actively viewing this chat
+      return 0;
     }
-    
-    // Get memories for this specific connection
-    const connectionMemories = userType === 'keeper' 
-      ? (memoriesByStoryteller[connectionId] || [])
-      : (memoriesByLegacyKeeper[connectionId] || []);
-    
+
+    // Get memories STRICTLY for this connection
+    const connectionMemories = (userType === 'keeper' 
+      ? memoriesByStoryteller[connectionId] 
+      : memoriesByLegacyKeeper[connectionId]) || [];
+
+    // Filter for unread partner messages ONLY
     const unreadCount = connectionMemories.filter(memory => {
-      // Check if this message is from the partner (not from the current user)
+      // Must be from partner
       const isFromPartner = memory.sender !== userType;
+      
+      // Must be a message type
       const isMessage = memory.type === 'text' || memory.type === 'voice';
       
-      // NEW: Use readBy array instead of timestamp comparison
-      const isUnread = !memory.readBy || !memory.readBy.includes(userProfile.id);
+      // Must be unread by current user
+      const isUnread = !memory.readBy?.includes(userProfile.id);
       
-      return isFromPartner && isMessage && isUnread;
+      // Additional safeguard: ensure memory belongs to this connection
+      const belongsToConnection = memory.conversationContext === connectionId || 
+                                 (userType === 'keeper' && memory.sender === 'teller') ||
+                                 (userType === 'teller' && memory.sender === 'keeper');
+      
+      return isFromPartner && isMessage && isUnread && belongsToConnection;
     }).length;
     
     return unreadCount;
-  }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper, activeStorytellerId, activeLegacyKeeperId, activeTab]);
+  }, [
+    userProfile.id, 
+    userType, 
+    memoriesByStoryteller, 
+    memoriesByLegacyKeeper, 
+    activeStorytellerId, 
+    activeLegacyKeeperId, 
+    activeTab
+  ]);
 
   // Calculate unread message count across ALL connections for Chat tab badge
   const unreadMessageCount = React.useMemo(() => {
@@ -273,15 +308,32 @@ export function Dashboard({
     }
   }, [activeTab, userType, activeStorytellerId, activeLegacyKeeperId, markConnectionAsRead]);
 
-  // Mark messages as read when switching connections (while on chat tab)
+  // Mark messages as read when switching connections + show loading state
   const prevConnectionIdRef = useRef<string | undefined>();
   useEffect(() => {
     const currentConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
     
-    // Only trigger when connection actually changes AND we're on chat tab
-    if (activeTab === 'chat' && currentConnectionId && currentConnectionId !== prevConnectionIdRef.current && prevConnectionIdRef.current !== undefined) {
+    // Only trigger when connection actually changes
+    if (currentConnectionId && currentConnectionId !== prevConnectionIdRef.current && prevConnectionIdRef.current !== undefined) {
       console.log(`🔄 Connection switched to ${currentConnectionId}, marking messages as read`);
-      markConnectionAsRead(currentConnectionId);
+      
+      // Show loading state during switch
+      setIsSwitchingConnection(true);
+      setConnectionSwitchError(null);
+      
+      // Mark as read (especially important when on chat tab)
+      markConnectionAsRead(currentConnectionId)
+        .then(() => {
+          console.log(`✅ Connection switch completed for: ${currentConnectionId}`);
+        })
+        .catch((error) => {
+          console.error(`❌ Connection switch failed:`, error);
+          setConnectionSwitchError(String(error));
+        })
+        .finally(() => {
+          // Hide loading after a brief delay to prevent flicker
+          setTimeout(() => setIsSwitchingConnection(false), 300);
+        });
     }
     
     prevConnectionIdRef.current = currentConnectionId;
@@ -922,15 +974,42 @@ export function Dashboard({
         {/* End Header + Tabs Container */}
 
         {/* Tab Content - Add top padding to account for fixed header */}
-        <div 
-          className="flex-1 flex flex-col overflow-hidden dashboard-content"
-          style={{ 
-            minHeight: 0,
-            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)' // Mobile: flush with tabs
-          }}
-        >
-          {activeTab === 'prompts' && (
-            <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+        {isSwitchingConnection ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-sm text-muted-foreground">Switching connection...</p>
+            </div>
+          </div>
+        ) : connectionSwitchError ? (
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="max-w-md bg-destructive/10 border border-destructive rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="h-4 w-4 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <h3 className="font-semibold text-destructive">Connection Error</h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">{connectionSwitchError}</p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.location.reload()}
+              >
+                Reload App
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div 
+            className="flex-1 flex flex-col overflow-hidden dashboard-content"
+            style={{ 
+              minHeight: 0,
+              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)' // Mobile: flush with tabs
+            }}
+          >
+            {activeTab === 'prompts' && (
+              <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
               <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-8">
               <PromptsTab 
                 userType={userType}
@@ -973,7 +1052,8 @@ export function Dashboard({
               />
             </div>
           )}
-        </div>
+          </div>
+        )}
 
 
         {/* Account Settings Dialog */}
