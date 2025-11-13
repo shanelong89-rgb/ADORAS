@@ -39,9 +39,20 @@ export interface TypingIndicator {
   isTyping: boolean;
 }
 
+export interface SidebarUpdate {
+  connectionId: string;
+  lastMessage: {
+    preview: string;
+    sender: string;
+    timestamp: string;
+  };
+  action: 'increment_unread' | 'clear_unread';
+}
+
 type PresenceCallback = (connectionId: string, presences: Record<string, PresenceState>) => void;
 type MemoryUpdateCallback = (update: MemoryUpdate) => void;
 type TypingCallback = (typing: TypingIndicator) => void;
+type SidebarUpdateCallback = (update: SidebarUpdate) => void;
 
 interface ChannelInfo {
   channel: RealtimeChannel;
@@ -70,6 +81,11 @@ class RealtimeSyncManager {
   private presenceCallbacks: PresenceCallback[] = [];
   private memoryUpdateCallbacks: MemoryUpdateCallback[] = [];
   private typingCallbacks: TypingCallback[] = [];
+  private sidebarUpdateCallbacks: SidebarUpdateCallback[] = [];
+  
+  // ===== NEW: User-level channel for sidebar updates =====
+  private userChannel: RealtimeChannel | null = null;
+  // ===== END NEW =====
   
   private maxReconnectAttempts: number = 3;
   private permanentlyDisabled: boolean = false;
@@ -292,6 +308,19 @@ class RealtimeSyncManager {
   async disconnectAll(): Promise<void> {
     console.log(`🔌 Disconnecting from all ${this.channels.size} channels`);
     
+    // ===== NEW: Disconnect user channel =====
+    if (this.userChannel) {
+      try {
+        await supabase.removeChannel(this.userChannel);
+      } catch (error) {
+        // Silently handle errors
+      }
+      this.userChannel = null;
+      this.sidebarUpdateCallbacks = [];
+      console.log('🔌 User-level channel disconnected');
+    }
+    // ===== END NEW =====
+    
     const connectionIds = Array.from(this.channels.keys());
     for (const connectionId of connectionIds) {
       await this.disconnectFromChannel(connectionId);
@@ -299,6 +328,45 @@ class RealtimeSyncManager {
 
     this.channels.clear();
     this.activeConnectionId = null;
+  }
+
+  /**
+   * Subscribe to user-level channel for lightweight sidebar updates
+   * This receives notifications for ALL connections without loading full messages
+   */
+  async subscribeToUserUpdates(
+    userId: string,
+    onUpdate: SidebarUpdateCallback
+  ): Promise<void> {
+    if (this.permanentlyDisabled) {
+      console.log('ℹ️ Real-time features disabled');
+      return;
+    }
+
+    console.log(`📡 Subscribing to user-level updates for: ${userId}`);
+    
+    this.sidebarUpdateCallbacks.push(onUpdate);
+    
+    // Create user-level channel
+    this.userChannel = supabase.channel(`user-updates:${userId}`, {
+      config: {
+        broadcast: { self: false }, // Don't receive own updates
+      },
+    });
+
+    // Listen for sidebar updates
+    this.userChannel.on('broadcast', { event: 'sidebar-update' }, ({ payload }) => {
+      console.log(`📬 Sidebar update received:`, payload);
+      this.sidebarUpdateCallbacks.forEach(cb => cb(payload as SidebarUpdate));
+    });
+
+    await this.userChannel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        console.log('✅ User-level channel connected');
+      } else if (status === 'CHANNEL_ERROR') {
+        console.error('❌ User-level channel error');
+      }
+    });
   }
 
   /**
