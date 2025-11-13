@@ -3,7 +3,7 @@
  * Main app logic with access to AuthContext
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WelcomeScreen } from './WelcomeScreen';
 import { LoginScreen } from './LoginScreen';
 import { SignUpInitialScreen, SignUpCredentials } from './SignUpInitialScreen';
