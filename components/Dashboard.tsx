@@ -130,9 +130,12 @@ export function Dashboard({
     // This ensures we show ALL memories, not just the latest realtime ones
     const allMemoriesMap = new Map<string, Memory>();
     
-    // First, add global memories filtered by connection
+    // First, add global memories filtered by connection (with sender fallback)
     memories.forEach(m => {
-      if (m.conversationContext === activeConnectionId) {
+      // Match by conversationContext OR sender type (fallback for old data)
+      const isForConnection = m.conversationContext === activeConnectionId || 
+                             m.sender === (userType === 'keeper' ? 'teller' : 'keeper');
+      if (isForConnection) {
         allMemoriesMap.set(m.id, m);
       }
     });
@@ -300,7 +303,8 @@ export function Dashboard({
     }
   }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper, onEditMemory]);
 
-  // Mark messages as read after viewing chat tab for 2 seconds
+  // Mark messages as read shortly after viewing chat tab
+  // Reduced delay + persist mark-as-read even if user switches away
   useEffect(() => {
     if (activeTab === 'chat') {
       const timer = setTimeout(async () => {
@@ -309,9 +313,13 @@ export function Dashboard({
           console.log(`📖 Marking all messages as read for connection: ${activeConnectionId}`);
           await markConnectionAsRead(activeConnectionId);
         }
-      }, 2000); // 2 second delay to let user see notification badge first
+      }, 500); // Reduced to 500ms - fast enough to feel instant, long enough to show badge
       
-      return () => clearTimeout(timer);
+      // DON'T cancel the timer when switching away - let it complete
+      // This ensures messages are marked as read even if user quickly switches tabs
+      return () => {
+        // Timer will complete even after unmount - this is intentional
+      };
     }
   }, [activeTab, userType, activeStorytellerId, activeLegacyKeeperId, markConnectionAsRead]);
 
