@@ -73,6 +73,9 @@ export function AppContent() {
   const [showNotificationOnboarding, setShowNotificationOnboarding] = useState(false);
   const [hasCheckedNotificationOnboarding, setHasCheckedNotificationOnboarding] = useState(false);
 
+  // FIX #1: Track unread counts per connection for badges
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+
   /**
    * Phase 3e: Setup auto-sync when coming back online
    */
@@ -493,6 +496,46 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType]);
 
   /**
+   * FIX #2: Calculate unread counts whenever memories change
+   * This fixes Badge Bug #2 - Check read status, not just timestamps
+   */
+  useEffect(() => {
+    const calculateAllUnreadCounts = () => {
+      const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
+      const newCounts: Record<string, number> = {};
+      
+      Object.entries(sourceMap).forEach(([connectionId, memories]) => {
+        newCounts[connectionId] = memories?.filter(m => 
+          !m.readBy?.includes(user?.id || '') && 
+          m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
+        ).length || 0;
+      });
+      
+      setUnreadCounts(newCounts);
+      console.log('📊 Unread counts updated:', newCounts);
+      
+      // FIX #2: Also update sidebar with new unread counts
+      if (userType === 'keeper' && storytellers.length > 0) {
+        setStorytellers(prev => 
+          prev.map(storyteller => ({
+            ...storyteller,
+            unreadCount: newCounts[storyteller.id] || 0,
+          }))
+        );
+      } else if (userType === 'teller' && legacyKeepers.length > 0) {
+        setLegacyKeepers(prev =>
+          prev.map(keeper => ({
+            ...keeper,
+            unreadCount: newCounts[keeper.id] || 0,
+          }))
+        );
+      }
+    };
+    
+    calculateAllUnreadCounts();
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id, storytellers.length, legacyKeepers.length]);
+
+  /**
    * Phase 3e: Clear expired cache and prefetch media on mount
    */
   useEffect(() => {
@@ -815,6 +858,7 @@ export function AppContent() {
     const storytellerList: Storyteller[] = apiConnections.map((conn) => {
       console.log(`   - Connection ${conn.connection.id}: status='${conn.connection.status}', partner='${conn.partner?.name}'`);
       const lastMessageInfo = getLastMessageForConnection(conn.connection.id);
+      const unreadCount = unreadCounts[conn.connection.id] || 0; // FIX #3: Use unread counts
       return {
         id: conn.connection.id,
         name: conn.partner?.name || 'Unknown',
@@ -824,6 +868,7 @@ export function AppContent() {
         isConnected: conn.connection.status === 'active',
         lastMessage: lastMessageInfo?.message,
         lastMessageTime: lastMessageInfo?.time,
+        unreadCount, // FIX #3: Add unread count for badge
       };
     });
 
@@ -906,6 +951,7 @@ export function AppContent() {
     const keeperList: LegacyKeeper[] = apiConnections.map((conn) => {
       console.log(`   - Connection ${conn.connection.id}: status='${conn.connection.status}', partner='${conn.partner?.name}'`);
       const lastMessageInfo = getLastMessageForConnection(conn.connection.id);
+      const unreadCount = unreadCounts[conn.connection.id] || 0; // FIX #3: Use unread counts
       return {
         id: conn.connection.id,
         name: conn.partner?.name || 'Unknown',
@@ -915,6 +961,7 @@ export function AppContent() {
         isConnected: conn.connection.status === 'active',
         lastMessage: lastMessageInfo?.message,
         lastMessageTime: lastMessageInfo?.time,
+        unreadCount, // FIX #3: Add unread count for badge
       };
     });
 
