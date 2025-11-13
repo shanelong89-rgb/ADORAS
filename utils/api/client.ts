@@ -98,16 +98,27 @@ class AdorasAPIClient {
   /**
    * Refresh JWT token if it's about to expire
    * Prevents 401 errors from expired tokens
+   * 
+   * IMPORTANT: Only refreshes if Supabase session exists.
+   * If no session, returns current token (don't clear it - let backend validate).
    */
   private async refreshTokenIfNeeded(): Promise<string | null> {
     try {
+      const currentToken = this.getAccessToken();
+      
+      // If no token stored, nothing to refresh
+      if (!currentToken) {
+        return null;
+      }
+      
       const { data: { session }, error } = await this.supabase.auth.getSession();
       
+      // If no Supabase session, return the current token anyway
+      // The backend will validate it and return 401 if it's expired
+      // Don't prematurely clear the token on the frontend!
       if (error || !session) {
-        console.warn('🔄 Session expired or invalid - please sign in again');
-        // Clear invalid token
-        this.setAccessToken(null);
-        return null;
+        console.log('ℹ️ No Supabase session found, using stored token');
+        return currentToken;
       }
       
       const expiresAt = session.expires_at || 0;
@@ -121,10 +132,10 @@ class AdorasAPIClient {
         const { data: refreshData, error: refreshError } = await this.supabase.auth.refreshSession();
         
         if (refreshError || !refreshData.session) {
-          console.error('❌ Failed to refresh token:', refreshError);
-          // Clear invalid token
-          this.setAccessToken(null);
-          return null;
+          console.warn('⚠️ Failed to refresh token, using current token');
+          // Return current token instead of clearing it
+          // Let the backend decide if it's valid
+          return currentToken;
         }
         
         console.log('✅ Token refreshed successfully');
@@ -137,8 +148,9 @@ class AdorasAPIClient {
       // Token is still valid
       return session.access_token;
     } catch (error) {
-      console.error('❌ Error refreshing token:', error);
-      return null;
+      console.error('❌ Error checking token, using current token:', error);
+      // Return current token instead of null
+      return this.getAccessToken();
     }
   }
 
