@@ -730,8 +730,9 @@ export function AppContent() {
 
   /**
    * Get last message preview for a connection
+   * Memoized to prevent recreating on every render
    */
-  const getLastMessageForConnection = (connectionId: string): { message: string; time: Date } | null => {
+  const getLastMessageForConnection = React.useCallback((connectionId: string): { message: string; time: Date } | null => {
     const connectionMemories = memoriesByStoryteller[connectionId] || memoriesByLegacyKeeper[connectionId] || [];
     if (connectionMemories.length === 0) return null;
     
@@ -766,13 +767,17 @@ export function AppContent() {
     }
     
     return { message: preview, time: lastMsg.timestamp };
-  };
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper]);
 
   /**
    * Update sidebar lastMessage preview for a specific connection
-   * Called when new messages arrive via real-time sync
+   * Called when new messages arrive via real-time sync or periodic refresh
+   * 
+   * CRITICAL: This function MUST be stable (not recreate on every render)
+   * Otherwise the periodic refresh interval will restart constantly
    */
   const updateSidebarLastMessage = React.useCallback((connectionId: string) => {
+    // Get latest message info using current memory state
     const lastMessageInfo = getLastMessageForConnection(connectionId);
     
     if (userType === 'keeper') {
@@ -800,7 +805,7 @@ export function AppContent() {
         )
       );
     }
-  }, [userType, memoriesByStoryteller, memoriesByLegacyKeeper]);
+  }, [userType, getLastMessageForConnection]);
 
   /**
    * Phase 1d-4: Transform API connections to Storyteller format (for Keepers)
@@ -1276,8 +1281,33 @@ export function AppContent() {
             await loadMemoriesForConnection(id);
             
             // 🔥 CRITICAL FIX: Update sidebar last message after loading background connections
-            // This ensures the sidebar shows the latest message from all connections
-            updateSidebarLastMessage(id);
+            // Inline logic to avoid stale closure issues
+            const connectionMemories = (userType === 'keeper' ? memoriesByStoryteller[id] : memoriesByLegacyKeeper[id]) || [];
+            const messages = connectionMemories.filter(m => 
+              (m.type === 'text' || m.type === 'voice') && !m.promptQuestion
+            );
+            
+            if (messages.length > 0) {
+              const sortedMessages = [...messages].sort((a, b) => 
+                new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+              );
+              const lastMsg = sortedMessages[sortedMessages.length - 1];
+              let preview = lastMsg.type === 'voice' 
+                ? (lastMsg.transcript || '🎤 Voice message')
+                : lastMsg.content;
+              if (preview.length > 50) preview = preview.substring(0, 50) + '...';
+              
+              // Update sidebar
+              if (userType === 'keeper') {
+                setStorytellers(prev => prev.map(s => 
+                  s.id === id ? { ...s, lastMessage: preview, lastMessageTime: lastMsg.timestamp } : s
+                ));
+              } else {
+                setLegacyKeepers(prev => prev.map(k => 
+                  k.id === id ? { ...k, lastMessage: preview, lastMessageTime: lastMsg.timestamp } : k
+                ));
+              }
+            }
           }
           
           console.log('✅ Periodic refresh complete - sidebar updated for all background connections');
@@ -1295,10 +1325,11 @@ export function AppContent() {
     const interval = setInterval(refreshAllConnections, 120000);
     
     return () => clearInterval(interval);
-    // CRITICAL: Don't include storytellers/legacyKeepers in deps!
+    // CRITICAL: Don't include storytellers/legacyKeepers/memoriesBy* in deps!
     // They change on EVERY message (lastMessage updates), which would restart the interval
     // Only restart periodic refresh when switching users/connections, NOT on every message
-  }, [currentScreen, user, isAuthenticated, userType, activeStorytellerId, activeLegacyKeeperId]);
+    // We inline the sidebar update logic to avoid stale closure issues
+  }, [currentScreen, user, isAuthenticated, userType, activeStorytellerId, activeLegacyKeeperId, loadMemoriesForConnection]);
 
   const handleWelcomeNext = () => {
     setCurrentScreen('userType');
