@@ -126,19 +126,26 @@ export function Dashboard({
       ? (memoriesByStoryteller[activeConnectionId] || [])
       : (memoriesByLegacyKeeper[activeConnectionId] || []);
 
-    // Ensure global memories are also filtered by connection
-    const filteredGlobalMemories = memories.filter(m => {
-      // Match by connection context or sender type
-      const isForConnection = m.conversationContext === activeConnectionId || 
-                             m.sender === (userType === 'keeper' ? 'teller' : 'keeper');
-      return isForConnection;
-    });
-
-    // Use per-connection if available, otherwise filtered global
-    // Return in original order (oldest to newest) - ChatTab expects this for scroll-to-bottom
-    const combined = connectionMemories.length > 0 ? connectionMemories : filteredGlobalMemories;
+    // CRITICAL FIX: Merge BOTH sources (per-connection + global), dedupe by ID
+    // This ensures we show ALL memories, not just the latest realtime ones
+    const allMemoriesMap = new Map<string, Memory>();
     
-    // Return without sorting - memories already come sorted ASC from API
+    // First, add global memories filtered by connection
+    memories.forEach(m => {
+      if (m.conversationContext === activeConnectionId) {
+        allMemoriesMap.set(m.id, m);
+      }
+    });
+    
+    // Then, add/override with per-connection memories (more authoritative)
+    connectionMemories.forEach(m => {
+      allMemoriesMap.set(m.id, m);
+    });
+    
+    // Convert back to array and sort by timestamp ASC (oldest first)
+    const combined = Array.from(allMemoriesMap.values())
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
     return combined;
   }, [memories, userType, activeStorytellerId, activeLegacyKeeperId, memoriesByStoryteller, memoriesByLegacyKeeper]);
 
