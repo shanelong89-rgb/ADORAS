@@ -302,14 +302,34 @@ class RealtimeSyncManager {
   }
 
   /**
+   * Unsubscribe from all channels EXCEPT the active one
+   * This prevents receiving messages from inactive connections
+   */
+  async unsubscribeFromInactiveChannels(activeConnectionId: string): Promise<void> {
+    const channelsToRemove = Array.from(this.channels.entries())
+      .filter(([connectionId]) => connectionId !== activeConnectionId)
+      .map(([connectionId]) => connectionId);
+    
+    console.log(`🧹 Removing ${channelsToRemove.length} inactive channels (keeping: ${activeConnectionId})`);
+    
+    for (const connectionId of channelsToRemove) {
+      await this.disconnectFromChannel(connectionId);
+    }
+  }
+
+  /**
    * Set which connection is currently active (for presence tracking)
    */
   async setActiveConnection(connectionId: string): Promise<void> {
     if (this.activeConnectionId === connectionId) {
-      return; // Already active
+      console.log(`ℹ️ Already on active connection: ${connectionId}`);
+      return;
     }
 
     console.log(`🎯 Switching active connection: ${this.activeConnectionId} → ${connectionId}`);
+
+    // CRITICAL: Clean up inactive channels first (prevents message bleeding)
+    await this.unsubscribeFromInactiveChannels(connectionId);
 
     // Untrack presence from old active connection
     if (this.activeConnectionId) {
@@ -324,8 +344,10 @@ class RealtimeSyncManager {
       }
     }
 
-    // Track presence on new active connection
+    // Update active connection ID
     this.activeConnectionId = connectionId;
+
+    // Track presence on new active connection
     const newChannel = this.channels.get(connectionId);
     if (newChannel && newChannel.channel && newChannel.isConnected && this.userId && this.userName) {
       try {
