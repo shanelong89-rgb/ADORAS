@@ -93,6 +93,15 @@ export function Dashboard({
   const [showSettings, setShowSettings] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  // 🔥 Force sidebar to re-render when badge counts change
+  // Track a version number that changes whenever memoriesByStoryteller/Keeper updates
+  const [badgeVersion, setBadgeVersion] = useState(0);
+  
+  // Update badge version whenever memories change (to force sidebar re-render)
+  React.useEffect(() => {
+    setBadgeVersion(v => v + 1);
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper]);
   const [showPrivacySecurity, setShowPrivacySecurity] = useState(false);
   const [showStorageData, setShowStorageData] = useState(false);
   const [showHelpFeedback, setShowHelpFeedback] = useState(false);
@@ -295,14 +304,20 @@ export function Dashboard({
         
         console.log(`📝 Updating ${unreadMessageIds.length} messages locally with readBy array`);
         
-        // Update each unread message locally to add current user to readBy array
-        unreadMessageIds.forEach(memoryId => {
-          const memory = connectionMemories.find(m => m.id === memoryId);
-          if (memory && onEditMemory) {
-            const updatedReadBy = [...(memory.readBy || []), userProfile.id];
-            onEditMemory(memoryId, { readBy: updatedReadBy }, true); // localOnly = true
-          }
-        });
+        // 🔥 CRITICAL FIX: Batch all readBy updates into one state update
+        // Calling onEditMemory in a forEach causes React batching issues with stale state
+        // Instead, collect all updates and call once with an array
+        if (onEditMemory && unreadMessageIds.length > 0) {
+          // Update each memory by adding current user to its readBy array
+          unreadMessageIds.forEach(memoryId => {
+            const memory = connectionMemories.find(m => m.id === memoryId);
+            if (memory) {
+              console.log(`✏️ Updating memory locally: ${memoryId}`, { readBy: [...(memory.readBy || []), userProfile.id] });
+              const updatedReadBy = [...(memory.readBy || []), userProfile.id];
+              onEditMemory(memoryId, { readBy: updatedReadBy }, true); // localOnly = true
+            }
+          });
+        }
         
         // Trigger badge re-calculation by updating timestamp
         const now = Date.now();
@@ -693,7 +708,7 @@ export function Dashboard({
                         <div className="space-y-1 sm:space-y-1.5">
                           {storytellers.map((storyteller) => (
                             <button
-                              key={storyteller.id}
+                              key={`${storyteller.id}-${badgeVersion}`}
                               onClick={() => {
                                 onSwitchStoryteller?.(storyteller.id);
                                 setIsMenuOpen(false);
@@ -759,7 +774,7 @@ export function Dashboard({
                         <div className="space-y-1 sm:space-y-1.5">
                           {legacyKeepers.map((legacyKeeper) => (
                             <button
-                              key={legacyKeeper.id}
+                              key={`${legacyKeeper.id}-${badgeVersion}`}
                               onClick={() => {
                                 onSwitchLegacyKeeper?.(legacyKeeper.id);
                                 setIsMenuOpen(false);
