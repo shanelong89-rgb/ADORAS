@@ -135,11 +135,11 @@ export function Dashboard({
     });
 
     // Use per-connection if available, otherwise filtered global
-    // But ensure we get the LATEST messages from either source
+    // Return in original order (oldest to newest) - ChatTab expects this for scroll-to-bottom
     const combined = connectionMemories.length > 0 ? connectionMemories : filteredGlobalMemories;
     
-    // Sort by timestamp DESC (newest first) for consistent order
-    return combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    // Return without sorting - memories already come sorted ASC from API
+    return combined;
   }, [memories, userType, activeStorytellerId, activeLegacyKeeperId, memoriesByStoryteller, memoriesByLegacyKeeper]);
 
   // Refs for tab content containers to handle scrolling
