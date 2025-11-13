@@ -144,23 +144,18 @@ export function AppContent() {
         return;
       }
 
-      // Get ALL connection IDs
-      const allConnectionIds: string[] = [];
-      if (userType === 'keeper' && storytellers.length > 0) {
-        allConnectionIds.push(...storytellers.filter(s => s.isConnected).map(s => s.id));
-      } else if (userType === 'teller' && legacyKeepers.length > 0) {
-        allConnectionIds.push(...legacyKeepers.filter(k => k.isConnected).map(k => k.id));
-      }
-
-      if (allConnectionIds.length === 0) {
-        console.log('ℹ️ No active connections to subscribe to');
+      // CRITICAL FIX: Only subscribe to ACTIVE connection (prevents badge bleeding)
+      const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+      
+      if (!activeConnectionId) {
+        console.log('ℹ️ No active connection to subscribe to');
         return;
       }
 
-      const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+      // Subscribe ONLY to the active connection
+      const allConnectionIds = [activeConnectionId];
 
-      console.log(`🔌 Setting up multi-channel real-time sync for ${allConnectionIds.length} connections:`, allConnectionIds);
-      console.log(`   Active connection: ${activeConnectionId}`);
+      console.log(`🔌 Setting up realtime sync for ACTIVE connection only: ${activeConnectionId}`);
 
       try {
         // Subscribe to ALL connections simultaneously
