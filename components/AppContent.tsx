@@ -1274,9 +1274,13 @@ export function AppContent() {
           
           for (const id of backgroundConnections) {
             await loadMemoriesForConnection(id);
+            
+            // 🔥 CRITICAL FIX: Update sidebar last message after loading background connections
+            // This ensures the sidebar shows the latest message from all connections
+            updateSidebarLastMessage(id);
           }
           
-          console.log('✅ Periodic refresh complete');
+          console.log('✅ Periodic refresh complete - sidebar updated for all background connections');
         } else {
           console.log('ℹ️ Only active connection - skipping periodic refresh (Realtime keeps it updated)');
         }
