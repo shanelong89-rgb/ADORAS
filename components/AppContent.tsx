@@ -2329,6 +2329,13 @@ export function AppContent() {
     if (storyteller) {
       console.log(`🔄 Switching to storyteller: ${storyteller.name} (${storytellerId})`);
       
+      // CRITICAL: Clear badge IMMEDIATELY when switching (don't wait for API)
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [storytellerId]: 0,
+      }));
+      console.log(`✨ Badge cleared immediately for ${storytellerId}`);
+      
       setActiveStorytellerId(storytellerId);
       setPartnerProfile({
         id: storyteller.id,
@@ -2359,6 +2366,13 @@ export function AppContent() {
     const legacyKeeper = legacyKeepers.find((lk) => lk.id === legacyKeeperId);
     if (legacyKeeper) {
       console.log(`🔄 Switching to legacy keeper: ${legacyKeeper.name} (${legacyKeeperId})`);
+      
+      // CRITICAL: Clear badge IMMEDIATELY when switching (don't wait for API)
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [legacyKeeperId]: 0,
+      }));
+      console.log(`✨ Badge cleared immediately for ${legacyKeeperId}`);
       
       setActiveLegacyKeeperId(legacyKeeperId);
       setPartnerProfile({
