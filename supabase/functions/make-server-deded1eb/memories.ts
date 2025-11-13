@@ -346,6 +346,53 @@ export async function createMemory(params: {
       console.error('Error sending notification:', notificationError);
     }
 
+    // ===== NEW: User-Level Broadcast for Real-Time Sidebar Updates =====
+    try {
+      const recipientId = connection.keeperId === params.userId ? connection.tellerId : connection.keeperId;
+      
+      if (recipientId) {
+        const senderProfile = await kv.get<{ name?: string }>(Keys.user(params.userId));
+        const senderName = senderProfile?.name || 'Someone';
+        
+        // Create lightweight preview for sidebar
+        let preview = '';
+        if (params.type === 'text') {
+          preview = params.content.substring(0, 50) || 'New message';
+        } else if (params.type === 'photo') {
+          preview = '📷 Photo';
+        } else if (params.type === 'video') {
+          preview = '🎥 Video';
+        } else if (params.type === 'voice') {
+          preview = '🎤 Voice message';
+        } else if (params.type === 'document') {
+          preview = '📄 Document';
+        }
+        
+        // Broadcast to recipient's user-level channel
+        const recipientChannel = supabase.channel(`user-updates:${recipientId}`);
+        
+        await recipientChannel.send({
+          type: 'broadcast',
+          event: 'sidebar-update',
+          payload: {
+            connectionId: params.connectionId,
+            lastMessage: {
+              preview: preview,
+              sender: senderName,
+              timestamp: new Date().toISOString(),
+            },
+            action: 'increment_unread',
+          }
+        });
+        
+        console.log(`📡 Sidebar update broadcast to user:${recipientId} for connection:${params.connectionId}`);
+      }
+    } catch (broadcastError) {
+      // Don't fail memory creation if broadcast fails
+      console.error('⚠️ Sidebar broadcast failed:', broadcastError);
+    }
+    // ===== END NEW =====
+
     return {
       success: true,
       memory,
@@ -399,27 +446,26 @@ export async function getConnectionMemories(params: {
       };
     }
 
-    // Fetch all memories - handle errors gracefully
-    const memories = await Promise.all(
-      memoryIds.map(async (id) => {
-        try {
-          const memory = await kv.get<Memory>(Keys.memory(id));
-          return memory;
-        } catch (error) {
-          // Handle Supabase/Cloudflare errors gracefully
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          
-          // Check if this is a Cloudflare 500 error (HTML response)
-          if (errorMessage.includes('<!DOCTYPE html>') || errorMessage.includes('Internal server error')) {
-            console.error(`❌ Supabase database error fetching memory ${id} - Database may be temporarily unavailable`);
-          } else {
-            console.error(`❌ Error fetching memory ${id}:`, errorMessage.substring(0, 200));
-          }
-          
-          return null;
-        }
-      })
-    );
+    // Batch fetch all memories using mget (multi-get) for better performance
+    // This reduces 300 individual KV reads to 1 batch operation
+    let memories: (Memory | null)[] = [];
+    try {
+      const memoryKeys = memoryIds.map(id => Keys.memory(id));
+      memories = await kv.mget<Memory>(memoryKeys);
+    } catch (error) {
+      // Handle Supabase/Cloudflare errors gracefully
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Check if this is a Cloudflare 500 error (HTML response)
+      if (errorMessage.includes('<!DOCTYPE html>') || errorMessage.includes('Internal server error')) {
+        console.error(`❌ Supabase database error batch fetching memories - Database may be temporarily unavailable`);
+      } else {
+        console.error(`❌ Error batch fetching memories:`, errorMessage.substring(0, 200));
+      }
+      
+      // Return empty array on error
+      memories = [];
+    }
 
     // Filter out null memories and sort by timestamp
     const validMemories = memories
