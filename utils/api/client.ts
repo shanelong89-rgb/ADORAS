@@ -297,6 +297,20 @@ class AdorasAPIClient {
 
       if (response.success && response.accessToken) {
         this.setAccessToken(response.accessToken, rememberMe);
+        
+        // If we have a refresh token, set up the Supabase session
+        // This enables automatic token refresh
+        if (response.refreshToken) {
+          try {
+            await this.supabase.auth.setSession({
+              access_token: response.accessToken,
+              refresh_token: response.refreshToken,
+            });
+            console.log('✅ Supabase session established from server signin');
+          } catch (sessionError) {
+            console.warn('⚠️ Failed to set Supabase session, will use token directly:', sessionError);
+          }
+        }
       }
 
       return response as SignInResponse;
@@ -340,6 +354,18 @@ class AdorasAPIClient {
         
         // Set the access token
         this.setAccessToken(authData.session.access_token, rememberMe);
+        
+        // CRITICAL: Also set the session in our singleton Supabase client
+        // This ensures future getSession() calls work properly
+        try {
+          await this.supabase.auth.setSession({
+            access_token: authData.session.access_token,
+            refresh_token: authData.session.refresh_token,
+          });
+          console.log('✅ Supabase session set in singleton client');
+        } catch (sessionError) {
+          console.warn('⚠️ Failed to set Supabase session, continuing anyway:', sessionError);
+        }
         
         // Try to get user profile from our server
         try {
