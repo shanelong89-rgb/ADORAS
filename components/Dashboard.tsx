@@ -59,6 +59,7 @@ interface DashboardProps {
   memoriesByLegacyKeeper?: Record<string, Memory[]>;
   presences?: Record<string, PresenceState>;
   realtimeConnected?: boolean;
+  unreadCounts?: Record<string, number>; // Real-time incremental badge counts from AppContent
 }
 
 export function Dashboard({ 
@@ -84,7 +85,8 @@ export function Dashboard({
   onConnectViaEmail,
   onAcceptInvitation,
   memoriesByStoryteller = {},
-  memoriesByLegacyKeeper = {}
+  memoriesByLegacyKeeper = {},
+  unreadCounts = {}
 }: DashboardProps) {
   const { signout } = useAuth();
   const { t } = useTranslation(userProfile.appLanguage || 'english');
@@ -170,10 +172,10 @@ export function Dashboard({
   const mediaContainerRef = useRef<HTMLDivElement>(null);
 
   // Calculate unread message count per connection for sidebar badges
+  // 🔥 FIX: Use real-time incremental counts from AppContent instead of calculating from readBy
   const getUnreadCountForConnection = React.useCallback((connectionId: string) => {
-    // Strict validation - use stable userId from AuthContext, not userProfile
-    if (!connectionId || !userId) {
-      console.warn('⚠️ Invalid parameters for unread count:', { connectionId, userId });
+    // Strict validation
+    if (!connectionId) {
       return 0;
     }
 
@@ -183,39 +185,15 @@ export function Dashboard({
       return 0;
     }
 
-    // Get memories STRICTLY for this connection
-    const connectionMemories = (userType === 'keeper' 
-      ? memoriesByStoryteller[connectionId] 
-      : memoriesByLegacyKeeper[connectionId]) || [];
-
-    // Filter for unread partner messages ONLY
-    const unreadCount = connectionMemories.filter(memory => {
-      // Must be from partner
-      const isFromPartner = memory.sender !== userType;
-      
-      // Must be a message type
-      const isMessage = memory.type === 'text' || memory.type === 'voice';
-      
-      // Must be unread by current user - use stable userId
-      const isUnread = !memory.readBy?.includes(userId);
-      
-      // Additional safeguard: ensure memory belongs to this connection
-      const belongsToConnection = memory.conversationContext === connectionId || 
-                                 (userType === 'keeper' && memory.sender === 'teller') ||
-                                 (userType === 'teller' && memory.sender === 'keeper');
-      
-      return isFromPartner && isMessage && isUnread && belongsToConnection;
-    }).length;
-    
-    return unreadCount;
+    // Use real-time incremental counts from AppContent (updated via broadcasts)
+    // This is the SOURCE OF TRUTH for sidebar badges
+    return unreadCounts[connectionId] || 0;
   }, [
-    userId, // ✅ Use stable userId from AuthContext
     userType, 
-    memoriesByStoryteller, 
-    memoriesByLegacyKeeper, 
     activeStorytellerId, 
     activeLegacyKeeperId, 
-    activeTab
+    activeTab,
+    unreadCounts // Real-time incremental counts from AppContent
   ]);
 
   // Calculate unread message count for ACTIVE connection only (for Chat tab badge)
