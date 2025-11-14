@@ -1,5 +1,5 @@
 // Dashboard v2.0 - Header always visible, no scroll detection
-// CACHE BUST: v10-TOAST-LOGIC-FIX - 2025-11-14
+// CACHE BUST: v11-BADGE-TAB-AWARE-FIX - 2025-11-14
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { PromptsTab } from './PromptsTab';
@@ -60,6 +60,7 @@ interface DashboardProps {
   presences?: Record<string, PresenceState>;
   realtimeConnected?: boolean;
   unreadCounts?: Record<string, number>; // Real-time incremental badge counts from AppContent
+  onActiveTabChange?: (tab: string) => void; // Notify parent when active tab changes
 }
 
 export function Dashboard({ 
@@ -86,7 +87,8 @@ export function Dashboard({
   onAcceptInvitation,
   memoriesByStoryteller = {},
   memoriesByLegacyKeeper = {},
-  unreadCounts = {}
+  unreadCounts = {},
+  onActiveTabChange
 }: DashboardProps) {
   const { signout } = useAuth();
   const { t } = useTranslation(userProfile.appLanguage || 'english');
@@ -568,6 +570,9 @@ export function Dashboard({
   // Handle tab changes and auto-scroll
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
+    
+    // Notify parent component of tab change (for badge logic)
+    onActiveTabChange?.(newTab);
     
     // Note: Messages will be marked as read only when user is actively viewing them in ChatTab
     // Don't mark as read immediately when switching tabs - let user see the notification first
