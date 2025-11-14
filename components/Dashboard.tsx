@@ -369,25 +369,29 @@ export function Dashboard({
     
     // Only trigger when connection actually changes
     if (currentConnectionId && currentConnectionId !== prevConnectionIdRef.current && prevConnectionIdRef.current !== undefined) {
-      console.log(`🔄 Connection switched to ${currentConnectionId}, marking messages as read`);
+      console.log(`🔄 Connection switched to ${currentConnectionId}, will mark as read after memories load`);
       
       // Show loading state during switch
       setIsSwitchingConnection(true);
       setConnectionSwitchError(null);
       
-      // Mark as read (especially important when on chat tab)
-      markConnectionAsRead(currentConnectionId)
-        .then(() => {
+      // 🔥 CRITICAL FIX: Delay mark-as-read to allow memories to load first
+      // Memories are loaded async in AppContent, so we need to wait for them to populate
+      // global state before trying to update readBy arrays locally
+      const timer = setTimeout(async () => {
+        console.log(`📖 Marking messages as read after memory load: ${currentConnectionId}`);
+        try {
+          await markConnectionAsRead(currentConnectionId);
           console.log(`✅ Connection switch completed for: ${currentConnectionId}`);
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error(`❌ Connection switch failed:`, error);
           setConnectionSwitchError(String(error));
-        })
-        .finally(() => {
-          // Hide loading after a brief delay to prevent flicker
-          setTimeout(() => setIsSwitchingConnection(false), 300);
-        });
+        } finally {
+          setIsSwitchingConnection(false);
+        }
+      }, 1000); // 1 second delay to allow memories to load and populate state
+      
+      return () => clearTimeout(timer);
     }
     
     prevConnectionIdRef.current = currentConnectionId;
