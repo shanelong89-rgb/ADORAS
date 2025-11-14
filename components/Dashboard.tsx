@@ -33,6 +33,7 @@ import { showNativeNotificationBanner } from '../utils/notificationService';
 import { InAppToastContainer, useInAppToasts } from './InAppToast';
 
 interface DashboardProps {
+  userId?: string; // Stable user ID from AuthContext (doesn't change during profile updates)
   userType: UserType;
   userProfile: UserProfile;
   partnerProfile: UserProfile | null; // Allow null for "not connected" state
@@ -60,6 +61,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ 
+  userId,
   userType, 
   userProfile, 
   partnerProfile, 
@@ -168,9 +170,9 @@ export function Dashboard({
 
   // Calculate unread message count per connection for sidebar badges
   const getUnreadCountForConnection = React.useCallback((connectionId: string) => {
-    // Strict validation
-    if (!connectionId || !userProfile?.id) {
-      console.warn('⚠️ Invalid parameters for unread count:', { connectionId, userId: userProfile?.id });
+    // Strict validation - use stable userId from AuthContext, not userProfile
+    if (!connectionId || !userId) {
+      console.warn('⚠️ Invalid parameters for unread count:', { connectionId, userId });
       return 0;
     }
 
@@ -193,8 +195,8 @@ export function Dashboard({
       // Must be a message type
       const isMessage = memory.type === 'text' || memory.type === 'voice';
       
-      // Must be unread by current user
-      const isUnread = !memory.readBy?.includes(userProfile.id);
+      // Must be unread by current user - use stable userId
+      const isUnread = !memory.readBy?.includes(userId);
       
       // Additional safeguard: ensure memory belongs to this connection
       const belongsToConnection = memory.conversationContext === connectionId || 
@@ -206,7 +208,7 @@ export function Dashboard({
     
     return unreadCount;
   }, [
-    userProfile.id, 
+    userId, // ✅ Use stable userId from AuthContext
     userType, 
     memoriesByStoryteller, 
     memoriesByLegacyKeeper, 
