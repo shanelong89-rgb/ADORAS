@@ -22,9 +22,21 @@ export function getSupabaseClient(): SupabaseClient {
       publicAnonKey,
       {
         auth: {
-          persistSession: false, // We handle session via API client
-          autoRefreshToken: false,
+          persistSession: true, // Enable session persistence for token refresh
+          autoRefreshToken: true, // Auto-refresh tokens to prevent 401 errors
           detectSessionInUrl: false,
+          storage: {
+            getItem: (key: string) => {
+              // Use localStorage for persistence
+              return localStorage.getItem(key);
+            },
+            setItem: (key: string, value: string) => {
+              localStorage.setItem(key, value);
+            },
+            removeItem: (key: string) => {
+              localStorage.removeItem(key);
+            },
+          },
         },
       }
     );
