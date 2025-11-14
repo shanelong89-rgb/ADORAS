@@ -1,7 +1,7 @@
 /**
  * AppContent Component
  * Main app logic with access to AuthContext
- * CACHE BUST: v11-BADGE-TAB-AWARE-FIX - 2025-11-14
+ * CACHE BUST: v12-STALE-CALLBACK-FIX - 2025-11-14
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -243,9 +243,10 @@ export function AppContent() {
               return; // Ignore stale callbacks
             }
 
-            // CRITICAL FIX: Get CURRENT active connection FIRST before logging
-            // Don't use undefined connectionId - it was causing ReferenceError!
-            const currentActiveConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+            // CRITICAL FIX: Use refs to get CURRENT active connection (not closure values)
+            // This ensures the callback always has the latest connection ID even after switching
+            const currentUserType = userTypeRef.current;
+            const currentActiveConnectionId = activeConnectionIdRef.current;
             const isActiveConnection = update.connectionId === currentActiveConnectionId;
 
             console.log('📡 Received memory update:', update, { 
@@ -270,7 +271,8 @@ export function AppContent() {
             console.log(`   ➕ Adding new memory: ${newMemory.id} (${newMemory.type})`);
             
             // CRITICAL: Update per-connection cache FIRST (for Dashboard validation)
-            if (userType === 'keeper') {
+            // Use currentUserType from ref (not closure variable) to handle connection switches
+            if (currentUserType === 'keeper') {
               setMemoriesByStoryteller((prev) => {
                 // Prevent duplicates in per-connection cache too
                 const existing = prev[update.connectionId] || [];
@@ -326,7 +328,8 @@ export function AppContent() {
             const updatedMemory = convertApiMemoryToUIMemory(update.memory);
             
             // CRITICAL: Update per-connection cache FIRST (for Dashboard validation)
-            if (userType === 'keeper') {
+            // Use currentUserType from ref (not closure variable) to handle connection switches
+            if (currentUserType === 'keeper') {
               setMemoriesByStoryteller((prev) => ({
                 ...prev,
                 [update.connectionId]: (prev[update.connectionId] || []).map((m) => (m.id === update.memoryId ? updatedMemory : m)),
@@ -348,7 +351,8 @@ export function AppContent() {
             console.log(`   🗑️ Deleting memory: ${update.memoryId}`);
             
             // CRITICAL: Update per-connection cache FIRST (for Dashboard validation)
-            if (userType === 'keeper') {
+            // Use currentUserType from ref (not closure variable) to handle connection switches
+            if (currentUserType === 'keeper') {
               setMemoriesByStoryteller((prev) => ({
                 ...prev,
                 [update.connectionId]: (prev[update.connectionId] || []).filter((m) => m.id !== update.memoryId),
@@ -964,7 +968,10 @@ export function AppContent() {
     // Get latest message info using current memory state
     const lastMessageInfo = getLastMessageForConnection(connectionId);
     
-    if (userType === 'keeper') {
+    // Use ref to get current userType (not closure variable)
+    const currentUserType = userTypeRef.current;
+    
+    if (currentUserType === 'keeper') {
       setStorytellers(prev => 
         prev.map(storyteller => 
           storyteller.id === connectionId
@@ -976,7 +983,7 @@ export function AppContent() {
             : storyteller
         )
       );
-    } else if (userType === 'teller') {
+    } else if (currentUserType === 'teller') {
       setLegacyKeepers(prev =>
         prev.map(keeper =>
           keeper.id === connectionId
@@ -989,7 +996,7 @@ export function AppContent() {
         )
       );
     }
-  }, [userType, getLastMessageForConnection]);
+  }, [getLastMessageForConnection]); // Removed userType dependency - using ref instead
 
   /**
    * Phase 1d-4: Transform API connections to Storyteller format (for Keepers)
