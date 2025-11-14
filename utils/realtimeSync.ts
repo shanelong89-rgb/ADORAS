@@ -1,4 +1,4 @@
-// CACHE BUST: 2025-11-14-v5-SUBSCRIPTION-RACE-FIX
+// CACHE BUST: 2025-11-14-v6-SUBSCRIPTION-TIMEOUT-FIX
 /**
  * Realtime Sync - Clean Architecture
  * 
@@ -261,14 +261,33 @@ class RealtimeSyncManager {
 
     // Wait for subscription to complete (prevents "No channel found" errors)
     return new Promise((resolve, reject) => {
+      // Add timeout to prevent hanging forever
+      const timeout = setTimeout(() => {
+        console.warn(`⚠️ [HYBRID] Subscription timeout for ${connectionId} - proceeding anyway`);
+        resolve(); // Resolve anyway to not block the app
+      }, 10000); // 10 second timeout
+
       channel.subscribe((status) => {
+        console.log(`📡 [HYBRID] Subscription status for ${connectionId}:`, status);
+        
         if (status === 'SUBSCRIBED') {
+          clearTimeout(timeout);
           console.log(`✅ [HYBRID] Subscribed to messages: ${connectionId}`);
           resolve();
         } else if (status === 'CHANNEL_ERROR') {
+          clearTimeout(timeout);
           console.error(`❌ [HYBRID] Subscription error for ${connectionId}`);
           reject(new Error(`Channel subscription failed for ${connectionId}`));
+        } else if (status === 'TIMED_OUT') {
+          clearTimeout(timeout);
+          console.error(`⏰ [HYBRID] Subscription timed out for ${connectionId}`);
+          reject(new Error(`Channel subscription timed out for ${connectionId}`));
+        } else if (status === 'CLOSED') {
+          clearTimeout(timeout);
+          console.warn(`🔒 [HYBRID] Channel closed for ${connectionId}`);
+          reject(new Error(`Channel closed for ${connectionId}`));
         }
+        // Note: We don't handle other statuses to avoid premature resolution
       });
     });
   }
@@ -322,8 +341,17 @@ class RealtimeSyncManager {
 
     // Wait for subscription to complete
     return new Promise((resolve, reject) => {
+      // Add timeout
+      const timeout = setTimeout(() => {
+        console.warn(`⚠️ [PRESENCE] Subscription timeout for ${connectionId} - proceeding anyway`);
+        resolve();
+      }, 10000);
+
       channel.subscribe(async (status) => {
+        console.log(`📡 [PRESENCE] Subscription status for ${connectionId}:`, status);
+        
         if (status === 'SUBSCRIBED') {
+          clearTimeout(timeout);
           // Only track presence on active connection
           if (connectionId === this.activeConnectionId) {
             await channel.track({
@@ -336,8 +364,13 @@ class RealtimeSyncManager {
           }
           resolve();
         } else if (status === 'CHANNEL_ERROR') {
+          clearTimeout(timeout);
           console.error(`❌ Presence subscription error for ${connectionId}`);
           reject(new Error(`Presence subscription failed for ${connectionId}`));
+        } else if (status === 'TIMED_OUT' || status === 'CLOSED') {
+          clearTimeout(timeout);
+          console.warn(`⚠️ [PRESENCE] Channel ${status} for ${connectionId}`);
+          reject(new Error(`Presence subscription ${status}`));
         }
       });
     });
@@ -381,13 +414,22 @@ class RealtimeSyncManager {
 
     // Wait for subscription to complete
     return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        console.warn(`⚠️ [CONNECTIONS] Subscription timeout - proceeding anyway`);
+        resolve();
+      }, 10000);
+
       channel.subscribe((status) => {
+        console.log(`📡 [CONNECTIONS] Subscription status:`, status);
+        
         if (status === 'SUBSCRIBED') {
+          clearTimeout(timeout);
           console.log(`✅ Subscribed to connection changes`);
           resolve();
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(`❌ Connection changes subscription error`);
-          reject(new Error('Connection changes subscription failed'));
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          clearTimeout(timeout);
+          console.error(`❌ Connection changes subscription ${status}`);
+          reject(new Error(`Connection changes subscription ${status}`));
         }
       });
     });
@@ -430,13 +472,22 @@ class RealtimeSyncManager {
 
     // Wait for subscription to complete
     return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        console.warn(`⚠️ [USER-UPDATES] Subscription timeout - proceeding anyway`);
+        resolve();
+      }, 10000);
+
       channel.subscribe((status) => {
+        console.log(`📡 [USER-UPDATES] Subscription status:`, status);
+        
         if (status === 'SUBSCRIBED') {
+          clearTimeout(timeout);
           console.log('✅ User-level channel connected');
           resolve();
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ User-level channel subscription error');
-          reject(new Error('User-level channel subscription failed'));
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          clearTimeout(timeout);
+          console.error(`❌ User-level channel subscription ${status}`);
+          reject(new Error(`User-level channel subscription ${status}`));
         }
       });
     });
