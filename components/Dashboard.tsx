@@ -1,4 +1,5 @@
 // Dashboard v2.0 - Header always visible, no scroll detection
+// CACHE BUST: v7-INFINITE-RERENDER-FIX - 2025-11-14
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { PromptsTab } from './PromptsTab';
@@ -270,6 +271,19 @@ export function Dashboard({
   const lastMarkAsReadTime = React.useRef<Record<string, number>>({});
   const markAsReadCooldown = 1000; // 1 second cooldown to prevent duplicate calls
 
+  // 🔥 CRITICAL FIX: Use refs to prevent infinite re-render loop
+  // When memories update, we don't want markConnectionAsRead to be recreated
+  const memoriesByStorytellerRef = React.useRef(memoriesByStoryteller);
+  const memoriesByLegacyKeeperRef = React.useRef(memoriesByLegacyKeeper);
+  const onEditMemoryRef = React.useRef(onEditMemory);
+  
+  // Keep refs in sync
+  React.useEffect(() => {
+    memoriesByStorytellerRef.current = memoriesByStoryteller;
+    memoriesByLegacyKeeperRef.current = memoriesByLegacyKeeper;
+    onEditMemoryRef.current = onEditMemory;
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, onEditMemory]);
+
   // Helper function to mark messages as read
   const markConnectionAsRead = React.useCallback(async (connectionId: string) => {
     // 🔥 CRITICAL: Prevent duplicate mark-as-read calls within 1 second
@@ -290,10 +304,10 @@ export function Dashboard({
       if (result.success && result.updatedCount && result.updatedCount > 0) {
         console.log(`✅ Marked ${result.updatedCount} messages as read - updating local state immediately`);
         
-        // Get the memories for this connection
+        // Get the memories for this connection using refs to avoid re-render loop
         const connectionMemories = userType === 'keeper' 
-          ? (memoriesByStoryteller[connectionId] || [])
-          : (memoriesByLegacyKeeper[connectionId] || []);
+          ? (memoriesByStorytellerRef.current[connectionId] || [])
+          : (memoriesByLegacyKeeperRef.current[connectionId] || []);
         
         // Find all unread messages from partner and update them locally
         const unreadMessageIds = connectionMemories
@@ -311,7 +325,8 @@ export function Dashboard({
         // 🔥 CRITICAL FIX: Batch all readBy updates into one state update
         // Calling onEditMemory in a forEach causes React batching issues with stale state
         // Instead, collect all updates and call once with an array
-        if (onEditMemory && unreadMessageIds.length > 0 && userId) {
+        const editMemoryFn = onEditMemoryRef.current;
+        if (editMemoryFn && unreadMessageIds.length > 0 && userId) {
           // Update each memory by adding current user to its readBy array
           unreadMessageIds.forEach(memoryId => {
             const memory = connectionMemories.find(m => m.id === memoryId);
@@ -319,7 +334,7 @@ export function Dashboard({
               // ✅ Use stable userId from AuthContext
               console.log(`✏️ Updating memory locally: ${memoryId}`, { readBy: [...(memory.readBy || []), userId] });
               const updatedReadBy = [...(memory.readBy || []), userId];
-              onEditMemory(memoryId, { readBy: updatedReadBy }, true); // localOnly = true
+              editMemoryFn(memoryId, { readBy: updatedReadBy }, true); // localOnly = true
             }
           });
         }
@@ -340,7 +355,7 @@ export function Dashboard({
       console.error('❌ Error marking messages as read:', error);
       return { success: false, error: String(error) };
     }
-  }, [userId, userType, memoriesByStoryteller, memoriesByLegacyKeeper, onEditMemory]); // ✅ Use stable userId
+  }, [userId, userType]); // ✅ Use refs to prevent re-render loop when memories change
 
   // Mark messages as read shortly after viewing chat tab
   // Reduced delay + persist mark-as-read even if user switches away
