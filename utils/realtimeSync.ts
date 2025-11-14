@@ -333,6 +333,7 @@ class RealtimeSyncManager {
   /**
    * Subscribe to user-level channel for lightweight sidebar updates
    * This receives notifications for ALL connections without loading full messages
+   * IDEMPOTENT: Safe to call multiple times - will reuse existing channel
    */
   async subscribeToUserUpdates(
     userId: string,
@@ -343,11 +344,17 @@ class RealtimeSyncManager {
       return;
     }
 
-    console.log(`📡 Subscribing to user-level updates for: ${userId}`);
-    
+    // Always add callback (even if channel exists)
     this.sidebarUpdateCallbacks.push(onUpdate);
+    console.log(`📡 Subscribing to user-level updates for: ${userId} (${this.sidebarUpdateCallbacks.length} callbacks)`);
     
-    // Create user-level channel
+    // If channel already exists, don't recreate it
+    if (this.userChannel) {
+      console.log('ℹ️ User-level channel already exists - callback added');
+      return;
+    }
+    
+    // Create user-level channel (only once)
     this.userChannel = supabase.channel(`user-updates:${userId}`, {
       config: {
         broadcast: { self: false }, // Don't receive own updates
@@ -357,7 +364,14 @@ class RealtimeSyncManager {
     // Listen for sidebar updates
     this.userChannel.on('broadcast', { event: 'sidebar-update' }, ({ payload }) => {
       console.log(`📬 Sidebar update received:`, payload);
-      this.sidebarUpdateCallbacks.forEach(cb => cb(payload as SidebarUpdate));
+      console.log(`📬 Calling ${this.sidebarUpdateCallbacks.length} sidebar callbacks`);
+      this.sidebarUpdateCallbacks.forEach(cb => {
+        try {
+          cb(payload as SidebarUpdate);
+        } catch (error) {
+          console.error('❌ Error in sidebar callback:', error);
+        }
+      });
     });
 
     await this.userChannel.subscribe((status) => {
