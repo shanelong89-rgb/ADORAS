@@ -2975,6 +2975,7 @@ export function AppContent() {
             realtimeConnected={realtimeConnected}
             memoriesByStoryteller={memoriesByStoryteller}
             memoriesByLegacyKeeper={memoriesByLegacyKeeper}
+            unreadCounts={unreadCounts}
           />
         );
       default:
