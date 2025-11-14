@@ -1,7 +1,7 @@
 /**
  * AppContent Component
  * Main app logic with access to AuthContext
- * CACHE BUST: v12-STALE-CALLBACK-FIX - 2025-11-14
+ * CACHE BUST: v13-CALLBACK-RACE-FIX - 2025-11-14
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -215,16 +215,9 @@ export function AppContent() {
       console.log(`📡 Setting up realtime sync for ${allConnectionIds.length} connection(s):`, allConnectionIds);
 
       try {
-        // Subscribe to ALL connections simultaneously
-        await realtimeSync.subscribeToConnections({
-          connectionIds: allConnectionIds,
-          userId: user.id,
-          userName: user.name,
-          activeConnectionId,
-        });
-
-        setRealtimeConnected(true);
-
+        // CRITICAL: Register callbacks BEFORE subscribing to channels
+        // This prevents race conditions where broadcasts arrive before callbacks are registered
+        
         // Subscribe to presence updates (now receives connectionId)
         unsubscribePresence = realtimeSync.onPresenceChange((connectionId, presenceState) => {
           if (isCleanedUp) return; // Ignore stale callbacks
@@ -382,6 +375,18 @@ export function AppContent() {
             console.error('Update data:', update);
           }
         });
+
+        // NOW subscribe to connections (after callbacks are registered)
+        // This prevents race conditions where broadcasts arrive before callbacks exist
+        await realtimeSync.subscribeToConnections({
+          connectionIds: allConnectionIds,
+          userId: user.id,
+          userName: user.name,
+          activeConnectionId,
+        });
+
+        setRealtimeConnected(true);
+        console.log('✅ Realtime sync setup complete with callbacks registered first');
 
       } catch (error) {
         console.error('❌ Failed to setup real-time sync:', error);
