@@ -224,6 +224,16 @@ export function ChatTab({
 
   // Track if this is the first load
   const hasScrolledInitially = useRef(false);
+  
+  // Reset scroll tracker when connection/partner changes
+  const partnerIdRef = useRef(partnerProfile?.id);
+  useEffect(() => {
+    if (partnerProfile?.id !== partnerIdRef.current) {
+      partnerIdRef.current = partnerProfile?.id;
+      hasScrolledInitially.current = false; // Reset so new connection scrolls to bottom
+      console.log('🔄 Connection changed - resetting scroll tracker');
+    }
+  }, [partnerProfile?.id]);
 
   // Debug: Log connection and memories on load
   useEffect(() => {
