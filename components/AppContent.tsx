@@ -1,9 +1,10 @@
 /**
  * AppContent Component
  * Main app logic with access to AuthContext
+ * CACHE BUST: v11-BADGE-TAB-AWARE-FIX - 2025-11-14
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WelcomeScreen } from './WelcomeScreen';
 import { LoginScreen } from './LoginScreen';
 import { SignUpInitialScreen, SignUpCredentials } from './SignUpInitialScreen';
@@ -585,12 +586,19 @@ export function AppContent() {
    */
   const activeConnectionIdRef = useRef<string>('');
   const userTypeRef = useRef<UserType>(null);
+  const activeTabRef = useRef<string>('prompts'); // Track which tab is currently active
   
   // Keep refs updated with latest values
   useEffect(() => {
     userTypeRef.current = userType;
     activeConnectionIdRef.current = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
   }, [userType, activeStorytellerId, activeLegacyKeeperId]);
+  
+  // Callback for Dashboard to update the activeTab ref
+  const handleActiveTabChange = useCallback((tab: string) => {
+    activeTabRef.current = tab;
+    console.log(`📑 Active tab changed to: ${tab}`);
+  }, []);
   
   useEffect(() => {
     if (!user?.id) return;
@@ -632,15 +640,20 @@ export function AppContent() {
           console.log(`📱 Updated sidebar preview for ${update.connectionId}: "${update.lastMessage.preview}"`);
         }
         
-        // Only increment badge if NOT viewing this chat
-        if (update.connectionId !== currentActiveId) {
+        // Only increment badge if NOT viewing this connection's chat tab
+        // Skip badge increment if:
+        // 1. This is the active connection AND
+        // 2. User is viewing the Chat tab
+        const isViewingThisChat = (update.connectionId === currentActiveId) && (activeTabRef.current === 'chat');
+        
+        if (!isViewingThisChat) {
           setUnreadCounts((prev) => ({
             ...prev,
             [update.connectionId]: (prev[update.connectionId] || 0) + 1,
           }));
-          console.log(`📬 +1 badge for ${update.connectionId} (viewing ${currentActiveId || 'none'})`);
+          console.log(`📬 +1 badge for ${update.connectionId} (viewing ${currentActiveId || 'none'}, tab: ${activeTabRef.current})`);
         } else {
-          console.log(`ℹ️ Skip badge for ${update.connectionId} (currently active)`);
+          console.log(`ℹ️ Skip badge for ${update.connectionId} (actively viewing chat tab)`);
         }
       } else if (update.action === 'clear_unread') {
         // Clear unread count for this connection
@@ -2976,6 +2989,7 @@ export function AppContent() {
             memoriesByStoryteller={memoriesByStoryteller}
             memoriesByLegacyKeeper={memoriesByLegacyKeeper}
             unreadCounts={unreadCounts}
+            onActiveTabChange={handleActiveTabChange}
           />
         );
       default:
