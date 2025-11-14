@@ -1488,6 +1488,13 @@ export function ChatTab({
   const prevMessageCountRef = useRef<number>(0);
   const hasScrolledInitiallyRef = useRef<boolean>(false);
   
+  // CRITICAL FIX: Reset scroll tracker when partner changes (for connection switching)
+  useEffect(() => {
+    hasScrolledInitiallyRef.current = false;
+    prevMessageCountRef.current = 0;
+    console.log(`🔄 Partner changed to ${partnerProfile?.name} - resetting scroll tracker`);
+  }, [partnerProfile?.id]);
+  
   // SIMPLIFIED: Just scroll to bottom - no complex unread detection
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     try {
