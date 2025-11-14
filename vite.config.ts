@@ -120,7 +120,7 @@ export default defineConfig({
   ],
   root: './',
   build: {
-    outDir: 'build',
+    outDir: 'dist',
     sourcemap: false,
     emptyOutDir: true,
     rollupOptions: {
