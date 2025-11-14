@@ -619,21 +619,34 @@ class RealtimeSyncManager {
   }
 
   /**
-   * Disconnect from all channels
+   * Disconnect from all channels (except system channels like user-updates)
    */
   async disconnectAll(): Promise<void> {
     console.log(`🔌 [CLEAN ARCH] Disconnecting from all ${this.channels.size} channels`);
     
+    const channelsToRemove: string[] = [];
+    
     for (const [channelName, channel] of this.channels.entries()) {
+      // Keep system channels (user-updates, connections)
+      if (channelName.startsWith('user-updates:') || channelName.startsWith('connections:')) {
+        console.log(`🔒 Keeping system channel: ${channelName}`);
+        continue;
+      }
+      
       try {
         await supabase.removeChannel(channel);
         console.log(`✅ Unsubscribed from ${channelName}`);
+        channelsToRemove.push(channelName);
       } catch (error) {
         // Silently handle errors
       }
     }
 
-    this.channels.clear();
+    // Only remove non-system channels
+    for (const channelName of channelsToRemove) {
+      this.channels.delete(channelName);
+    }
+    
     this.activeConnectionId = null;
   }
 
