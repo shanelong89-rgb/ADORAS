@@ -545,27 +545,37 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType]);
 
   /**
-   * FIX #2: Calculate unread counts whenever memories change
-   * This fixes Badge Bug #2 - Check read status, not just timestamps
-   * The sidebar will be updated by updateSidebarLastMessage() which now includes unread counts
+   * FIX #2: Calculate INITIAL unread counts on first load only
+   * After initial load, counts are updated incrementally via real-time broadcasts
+   * This prevents background messages from being "lost" when they're not in memories state
    */
+  const hasCalculatedInitialCounts = useRef(false);
+  
   useEffect(() => {
-    const calculateAllUnreadCounts = () => {
-      const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
-      const newCounts: Record<string, number> = {};
-      
-      Object.entries(sourceMap).forEach(([connectionId, memories]) => {
-        newCounts[connectionId] = memories?.filter(m => 
-          !m.readBy?.includes(user?.id || '') && 
-          m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
-        ).length || 0;
-      });
-      
-      setUnreadCounts(newCounts);
-      console.log('📊 Unread counts updated:', newCounts);
-    };
+    // Only calculate once on initial load when we have connections and haven't calculated yet
+    if (hasCalculatedInitialCounts.current || !user?.id) {
+      return;
+    }
     
-    calculateAllUnreadCounts();
+    const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
+    
+    // Only calculate if we have some memories loaded
+    if (Object.keys(sourceMap).length === 0) {
+      return;
+    }
+    
+    const newCounts: Record<string, number> = {};
+    
+    Object.entries(sourceMap).forEach(([connectionId, memories]) => {
+      newCounts[connectionId] = memories?.filter(m => 
+        !m.readBy?.includes(user?.id || '') && 
+        m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
+      ).length || 0;
+    });
+    
+    setUnreadCounts(newCounts);
+    console.log('📊 Initial unread counts calculated:', newCounts);
+    hasCalculatedInitialCounts.current = true;
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id]);
 
   /**
@@ -606,6 +616,13 @@ export function AppContent() {
         } else {
           console.log(`ℹ️ Skip badge for ${update.connectionId} (currently active)`);
         }
+      } else if (update.action === 'clear_unread') {
+        // Clear unread count for this connection
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [update.connectionId]: 0,
+        }));
+        console.log(`🧹 Cleared badge for ${update.connectionId}`);
       }
     });
     
