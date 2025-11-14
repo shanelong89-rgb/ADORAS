@@ -201,7 +201,10 @@ export function AppContent() {
 
       // Subscribe to ALL connections to receive messages from any connection
       // This allows sidebar badges to update even when user is in a different chat
-      const allConnectionIds = connections.map(c => c.id).filter(Boolean);
+      // Use storytellers/legacyKeepers since connections have been transformed
+      const allConnectionIds = userType === 'keeper'
+        ? storytellers.map(s => s.id).filter(Boolean)
+        : legacyKeepers.map(k => k.id).filter(Boolean);
       
       // If no connections loaded yet, at least subscribe to active one
       if (allConnectionIds.length === 0 && activeConnectionId) {
