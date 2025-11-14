@@ -199,10 +199,16 @@ export function AppContent() {
         connectionId: activeConnectionId,
       };
 
-      // Subscribe ONLY to the active connection
-      const allConnectionIds = [activeConnectionId];
+      // Subscribe to ALL connections to receive messages from any connection
+      // This allows sidebar badges to update even when user is in a different chat
+      const allConnectionIds = connections.map(c => c.id).filter(Boolean);
+      
+      // If no connections loaded yet, at least subscribe to active one
+      if (allConnectionIds.length === 0 && activeConnectionId) {
+        allConnectionIds.push(activeConnectionId);
+      }
 
-      console.log(`�� Setting up realtime sync for ACTIVE connection only: ${activeConnectionId}`);
+      console.log(`📡 Setting up realtime sync for ${allConnectionIds.length} connection(s):`, allConnectionIds);
 
       try {
         // Subscribe to ALL connections simultaneously
