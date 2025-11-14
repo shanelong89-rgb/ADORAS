@@ -177,7 +177,7 @@ export function Dashboard({
       return 0;
     }
 
-    // Don't show badge when actively viewing this specific connection
+    // Don't show badge when actively viewing chat tab for this specific connection
     const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
     if (connectionId === activeConnectionId && activeTab === 'chat') {
       return 0;
@@ -218,22 +218,20 @@ export function Dashboard({
     activeTab
   ]);
 
-  // Calculate unread message count across ALL connections for Chat tab badge
+  // Calculate unread message count for ACTIVE connection only (for Chat tab badge)
+  // This shows "you have unread messages in the chat tab of your current connection"
   const unreadMessageCount = React.useMemo(() => {
-    let totalUnread = 0;
+    // Get the currently active connection
+    const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
     
-    // Get all connections based on user type
-    const allConnectionIds = userType === 'keeper' 
-      ? Object.keys(memoriesByStoryteller)
-      : Object.keys(memoriesByLegacyKeeper);
+    // If no active connection, return 0
+    if (!activeConnectionId) {
+      return 0;
+    }
     
-    // Sum up unread counts from all connections
-    allConnectionIds.forEach(connectionId => {
-      totalUnread += getUnreadCountForConnection(connectionId);
-    });
-    
-    return totalUnread;
-  }, [userType, memoriesByStoryteller, memoriesByLegacyKeeper, getUnreadCountForConnection, lastChatReadTimestamp]);
+    // Return unread count for ONLY the active connection
+    return getUnreadCountForConnection(activeConnectionId);
+  }, [userType, activeStorytellerId, activeLegacyKeeperId, getUnreadCountForConnection, lastChatReadTimestamp]);
 
   // Load pending connection requests count
   const loadPendingRequestsCount = React.useCallback(async () => {
