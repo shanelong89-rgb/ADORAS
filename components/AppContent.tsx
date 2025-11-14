@@ -2898,6 +2898,7 @@ export function AppContent() {
         
         return (
           <Dashboard
+            userId={user?.id} // ✅ Pass stable userId from AuthContext
             userType={userType}
             userProfile={userProfile}
             partnerProfile={partnerProfile}
