@@ -1,5 +1,5 @@
 // Dashboard v2.0 - Header always visible, no scroll detection
-// CACHE BUST: v9-TOAST-ZINDEX-FIX - 2025-11-14
+// CACHE BUST: v10-TOAST-LOGIC-FIX - 2025-11-14
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { PromptsTab } from './PromptsTab';
@@ -488,9 +488,65 @@ export function Dashboard({
         
         console.log(`   🔔 Showing notification: ${notificationTitle} - ${messagePreview}`);
         console.log(`   🎯 Current activeTab: "${activeTab}" (on chat: ${activeTab === 'chat'})`);
+        console.log(`   📱 App focused: ${!document.hidden}`);
         
-        // If user is NOT on chat tab, show native notification banner
-        if (activeTab !== 'chat') {
+        // CRITICAL FIX: When app is focused, ALWAYS show in-app toast (regardless of tab)
+        // When app is NOT focused, show native notification (if supported)
+        if (!document.hidden) {
+          // App is focused - show in-app toast notification
+          console.log('   📱 App is focused - showing in-app toast notification');
+          showToast({
+            type: notificationType,
+            title: notificationTitle,
+            body: messagePreview,
+            avatar: partnerProfile.photo || '/apple-touch-icon.png',
+            duration: 6000, // Show for 6 seconds (longer than default)
+            onClick: async () => {
+              // Navigate to chat tab when notification is clicked
+              setActiveTab('chat');
+              // Trigger scroll to bottom to see the new message
+              setShouldScrollChatToBottom(true);
+              // If it's a prompt, ensure it's set as active prompt
+              if (isPrompt && newMemory.promptQuestion) {
+                setActivePrompt(newMemory.promptQuestion);
+              }
+              
+              // Mark as read when clicking in-app toast
+              const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+              if (activeConnectionId) {
+                await markConnectionAsRead(activeConnectionId);
+              }
+            },
+          });
+
+          // Play subtle notification sound
+          try {
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+
+            gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.15);
+          } catch (error) {
+            console.log('Could not play notification sound:', error);
+          }
+
+          // Vibrate if supported
+          if ('vibrate' in navigator) {
+            navigator.vibrate([50, 100, 50]);
+          }
+        } else {
+          // App is NOT focused (backgrounded) - show native notification if supported
+          console.log('   📱 App is backgrounded - showing native notification');
           showNativeNotificationBanner(
             notificationTitle,
             messagePreview,
@@ -520,57 +576,6 @@ export function Dashboard({
               },
             }
           );
-        } else {
-          // If user IS on chat tab, show PROMINENT in-app toast notification banner
-          // This ensures messages are always visible even when already on chat
-          console.log('   📱 User is on chat tab - showing in-app toast notification');
-          showToast({
-            type: notificationType,
-            title: notificationTitle,
-            body: messagePreview,
-            avatar: partnerProfile.photo || '/apple-touch-icon.png',
-            duration: 6000, // Show for 6 seconds (longer than default)
-            onClick: async () => {
-              // Trigger scroll to bottom to see the new message
-              setShouldScrollChatToBottom(true);
-              // If it's a prompt, ensure it's set as active prompt
-              if (isPrompt && newMemory.promptQuestion) {
-                setActivePrompt(newMemory.promptQuestion);
-              }
-              
-              // Mark as read when clicking in-app toast
-              const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
-              if (activeConnectionId) {
-                await markConnectionAsRead(activeConnectionId);
-              }
-            },
-          });
-        }
-
-        // Play subtle notification sound (for both cases)
-        try {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-
-          oscillator.frequency.value = 800;
-          oscillator.type = 'sine';
-
-          gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-
-          oscillator.start(audioContext.currentTime);
-          oscillator.stop(audioContext.currentTime + 0.15);
-        } catch (error) {
-          console.log('Could not play notification sound:', error);
-        }
-
-        // Vibrate if supported (for both cases)
-        if ('vibrate' in navigator) {
-          navigator.vibrate([50, 100, 50]);
         }
       }
     });
