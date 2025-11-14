@@ -1,7 +1,7 @@
 /**
  * AppContent Component
  * Main app logic with access to AuthContext
- * CACHE BUST: v13-CALLBACK-RACE-FIX - 2025-11-14
+ * CACHE BUST: v14-CONNECTION-SWITCH-CALLBACK-FIX - 2025-11-14-1950
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -179,16 +179,13 @@ export function AppContent() {
         await realtimeSync.disconnectAll();
       } else if (isConnectionChanged) {
         console.log(`🔄 Connection changed from ${prev.connectionId} to ${activeConnectionId} - switching channel`);
-        // Don't disconnect all - just switch active connection
+        // ❌ CRITICAL BUG FIX: DON'T return early! We need to re-register callbacks!
+        // Just note that this is a switch, but continue to re-register callbacks below
+        // The callbacks were cleared by disconnectAll() when switching connections
+        console.log(`🔄 Re-registering callbacks for new connection...`);
+        // Note: we don't call disconnectAll() here because channels are already set up
+        // We just need to update the active connection and re-register callbacks
         realtimeSync.setActiveConnection(activeConnectionId);
-        
-        // Update ref and return early - no need to resubscribe
-        prevRealtimeConnectionRef.current = {
-          userType,
-          userId: user.id,
-          connectionId: activeConnectionId,
-        };
-        return;
       } else {
         console.log(`ℹ️ Initial realtime setup for ${activeConnectionId}`);
       }
