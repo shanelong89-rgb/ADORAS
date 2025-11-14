@@ -1,6 +1,7 @@
 // CACHE BUST: 2025-11-14-v6-SUBSCRIPTION-TIMEOUT-FIX
 /**
  * Realtime Sync - Clean Architecture
+ * CACHE BUST: v12-STALE-CALLBACK-FIX - 2025-11-14
  * 
  * Uses Supabase Postgres Changes instead of manual broadcasts
  * Much simpler and more reliable!
@@ -647,7 +648,15 @@ class RealtimeSyncManager {
       this.channels.delete(channelName);
     }
     
+    // 🔥 CRITICAL FIX: Clear memory update callbacks to prevent stale closures
+    // When switching connections, old callbacks with stale activeConnectionId refs
+    // would still be registered, causing messages to not be processed
+    this.memoryUpdateCallbacks = [];
+    this.presenceCallbacks = [];
+    this.typingCallbacks = [];
+    
     this.activeConnectionId = null;
+    console.log('🧹 Cleared all callbacks to prevent stale closures');
   }
 
   /**
