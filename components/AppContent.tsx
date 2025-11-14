@@ -606,7 +606,33 @@ export function AppContent() {
         // Check if this is the currently active connection
         const currentActiveId = activeConnectionIdRef.current;
         
-        // Only increment if NOT viewing this chat
+        // Update the last message preview in the sidebar
+        if (update.lastMessage) {
+          const userType = userTypeRef.current;
+          
+          if (userType === 'keeper') {
+            // Update storytellers array
+            setStorytellers((prev) => 
+              prev.map((st) => 
+                st.id === update.connectionId
+                  ? { ...st, lastMessage: update.lastMessage.preview, lastMessageTime: update.lastMessage.timestamp }
+                  : st
+              )
+            );
+          } else {
+            // Update legacyKeepers array
+            setLegacyKeepers((prev) =>
+              prev.map((lk) =>
+                lk.id === update.connectionId
+                  ? { ...lk, lastMessage: update.lastMessage.preview, lastMessageTime: update.lastMessage.timestamp }
+                  : lk
+              )
+            );
+          }
+          console.log(`📱 Updated sidebar preview for ${update.connectionId}: "${update.lastMessage.preview}"`);
+        }
+        
+        // Only increment badge if NOT viewing this chat
         if (update.connectionId !== currentActiveId) {
           setUnreadCounts((prev) => ({
             ...prev,
