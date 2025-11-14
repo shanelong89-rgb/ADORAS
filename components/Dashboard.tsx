@@ -114,8 +114,8 @@ export function Dashboard({
   const [showTellerConnections, setShowTellerConnections] = useState(false);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [lastChatReadTimestamp, setLastChatReadTimestamp] = useState<number>(() => {
-    // Load from localStorage
-    const stored = localStorage.getItem(`lastChatRead_${userProfile.id}`);
+    // Load from localStorage - use stable userId from AuthContext
+    const stored = userId ? localStorage.getItem(`lastChatRead_${userId}`) : null;
     return stored ? parseInt(stored) : Date.now();
   });
 
@@ -300,7 +300,8 @@ export function Dashboard({
           .filter(memory => {
             const isFromPartner = memory.sender !== userType;
             const isMessage = memory.type === 'text' || memory.type === 'voice';
-            const isUnread = !memory.readBy || !memory.readBy.includes(userProfile.id);
+            // ✅ Use stable userId from AuthContext
+            const isUnread = !memory.readBy || !memory.readBy.includes(userId);
             return isFromPartner && isMessage && isUnread;
           })
           .map(m => m.id);
@@ -310,13 +311,14 @@ export function Dashboard({
         // 🔥 CRITICAL FIX: Batch all readBy updates into one state update
         // Calling onEditMemory in a forEach causes React batching issues with stale state
         // Instead, collect all updates and call once with an array
-        if (onEditMemory && unreadMessageIds.length > 0) {
+        if (onEditMemory && unreadMessageIds.length > 0 && userId) {
           // Update each memory by adding current user to its readBy array
           unreadMessageIds.forEach(memoryId => {
             const memory = connectionMemories.find(m => m.id === memoryId);
             if (memory) {
-              console.log(`✏️ Updating memory locally: ${memoryId}`, { readBy: [...(memory.readBy || []), userProfile.id] });
-              const updatedReadBy = [...(memory.readBy || []), userProfile.id];
+              // ✅ Use stable userId from AuthContext
+              console.log(`✏️ Updating memory locally: ${memoryId}`, { readBy: [...(memory.readBy || []), userId] });
+              const updatedReadBy = [...(memory.readBy || []), userId];
               onEditMemory(memoryId, { readBy: updatedReadBy }, true); // localOnly = true
             }
           });
@@ -324,7 +326,10 @@ export function Dashboard({
         
         // Trigger badge re-calculation by updating timestamp
         const now = Date.now();
-        localStorage.setItem(`lastChatRead_${userProfile.id}_${connectionId}`, now.toString());
+        // ✅ Use stable userId from AuthContext
+        if (userId) {
+          localStorage.setItem(`lastChatRead_${userId}_${connectionId}`, now.toString());
+        }
         setLastChatReadTimestamp(now);
         
         console.log(`✅ Local state updated - badges should clear immediately`);
@@ -335,7 +340,7 @@ export function Dashboard({
       console.error('❌ Error marking messages as read:', error);
       return { success: false, error: String(error) };
     }
-  }, [userProfile.id, userType, memoriesByStoryteller, memoriesByLegacyKeeper, onEditMemory]);
+  }, [userId, userType, memoriesByStoryteller, memoriesByLegacyKeeper, onEditMemory]); // ✅ Use stable userId
 
   // Mark messages as read shortly after viewing chat tab
   // Reduced delay + persist mark-as-read even if user switches away
@@ -717,10 +722,13 @@ export function Dashboard({
                                 setIsMenuOpen(false);
                                 // Mark messages as read for this connection when switching to them
                                 const now = Date.now();
-                                localStorage.setItem(`lastChatRead_${userProfile.id}_${storyteller.id}`, now.toString());
+                                // ✅ Use stable userId from AuthContext
+                                if (userId) {
+                                  localStorage.setItem(`lastChatRead_${userId}_${storyteller.id}`, now.toString());
+                                  localStorage.setItem(`lastChatRead_${userId}`, now.toString());
+                                }
                                 // Update the main chat read timestamp too
                                 setLastChatReadTimestamp(now);
-                                localStorage.setItem(`lastChatRead_${userProfile.id}`, now.toString());
                               }}
                               className={`w-full flex items-center space-x-2 sm:space-x-2.5 p-2 sm:p-2.5 rounded-lg transition-colors ${
                                 activeStorytellerId === storyteller.id
@@ -783,10 +791,13 @@ export function Dashboard({
                                 setIsMenuOpen(false);
                                 // Mark messages as read for this connection when switching to them
                                 const now = Date.now();
-                                localStorage.setItem(`lastChatRead_${userProfile.id}_${legacyKeeper.id}`, now.toString());
+                                // ✅ Use stable userId from AuthContext
+                                if (userId) {
+                                  localStorage.setItem(`lastChatRead_${userId}_${legacyKeeper.id}`, now.toString());
+                                  localStorage.setItem(`lastChatRead_${userId}`, now.toString());
+                                }
                                 // Update the main chat read timestamp too
                                 setLastChatReadTimestamp(now);
-                                localStorage.setItem(`lastChatRead_${userProfile.id}`, now.toString());
                               }}
                               className={`w-full flex items-center space-x-2 sm:space-x-2.5 p-2 sm:p-2.5 rounded-lg transition-colors ${
                                 activeLegacyKeeperId === legacyKeeper.id
@@ -1117,7 +1128,7 @@ export function Dashboard({
         <Notifications
           isOpen={showNotifications}
           onClose={() => setShowNotifications(false)}
-          userId={userProfile.id}
+          userId={userId} // ✅ Use stable userId from AuthContext
         />
 
         {/* Privacy Security Dialog */}
@@ -1133,7 +1144,7 @@ export function Dashboard({
         <StorageData
           isOpen={showStorageData}
           onClose={() => setShowStorageData(false)}
-          userId={userProfile.id}
+          userId={userId} // ✅ Use stable userId from AuthContext
         />
 
         {/* Help Feedback Dialog */}
