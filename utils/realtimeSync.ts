@@ -1,4 +1,4 @@
-// CACHE BUST: 2025-11-14-v3
+// CACHE BUST: 2025-11-14-v4-BROADCAST-FIX
 /**
  * Realtime Sync - Clean Architecture
  * 
@@ -156,7 +156,11 @@ class RealtimeSyncManager {
     console.log(`📨 [HYBRID] Subscribing to messages for: ${connectionId}`);
 
     const channel = supabase
-      .channel(channelName)
+      .channel(channelName, {
+        config: {
+          broadcast: { self: true }, // CRITICAL: Enable broadcast on this channel
+        },
+      })
       // Listen to Postgres changes (for future clean architecture)
       .on(
         'postgres_changes',
