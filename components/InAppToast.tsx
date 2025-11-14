@@ -40,9 +40,12 @@ export function InAppToastContainer({
     'top-center': 'top-4 left-1/2 -translate-x-1/2',
   };
 
+  console.log(`🍞 InAppToastContainer rendering: ${notifications.length} notification(s)`, notifications.map(n => n.id));
+
   return (
     <div
-      className={`fixed ${positionClasses[position]} z-[100] flex flex-col gap-2 max-w-sm w-full pointer-events-none`}
+      className={`fixed ${positionClasses[position]} !z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none`}
+      style={{ zIndex: 9999 }}
     >
       <AnimatePresence>
         {notifications.map((notification) => (
@@ -231,7 +234,12 @@ export function useInAppToasts() {
       timestamp: new Date(),
     };
 
-    setToasts(prev => [...prev, newToast]);
+    console.log('🍞 Toast created:', newToast.id, '|', newToast.title, '|', newToast.body);
+    setToasts(prev => {
+      const updated = [...prev, newToast];
+      console.log(`🍞 Toasts array updated: ${updated.length} toast(s)`);
+      return updated;
+    });
 
     // Play sound and vibrate
     playNotificationSound();
