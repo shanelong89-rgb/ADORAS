@@ -562,27 +562,38 @@ export function AppContent() {
   /**
    * FIX #2: Subscribe to user-level real-time updates for sidebar badges
    * This receives lightweight sidebar-update broadcasts for ALL connections
+   * IMPORTANT: Only subscribe ONCE when user logs in (not when switching connections)
    */
+  const activeConnectionIdRef = useRef<string>('');
+  const userTypeRef = useRef<UserType>(null);
+  
+  // Keep refs updated with latest values
+  useEffect(() => {
+    userTypeRef.current = userType;
+    activeConnectionIdRef.current = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+  }, [userType, activeStorytellerId, activeLegacyKeeperId]);
+  
   useEffect(() => {
     if (!user?.id) return;
     
     console.log('📡 Setting up user-level sidebar updates for:', user.id);
     
     // Subscribe to lightweight user-level updates  
+    // The callback uses refs to access current values without re-subscribing
     realtimeSync.subscribeToUserUpdates(user.id, (update) => {
       console.log('📬 Processing sidebar update:', update);
       
       if (update.action === 'increment_unread') {
-        // Get current active connection
-        const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+        // Check if this is the currently active connection
+        const currentActiveId = activeConnectionIdRef.current;
         
         // Only increment if NOT viewing this chat
-        if (update.connectionId !== activeConnectionId) {
+        if (update.connectionId !== currentActiveId) {
           setUnreadCounts((prev) => ({
             ...prev,
             [update.connectionId]: (prev[update.connectionId] || 0) + 1,
           }));
-          console.log(`📬 +1 badge for ${update.connectionId} (viewing ${activeConnectionId || 'none'})`);
+          console.log(`📬 +1 badge for ${update.connectionId} (viewing ${currentActiveId || 'none'})`);
         } else {
           console.log(`ℹ️ Skip badge for ${update.connectionId} (currently active)`);
         }
@@ -592,7 +603,7 @@ export function AppContent() {
     return () => {
       // Cleanup handled by realtimeSync.disconnectAll()
     };
-  }, [user?.id, userType, activeStorytellerId, activeLegacyKeeperId]);
+  }, [user?.id]); // ✅ Only re-run when user changes, NOT when switching connections
 
   /**
    * REMOVED INEFFECTIVE FIX: Syncing unread counts to storytellers/legacyKeepers arrays
