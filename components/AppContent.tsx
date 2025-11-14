@@ -202,7 +202,7 @@ export function AppContent() {
       // Subscribe ONLY to the active connection
       const allConnectionIds = [activeConnectionId];
 
-      console.log(`🔌 Setting up realtime sync for ACTIVE connection only: ${activeConnectionId}`);
+      console.log(`�� Setting up realtime sync for ACTIVE connection only: ${activeConnectionId}`);
 
       try {
         // Subscribe to ALL connections simultaneously
