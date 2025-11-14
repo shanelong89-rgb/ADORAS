@@ -142,7 +142,8 @@ class RealtimeSyncManager {
   }
 
   /**
-   * Subscribe to messages via Postgres changes
+   * Subscribe to messages via BOTH Postgres changes AND broadcast (hybrid approach)
+   * Works with both KV backend (current) and Postgres backend (future)
    */
   private async subscribeToMessages(connectionId: string, userId: string): Promise<void> {
     const channelName = `messages:${connectionId}`;
@@ -152,10 +153,11 @@ class RealtimeSyncManager {
       return;
     }
 
-    console.log(`📨 [CLEAN ARCH] Subscribing to messages for: ${connectionId}`);
+    console.log(`📨 [HYBRID] Subscribing to messages for: ${connectionId}`);
 
     const channel = supabase
       .channel(channelName)
+      // Listen to Postgres changes (for future clean architecture)
       .on(
         'postgres_changes',
         {
@@ -169,11 +171,11 @@ class RealtimeSyncManager {
           
           // Don't notify for own messages
           if (message.sender_id === userId) {
-            console.log(`ℹ️ Ignoring own message: ${message.id}`);
+            console.log(`ℹ️ [POSTGRES] Ignoring own message: ${message.id}`);
             return;
           }
 
-          console.log(`📨 New message received: ${message.id}`);
+          console.log(`📨 [POSTGRES] New message received: ${message.id}`);
           
           // Convert to MemoryUpdate format for compatibility
           const memoryUpdate: MemoryUpdate = {
@@ -198,7 +200,7 @@ class RealtimeSyncManager {
         },
         (payload) => {
           const message = payload.new as Message;
-          console.log(`📝 Message updated: ${message.id}`);
+          console.log(`📝 [POSTGRES] Message updated: ${message.id}`);
 
           const memoryUpdate: MemoryUpdate = {
             action: 'update',
@@ -212,11 +214,42 @@ class RealtimeSyncManager {
           this.memoryUpdateCallbacks.forEach(cb => cb(memoryUpdate));
         }
       )
+      // ALSO listen to broadcast events (for current KV backend)
+      .on('broadcast', { event: 'memory-update' }, ({ payload }) => {
+        const update = payload as MemoryUpdate;
+        
+        // Don't notify for own messages
+        if (update.userId === userId) {
+          console.log(`ℹ️ [BROADCAST] Ignoring own update: ${update.memoryId}`);
+          return;
+        }
+
+        // Only process updates for this connection
+        if (update.connectionId !== connectionId) {
+          console.log(`ℹ️ [BROADCAST] Ignoring update for different connection: ${update.connectionId}`);
+          return;
+        }
+
+        console.log(`📨 [BROADCAST] Memory update received:`, update);
+        this.memoryUpdateCallbacks.forEach(cb => cb(update));
+      })
+      // ALSO listen to typing indicators
+      .on('broadcast', { event: 'typing' }, ({ payload }) => {
+        const typing = payload as TypingIndicator;
+        
+        // Don't notify for own typing
+        if (typing.userId === userId) {
+          return;
+        }
+
+        console.log(`⌨️ [BROADCAST] Typing indicator:`, typing);
+        this.typingCallbacks.forEach(cb => cb(typing));
+      })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log(`✅ Subscribed to messages: ${connectionId}`);
+          console.log(`✅ [HYBRID] Subscribed to messages: ${connectionId}`);
         } else if (status === 'CHANNEL_ERROR') {
-          console.error(`❌ Subscription error for ${connectionId}`);
+          console.error(`❌ [HYBRID] Subscription error for ${connectionId}`);
         }
       });
 
@@ -410,12 +443,34 @@ class RealtimeSyncManager {
   }
 
   /**
-   * Broadcast memory update (compatibility method - now handled by Postgres)
+   * Broadcast memory update (HYBRID - works with both KV and Postgres)
    */
   async broadcastMemoryUpdate(update: Omit<MemoryUpdate, 'timestamp'>): Promise<void> {
-    console.log(`📡 [CLEAN ARCH] Memory update will be broadcast via Postgres changes`);
-    // In clean architecture, this is handled automatically by Postgres realtime
-    // The INSERT/UPDATE/DELETE on messages table will trigger callbacks
+    const fullUpdate: MemoryUpdate = {
+      ...update,
+      timestamp: new Date().toISOString(),
+    };
+
+    // Broadcast via channel (for current KV backend)
+    const channelName = `messages:${update.connectionId}`;
+    const channel = this.channels.get(channelName);
+
+    if (channel) {
+      try {
+        await channel.send({
+          type: 'broadcast',
+          event: 'memory-update',
+          payload: fullUpdate,
+        });
+        console.log(`📡 [HYBRID] Memory update broadcast sent:`, fullUpdate.action, fullUpdate.memoryId);
+      } catch (error) {
+        console.error(`❌ [HYBRID] Failed to broadcast:`, error);
+      }
+    } else {
+      console.warn(`⚠️ [HYBRID] No channel found for ${update.connectionId}`);
+    }
+
+    // Postgres INSERT/UPDATE/DELETE will also trigger callbacks automatically (future)
   }
 
   /**
