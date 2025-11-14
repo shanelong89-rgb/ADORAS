@@ -727,6 +727,13 @@ export function Dashboard({
                               onClick={() => {
                                 onSwitchStoryteller?.(storyteller.id);
                                 setIsMenuOpen(false);
+                                
+                                // 🎯 UX FIX: Switch to Prompts tab when changing connections
+                                // This ensures Chat tab loads with ALL memories already loaded
+                                // Prevents scroll-to-bottom race condition (3 cached → 525 API)
+                                setActiveTab('prompts');
+                                onActiveTabChange?.('prompts');
+                                
                                 // Mark messages as read for this connection when switching to them
                                 const now = Date.now();
                                 // ✅ Use stable userId from AuthContext
@@ -796,6 +803,13 @@ export function Dashboard({
                               onClick={() => {
                                 onSwitchLegacyKeeper?.(legacyKeeper.id);
                                 setIsMenuOpen(false);
+                                
+                                // 🎯 UX FIX: Switch to Prompts tab when changing connections
+                                // This ensures Chat tab loads with ALL memories already loaded
+                                // Prevents scroll-to-bottom race condition (3 cached → 525 API)
+                                setActiveTab('prompts');
+                                onActiveTabChange?.('prompts');
+                                
                                 // Mark messages as read for this connection when switching to them
                                 const now = Date.now();
                                 // ✅ Use stable userId from AuthContext
