@@ -304,11 +304,35 @@ class RealtimeSyncManager {
 
   /**
    * Disconnect from ALL channels
+   * IMPORTANT: Does NOT clear sidebar callbacks - those persist across connection switches
+   * Only cleared on actual logout
    */
   async disconnectAll(): Promise<void> {
     console.log(`🔌 Disconnecting from all ${this.channels.size} channels`);
     
-    // ===== NEW: Disconnect user channel =====
+    // NOTE: We do NOT disconnect the user-level channel here!
+    // It should persist across connection switches and only disconnect on logout
+    // The sidebar callbacks are tied to the user, not individual connections
+    
+    const connectionIds = Array.from(this.channels.keys());
+    for (const connectionId of connectionIds) {
+      await this.disconnectFromChannel(connectionId);
+    }
+
+    this.channels.clear();
+    this.activeConnectionId = null;
+  }
+
+  /**
+   * Disconnect everything including user-level channel (for logout)
+   */
+  async disconnectAllIncludingUser(): Promise<void> {
+    console.log(`🔌 FULL DISCONNECT: Disconnecting all channels and user channel`);
+    
+    // First disconnect all connection channels
+    await this.disconnectAll();
+    
+    // Then disconnect user channel
     if (this.userChannel) {
       try {
         await supabase.removeChannel(this.userChannel);
@@ -319,15 +343,6 @@ class RealtimeSyncManager {
       this.sidebarUpdateCallbacks = [];
       console.log('🔌 User-level channel disconnected');
     }
-    // ===== END NEW =====
-    
-    const connectionIds = Array.from(this.channels.keys());
-    for (const connectionId of connectionIds) {
-      await this.disconnectFromChannel(connectionId);
-    }
-
-    this.channels.clear();
-    this.activeConnectionId = null;
   }
 
   /**
@@ -582,9 +597,10 @@ class RealtimeSyncManager {
 
   /**
    * LEGACY: Old disconnect method
+   * Now uses full disconnect to clear user channel too
    */
   async disconnect(): Promise<void> {
-    await this.disconnectAll();
+    await this.disconnectAllIncludingUser();
   }
 }
 
