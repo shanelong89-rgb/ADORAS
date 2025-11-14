@@ -78,6 +78,30 @@ export function AppContent() {
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   /**
+   * iOS PWA Badge API: Update home screen icon badge with total unread count
+   */
+  useEffect(() => {
+    // Calculate total unread across ALL connections
+    const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+    
+    // Update iOS PWA badge
+    if ('setAppBadge' in navigator) {
+      try {
+        if (totalUnread > 0) {
+          (navigator as any).setAppBadge(totalUnread);
+          console.log(`📱 iOS Badge updated: ${totalUnread} unread messages`);
+        } else {
+          (navigator as any).clearAppBadge();
+          console.log('📱 iOS Badge cleared (all messages read)');
+        }
+      } catch (error) {
+        // Badge API not supported (not a PWA or browser doesn't support it)
+        // This is OK - silently fail
+      }
+    }
+  }, [unreadCounts]); // Re-run whenever unread counts change
+
+  /**
    * Phase 3e: Setup auto-sync when coming back online
    */
   useEffect(() => {
