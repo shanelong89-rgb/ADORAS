@@ -1,5 +1,5 @@
 // Dashboard v2.0 - Header always visible, no scroll detection
-// CACHE BUST: v8-TOAST-DEBUG - 2025-11-14
+// CACHE BUST: v9-TOAST-ZINDEX-FIX - 2025-11-14
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { PromptsTab } from './PromptsTab';
