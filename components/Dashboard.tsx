@@ -1,5 +1,5 @@
 // Dashboard v2.0 - Header always visible, no scroll detection
-// CACHE BUST: v7-INFINITE-RERENDER-FIX - 2025-11-14
+// CACHE BUST: v8-TOAST-DEBUG - 2025-11-14
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { PromptsTab } from './PromptsTab';
@@ -487,6 +487,7 @@ export function Dashboard({
         const notificationType: 'message' | 'prompt' = isPrompt ? 'prompt' : 'message';
         
         console.log(`   🔔 Showing notification: ${notificationTitle} - ${messagePreview}`);
+        console.log(`   🎯 Current activeTab: "${activeTab}" (on chat: ${activeTab === 'chat'})`);
         
         // If user is NOT on chat tab, show native notification banner
         if (activeTab !== 'chat') {
@@ -522,6 +523,7 @@ export function Dashboard({
         } else {
           // If user IS on chat tab, show PROMINENT in-app toast notification banner
           // This ensures messages are always visible even when already on chat
+          console.log('   📱 User is on chat tab - showing in-app toast notification');
           showToast({
             type: notificationType,
             title: notificationTitle,
