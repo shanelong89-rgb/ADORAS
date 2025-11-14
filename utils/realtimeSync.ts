@@ -1,4 +1,4 @@
-// CACHE BUST: 2025-11-14-v4-BROADCAST-FIX
+// CACHE BUST: 2025-11-14-v5-SUBSCRIPTION-RACE-FIX
 /**
  * Realtime Sync - Clean Architecture
  * 
@@ -7,6 +7,9 @@
  * 
  * IMPORTANT: This maintains the same API as the old version for compatibility
  * with AppContent.tsx, but uses the new clean architecture under the hood.
+ * 
+ * FIX: Added await for subscription to prevent race condition where messages
+ * are broadcast before the channel is ready ("No channel found" error).
  */
 
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -144,6 +147,9 @@ class RealtimeSyncManager {
   /**
    * Subscribe to messages via BOTH Postgres changes AND broadcast (hybrid approach)
    * Works with both KV backend (current) and Postgres backend (future)
+   * 
+   * IMPORTANT: This method now waits for subscription to complete before returning
+   * to prevent "No channel found" errors when broadcasting messages.
    */
   private async subscribeToMessages(connectionId: string, userId: string): Promise<void> {
     const channelName = `messages:${connectionId}`;
@@ -248,16 +254,23 @@ class RealtimeSyncManager {
 
         console.log(`⌨️ [BROADCAST] Typing indicator:`, typing);
         this.typingCallbacks.forEach(cb => cb(typing));
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log(`✅ [HYBRID] Subscribed to messages: ${connectionId}`);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(`❌ [HYBRID] Subscription error for ${connectionId}`);
-        }
       });
 
+    // Store channel BEFORE subscribing to prevent race conditions
     this.channels.set(channelName, channel);
+
+    // Wait for subscription to complete (prevents "No channel found" errors)
+    return new Promise((resolve, reject) => {
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log(`✅ [HYBRID] Subscribed to messages: ${connectionId}`);
+          resolve();
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`❌ [HYBRID] Subscription error for ${connectionId}`);
+          reject(new Error(`Channel subscription failed for ${connectionId}`));
+        }
+      });
+    });
   }
 
   /**
@@ -302,8 +315,14 @@ class RealtimeSyncManager {
       })
       .on('presence', { event: 'leave' }, ({ key }) => {
         console.log(`👋 User left ${connectionId}:`, key);
-      })
-      .subscribe(async (status) => {
+      });
+
+    // Store channel BEFORE subscribing
+    this.channels.set(channelName, channel);
+
+    // Wait for subscription to complete
+    return new Promise((resolve, reject) => {
+      channel.subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           // Only track presence on active connection
           if (connectionId === this.activeConnectionId) {
@@ -315,10 +334,13 @@ class RealtimeSyncManager {
             });
             console.log(`✅ Tracking presence in ${connectionId}`);
           }
+          resolve();
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`❌ Presence subscription error for ${connectionId}`);
+          reject(new Error(`Presence subscription failed for ${connectionId}`));
         }
       });
-
-    this.channels.set(channelName, channel);
+    });
   }
 
   /**
@@ -352,14 +374,23 @@ class RealtimeSyncManager {
             // Could trigger connection list refresh here
           }
         }
-      )
-      .subscribe((status) => {
+      );
+
+    // Store channel BEFORE subscribing
+    this.channels.set(channelName, channel);
+
+    // Wait for subscription to complete
+    return new Promise((resolve, reject) => {
+      channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
           console.log(`✅ Subscribed to connection changes`);
+          resolve();
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error(`❌ Connection changes subscription error`);
+          reject(new Error('Connection changes subscription failed'));
         }
       });
-
-    this.channels.set(channelName, channel);
+    });
   }
 
   /**
@@ -392,14 +423,23 @@ class RealtimeSyncManager {
             console.error('❌ Error in sidebar callback:', error);
           }
         });
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('✅ User-level channel connected');
-        }
       });
 
+    // Store channel BEFORE subscribing
     this.channels.set(channelName, channel);
+
+    // Wait for subscription to complete
+    return new Promise((resolve, reject) => {
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ User-level channel connected');
+          resolve();
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ User-level channel subscription error');
+          reject(new Error('User-level channel subscription failed'));
+        }
+      });
+    });
   }
 
   /**
