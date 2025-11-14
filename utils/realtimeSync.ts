@@ -133,9 +133,14 @@ class RealtimeSyncManager {
     // Also subscribe to connection-level changes
     await this.subscribeToConnectionChanges(userId);
 
-    // Clean up old channels
+    // Clean up old channels (but keep system channels like connections:userId)
     const activeConnectionIds = new Set(connectionIds);
     for (const [channelName, channel] of this.channels.entries()) {
+      // Don't remove system channels (connections:userId, user-updates:userId)
+      if (channelName.startsWith('connections:') || channelName.startsWith('user-updates:')) {
+        continue; // Keep system channels
+      }
+      
       const connectionId = channelName.split(':')[1];
       if (!activeConnectionIds.has(connectionId)) {
         await supabase.removeChannel(channel);
@@ -234,12 +239,8 @@ class RealtimeSyncManager {
           return;
         }
 
-        // Only process updates for this connection
-        if (update.connectionId !== connectionId) {
-          console.log(`ℹ️ [BROADCAST] Ignoring update for different connection: ${update.connectionId}`);
-          return;
-        }
-
+        // Process ALL updates - this is a subscribed channel so we want all its messages
+        // The connectionId filter was breaking cross-connection notifications!
         console.log(`📨 [BROADCAST] Memory update received:`, update);
         this.memoryUpdateCallbacks.forEach(cb => cb(update));
       })
