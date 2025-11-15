@@ -2951,8 +2951,8 @@ export function AppContent() {
       return (
         <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground" style={{ fontFamily: 'Inter' }}>Loading...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-sm text-muted-foreground">Loading...</p>
           </div>
         </div>
       );
@@ -3012,8 +3012,8 @@ export function AppContent() {
           return (
             <div className="min-h-screen flex items-center justify-center bg-background">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                <p className="mt-4 text-muted-foreground" style={{ fontFamily: 'Inter' }}>Loading your profile...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-sm text-muted-foreground">Loading your profile...</p>
               </div>
             </div>
           );
