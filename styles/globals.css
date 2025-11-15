@@ -539,3 +539,12 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
     padding-right: 28px;
   }
 }
+
+/* Custom positioning for Sonner toasts to align with notification popup */
+[data-sonner-toaster] {
+  top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+}
+
+[data-sonner-toaster][data-y-position="top"] {
+  top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+}
