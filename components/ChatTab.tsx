@@ -2022,9 +2022,9 @@ export function ChatTab({
   if (!isFullyLoaded) {
     return (
       <div className="flex items-center justify-center h-full" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
-        <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm text-muted-foreground font-medium">Loading chat...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Loading chat...</p>
         </div>
       </div>
     );
