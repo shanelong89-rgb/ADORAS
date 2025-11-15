@@ -927,7 +927,7 @@ export function AppContent() {
   const loadConnectionsFromAPI = async () => {
     console.log('📡 Loading connections from API...');
     console.log('   Current userType:', userType);
-    console.log('   Current user:', user);
+    console.log('   Current user:', user ? { id: user.id, name: user.name, email: user.email, type: user.type } : null);
     setIsLoadingConnections(true);
     setConnectionsError(null);
 
@@ -1053,7 +1053,12 @@ export function AppContent() {
    * Phase 1d-4: Transform API connections to Storyteller format (for Keepers)
    */
   const transformConnectionsToStorytellers = async (apiConnections: ConnectionWithPartner[]) => {
-    console.log('🔄 Transforming connections to storytellers...', apiConnections);
+    console.log('🔄 Transforming connections to storytellers...', apiConnections.map(c => ({
+      id: c.connection.id,
+      name: c.partner?.name,
+      status: c.connection.status,
+      hasPhoto: !!c.partner?.photo
+    })));
     const storytellerList: Storyteller[] = apiConnections.map((conn) => {
       console.log(`   - Connection ${conn.connection.id}: status='${conn.connection.status}', partner='${conn.partner?.name}'`);
       const lastMessageInfo = getLastMessageForConnection(conn.connection.id);
@@ -1146,7 +1151,12 @@ export function AppContent() {
    * Phase 1d-4: Transform API connections to Legacy Keeper format (for Tellers)
    */
   const transformConnectionsToLegacyKeepers = async (apiConnections: ConnectionWithPartner[]) => {
-    console.log('🔄 Transforming connections to legacy keepers...', apiConnections);
+    console.log('🔄 Transforming connections to legacy keepers...', apiConnections.map(c => ({
+      id: c.connection.id,
+      name: c.partner?.name,
+      status: c.connection.status,
+      hasPhoto: !!c.partner?.photo
+    })));
     const keeperList: LegacyKeeper[] = apiConnections.map((conn) => {
       console.log(`   - Connection ${conn.connection.id}: status='${conn.connection.status}', partner='${conn.partner?.name}'`);
       const lastMessageInfo = getLastMessageForConnection(conn.connection.id);
@@ -1920,8 +1930,8 @@ export function AppContent() {
         console.error('   - User type:', userType);
         console.error('   - Active storyteller ID:', activeStorytellerId);
         console.error('   - Active legacy keeper ID:', activeLegacyKeeperId);
-        console.error('   - Storytellers:', storytellers);
-        console.error('   - Legacy keepers:', legacyKeepers);
+        console.error('   - Storytellers:', storytellers.map(s => ({ id: s.id, name: s.name, isConnected: s.isConnected })));
+        console.error('   - Legacy keepers:', legacyKeepers.map(k => ({ id: k.id, name: k.name, isConnected: k.isConnected })));
         toast.error('No active connection. Please ensure you have a connected partner first.');
         return;
       }
