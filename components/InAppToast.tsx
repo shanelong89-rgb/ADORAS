@@ -33,11 +33,11 @@ export function InAppToastContainer({
   position = 'top-right',
 }: InAppToastContainerProps) {
   const positionClasses = {
-    'top-right': 'top-4 right-4',
-    'top-left': 'top-4 left-4',
+    'top-right': 'right-4',
+    'top-left': 'left-4',
     'bottom-right': 'bottom-4 right-4',
     'bottom-left': 'bottom-4 left-4',
-    'top-center': 'top-4 left-1/2 -translate-x-1/2',
+    'top-center': 'left-1/2 -translate-x-1/2',
   };
 
   console.log(`🍞 InAppToastContainer rendering: ${notifications.length} notification(s)`, notifications.map(n => n.id));
@@ -45,7 +45,10 @@ export function InAppToastContainer({
   return (
     <div
       className={`fixed ${positionClasses[position]} !z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none`}
-      style={{ zIndex: 9999 }}
+      style={{ 
+        zIndex: 9999,
+        top: 'calc(env(safe-area-inset-top, 0px) + 3rem)' // Extra spacing from status bar
+      }}
     >
       <AnimatePresence>
         {notifications.map((notification) => (
@@ -112,18 +115,8 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
   };
 
   const getColorClasses = () => {
-    switch (notification.type) {
-      case 'message':
-        return 'bg-blue-600 text-white';
-      case 'memory':
-        return 'bg-purple-600 text-white';
-      case 'milestone':
-        return 'bg-pink-600 text-white';
-      case 'prompt':
-        return 'bg-green-600 text-white';
-      default:
-        return 'bg-[#36453B] text-white';
-    }
+    // Use app's signature dark green color for all notifications
+    return 'bg-[#36453B] text-white';
   };
 
   return (
@@ -137,64 +130,68 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
       <div
         className={`
           bg-white dark:bg-gray-800 
-          rounded-lg shadow-lg border border-gray-200 dark:border-gray-700
+          rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700
           overflow-hidden
           ${notification.onClick ? 'cursor-pointer hover:shadow-xl' : ''}
-          transition-shadow
+          transition-all
         `}
         onClick={handleClick}
       >
         <div className="flex items-start gap-3 p-4">
           {/* Icon */}
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getColorClasses()}`}>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${getColorClasses()}`}>
             {getIcon()}
           </div>
 
-          {/* Content */}
+          {/* Content - grows to fill space */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-1">
-              <h4 className="font-semibold text-sm leading-tight">
+            <div className="flex items-start justify-between gap-3 mb-1.5">
+              <h4 className="font-semibold text-base leading-tight text-gray-900 dark:text-white">
                 {notification.title}
               </h4>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleClose();
-                }}
-                className="flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              
+              {/* Avatar on the right */}
+              {notification.avatar && (
+                <img
+                  src={notification.avatar}
+                  alt="Sender"
+                  className="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600 flex-shrink-0"
+                />
+              )}
             </div>
             
-            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
               {notification.body}
             </p>
 
             {/* Thumbnail */}
             {notification.thumbnail && (
-              <div className="mt-2">
+              <div className="mt-2 mb-2">
                 <img
                   src={notification.thumbnail}
                   alt="Preview"
-                  className="w-full h-20 object-cover rounded"
+                  className="w-full h-20 object-cover rounded-lg"
                 />
               </div>
             )}
 
-            {/* Avatar */}
-            {notification.avatar && (
-              <div className="flex items-center gap-2 mt-2">
-                <img
-                  src={notification.avatar}
-                  alt="Sender"
-                  className="w-6 h-6 rounded-full"
-                />
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {formatTimeAgo(notification.timestamp)}
-                </span>
-              </div>
-            )}
+            {/* Timestamp and Close button row */}
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500 dark:text-gray-500">
+                {formatTimeAgo(notification.timestamp)}
+              </span>
+              
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClose();
+                }}
+                className="flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                aria-label="Close notification"
+              >
+                <X className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+              </button>
+            </div>
           </div>
         </div>
 
