@@ -2021,7 +2021,7 @@ export function ChatTab({
   // CRASH GUARD: Show loading spinner until fully mounted
   if (!isFullyLoaded) {
     return (
-      <div className="flex items-center justify-center h-full" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
+      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'rgb(245, 249, 233)' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">Loading chat...</p>
