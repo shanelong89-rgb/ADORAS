@@ -27,7 +27,7 @@ import { subscribeToPushNotifications, isPushSubscribed, getNotificationPreferen
 import { canReceivePushNotifications, isPWAMode, getNotificationCapabilityMessage } from '../utils/pwaDetection'; // PWA detection
 import { NotificationOnboardingDialog } from './NotificationOnboardingDialog'; // First-time notification prompt
 import { projectId, publicAnonKey } from '../utils/supabase/info'; // Supabase credentials
-import { pwaVisibilityHandler } from '../utils/pwaVisibilityHandler'; // PWA foreground/background handler
+import { pwaVisibilityHandler } from '../optimized_files/pwaVisibilityHandler'; // PWA foreground/background handler
 import { toast } from 'sonner';
 import type { UserType, UserProfile, Storyteller, LegacyKeeper, Memory, DisplayLanguage } from '../App';
 import type { ConnectionWithPartner, Memory as ApiMemory } from '../utils/api/types';
@@ -420,6 +420,27 @@ export function AppContent() {
 
     setupRealtime();
 
+    // Initialize PWA visibility handler for iOS foreground/background sync
+    pwaVisibilityHandler.initialize(async () => {
+      console.log('🔄 PWA came to foreground - re-syncing...');
+      
+      // Step 1: Reload connections (in case partner sent connection requests)
+      console.log('📡 Step 1: Reloading connections...');
+      await loadConnectionsFromAPI();
+      
+      // Step 2: Reload memories for all active connections
+      console.log('📡 Step 2: Reloading memories...');
+      const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+      if (activeConnectionId) {
+        console.log(`📦 Fetching messages for active connection: ${activeConnectionId}`);
+        await loadMemoriesForConnection(activeConnectionId, true);
+      }
+      
+      // Step 3: Reconnect realtime channels
+      console.log('📡 Step 3: Reconnecting realtime...');
+      setupRealtime();
+    });
+
     // Cleanup on unmount or when effect re-runs
     return () => {
       isCleanedUp = true; // Mark as cleaned up to prevent stale callbacks
@@ -432,6 +453,9 @@ export function AppContent() {
       }
       // Don't call disconnectAll here - setupRealtime handles disconnection intelligently
       setPresences({});
+      
+      // Cleanup PWA visibility handler
+      pwaVisibilityHandler.cleanup();
     };
     // Watch for changes - but setupRealtime() will decide if cleanup is needed
   }, [userType, activeStorytellerId, activeLegacyKeeperId, user?.id]);
@@ -577,67 +601,7 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType]);
 
   /**
-   * FIX #2: Helper function to recalculate badge counts from memories
-   * Used for initial load AND when PWA comes to foreground after fetching messages
-   */
-  const recalculateBadgesFromMemories = useCallback(async () => {
-    if (!user?.id) return;
-    
-    // NEW: Query database directly for accurate unread counts instead of using cached memories
-    try {
-      const connectionIds = userType === 'keeper' 
-        ? Object.keys(memoriesByStoryteller)
-        : Object.keys(memoriesByLegacyKeeper);
-      
-      if (connectionIds.length === 0) return;
-      
-      const newCounts: Record<string, number> = {};
-      
-      // Query each connection's unread messages from database
-      for (const connectionId of connectionIds) {
-        const response = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/messages/${connectionId}/unread-count`,
-          {
-            headers: {
-              'Authorization': `Bearer ${publicAnonKey}`,
-            },
-          }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          newCounts[connectionId] = data.unreadCount || 0;
-        } else {
-          // Fallback to memory-based calculation if API fails
-          const memories = userType === 'keeper' 
-            ? memoriesByStoryteller[connectionId]
-            : memoriesByLegacyKeeper[connectionId];
-          newCounts[connectionId] = memories?.filter(m => 
-            !m.readBy?.includes(user?.id || '') && 
-            m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
-          ).length || 0;
-        }
-      }
-      
-      setUnreadCounts(newCounts);
-      console.log('📊 Recalculated badge counts from database:', newCounts);
-    } catch (error) {
-      console.error('Failed to recalculate badges from database:', error);
-      // Fallback to old memory-based calculation
-      const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
-      const newCounts: Record<string, number> = {};
-      Object.entries(sourceMap).forEach(([connectionId, memories]) => {
-        newCounts[connectionId] = memories?.filter(m => 
-          !m.readBy?.includes(user?.id || '') && 
-          m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
-        ).length || 0;
-      });
-      setUnreadCounts(newCounts);
-    }
-  }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id]);
-
-  /**
-   * Calculate INITIAL unread counts on first load only
+   * FIX #2: Calculate INITIAL unread counts on first load only
    * After initial load, counts are updated incrementally via real-time broadcasts
    * This prevents background messages from being "lost" when they're not in memories state
    */
@@ -656,9 +620,19 @@ export function AppContent() {
       return;
     }
     
-    recalculateBadgesFromMemories();
+    const newCounts: Record<string, number> = {};
+    
+    Object.entries(sourceMap).forEach(([connectionId, memories]) => {
+      newCounts[connectionId] = memories?.filter(m => 
+        !m.readBy?.includes(user?.id || '') && 
+        m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
+      ).length || 0;
+    });
+    
+    setUnreadCounts(newCounts);
+    console.log('📊 Initial unread counts calculated:', newCounts);
     hasCalculatedInitialCounts.current = true;
-  }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id, recalculateBadgesFromMemories]);
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id]);
 
   /**
    * FIX #2: Subscribe to user-level real-time updates for sidebar badges
@@ -2970,88 +2944,6 @@ export function AppContent() {
       };
     }
   };
-
-  /**
-   * PWA Visibility Handler: Initialize ONCE when user logs in
-   * This handles foreground/background transitions for iOS PWA
-   * IMPORTANT: Must be AFTER all function declarations (loadConnectionsFromAPI, loadMemoriesForConnection, etc.)
-   */
-  useEffect(() => {
-    if (!user?.id) return;
-
-    console.log('🔄 Initializing PWA visibility handler...');
-    
-    pwaVisibilityHandler.initialize(async () => {
-      console.log('🔄 PWA came to foreground - re-syncing...');
-      
-      // Step 1: Reload connections (in case partner sent connection requests)
-      console.log('📡 Step 1: Reloading connections...');
-      await loadConnectionsFromAPI();
-      
-      // Step 2: Reload memories for ALL connections (not just active)
-      console.log('📡 Step 2: Reloading memories for all connections...');
-      const allConnectionIds = userType === 'keeper'
-        ? storytellers.map(s => s.id).filter(Boolean)
-        : legacyKeepers.map(k => k.id).filter(Boolean);
-      
-      if (allConnectionIds.length > 0) {
-        // Fetch messages for all connections in parallel
-        await Promise.all(
-          allConnectionIds.map(connectionId => 
-            loadMemoriesForConnection(connectionId, false) // false = background fetch
-          )
-        );
-        console.log(`✅ Reloaded messages for ${allConnectionIds.length} connection(s)`);
-        
-        // Step 3: Recalculate badge counts from fetched messages
-        // This is CRITICAL - without this, badges show stale counts from before app was backgrounded
-        console.log('📡 Step 3: Recalculating badge counts from fetched messages...');
-        recalculateBadgesFromMemories();
-      }
-      
-      // Step 4: Reconnect realtime channels (handled by the realtime effect)
-      console.log('✅ PWA foreground sync complete');
-    });
-
-    return () => {
-      console.log('🧹 Cleaning up PWA visibility handler');
-      pwaVisibilityHandler.cleanup();
-    };
-  }, [user?.id, userType, storytellers, legacyKeepers, loadConnectionsFromAPI, loadMemoriesForConnection, recalculateBadgesFromMemories]);
-
-  /**
-   * Service Worker Message Handler: Handle navigation requests from SW
-   * When user clicks a notification, SW sends NAVIGATE_TO_CHAT message
-   */
-  useEffect(() => {
-    if (!('serviceWorker' in navigator)) return;
-
-    const handleSWMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'NAVIGATE_TO_CHAT') {
-        const { connectionId, data } = event.data;
-        console.log('📱 [SW] Received navigation request:', { connectionId, data });
-        
-        // Switch to the correct connection based on user type
-        if (connectionId) {
-          if (userType === 'keeper') {
-            setActiveStorytellerId(connectionId);
-          } else {
-            setActiveLegacyKeeperId(connectionId);
-          }
-        }
-        
-        // Dashboard handles tab switching via onActiveTabChange
-        // The navigation will complete when Dashboard renders with updated connection
-        console.log('✅ [SW] Switched to connection:', connectionId);
-      }
-    };
-
-    navigator.serviceWorker.addEventListener('message', handleSWMessage);
-    
-    return () => {
-      navigator.serviceWorker.removeEventListener('message', handleSWMessage);
-    };
-  }, [userType]);
 
   const renderCurrentScreen = () => {
     // Show loading screen while checking authentication
