@@ -27,7 +27,7 @@ import { subscribeToPushNotifications, isPushSubscribed, getNotificationPreferen
 import { canReceivePushNotifications, isPWAMode, getNotificationCapabilityMessage } from '../utils/pwaDetection'; // PWA detection
 import { NotificationOnboardingDialog } from './NotificationOnboardingDialog'; // First-time notification prompt
 import { projectId, publicAnonKey } from '../utils/supabase/info'; // Supabase credentials
-import { pwaVisibilityHandler } from '../optimized_files/pwaVisibilityHandler'; // PWA foreground/background handler
+import { pwaVisibilityHandler } from '../utils/pwaVisibilityHandler'; // PWA foreground/background handler
 import { toast } from 'sonner';
 import type { UserType, UserProfile, Storyteller, LegacyKeeper, Memory, DisplayLanguage } from '../App';
 import type { ConnectionWithPartner, Memory as ApiMemory } from '../utils/api/types';
