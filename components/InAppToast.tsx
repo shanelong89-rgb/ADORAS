@@ -58,7 +58,7 @@ export function InAppToastContainer({
 
   return (
     <div
-      className={`fixed ${positionClasses[position]} !z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none`}
+      className={`fixed left-5 right-5 !z-[9999] flex flex-col gap-2 pointer-events-none`}
       style={{
         zIndex: 9999,
         top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)", // Aligned so bottom matches prompt box bottom
