@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Force Service Worker Update - Adoras</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      min-height: 100vh;
+      padding: env(safe-area-inset-top, 20px) 20px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    .version {
+      text-align: center;
+      opacity: 0.8;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .status {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .status-item:last-child {
+      border-bottom: none;
+    }
+    
+    .status-label {
+      opacity: 0.8;
+    }
+    
+    .status-value {
+      font-weight: 600;
+      text-align: right;
+    }
+    
+    button {
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      color: white;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+    }
+    
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-danger {
+      background: rgba(255, 59, 48, 0.8);
+    }
+    
+    .log {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 12px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    
+    .log-item {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .log-item:last-child {
+      border-bottom: none;
+    }
+    
+    .success {
+      color: #4ade80;
+    }
+    
+    .error {
+      color: #f87171;
+    }
+    
+    .warning {
+      color: #fbbf24;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 Force SW Update</h1>
+    <div class="version">Service Worker v1.6.0</div>
+    
+    <div class="status">
+      <div class="status-item">
+        <span class="status-label">SW Registered:</span>
+        <span class="status-value" id="sw-registered">Checking...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">SW Active:</span>
+        <span class="status-value" id="sw-active">Checking...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Update Available:</span>
+        <span class="status-value" id="sw-update">Checking...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Cache Names:</span>
+        <span class="status-value" id="cache-names">Loading...</span>
+      </div>
+    </div>
+    
+    <button class="btn-primary" onclick="forceUpdate()">
+      🔄 Force Update Now
+    </button>
+    
+    <button class="btn-secondary" onclick="checkStatus()">
+      🔍 Refresh Status
+    </button>
+    
+    <button class="btn-danger" onclick="nuclearReset()">
+      ☢️ Nuclear Reset (Unregister + Clear All)
+    </button>
+    
+    <div class="log" id="log"></div>
+  </div>
+
+  <script>
+    const log = document.getElementById('log');
+    
+    function addLog(message, type = 'info') {
+      const item = document.createElement('div');
+      item.className = `log-item ${type}`;
+      item.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+      log.insertBefore(item, log.firstChild);
+    }
+    
+    async function checkStatus() {
+      addLog('Checking service worker status...');
+      
+      if (!('serviceWorker' in navigator)) {
+        addLog('Service workers not supported', 'error');
+        document.getElementById('sw-registered').textContent = '❌ Not Supported';
+        return;
+      }
+      
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        
+        if (registration) {
+          document.getElementById('sw-registered').textContent = '✅ Yes';
+          document.getElementById('sw-active').textContent = registration.active ? '✅ Yes' : '❌ No';
+          
+          const hasUpdate = !!registration.waiting || !!registration.installing;
+          document.getElementById('sw-update').textContent = hasUpdate ? '✅ Yes' : '❌ No';
+          
+          addLog(`SW registered at scope: ${registration.scope}`, 'success');
+          
+          if (registration.active) {
+            const scriptURL = registration.active.scriptURL;
+            addLog(`Active SW: ${scriptURL}`, 'success');
+          }
+          
+          if (registration.waiting) {
+            addLog('Update is waiting to activate!', 'warning');
+          }
+          
+          if (registration.installing) {
+            addLog('New SW is installing...', 'warning');
+          }
+        } else {
+          document.getElementById('sw-registered').textContent = '❌ No';
+          document.getElementById('sw-active').textContent = '❌ No';
+          document.getElementById('sw-update').textContent = '❌ No';
+          addLog('No service worker registered', 'error');
+        }
+        
+        // Check caches
+        const cacheNames = await caches.keys();
+        document.getElementById('cache-names').textContent = cacheNames.length ? cacheNames.join(', ') : 'None';
+        addLog(`Found ${cacheNames.length} cache(s): ${cacheNames.join(', ')}`, 'success');
+        
+      } catch (error) {
+        addLog(`Error checking status: ${error.message}`, 'error');
+      }
+    }
+    
+    async function forceUpdate() {
+      addLog('Starting force update...');
+      
+      if (!('serviceWorker' in navigator)) {
+        addLog('Service workers not supported', 'error');
+        return;
+      }
+      
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        
+        if (!registration) {
+          addLog('No SW registered, attempting to register...', 'warning');
+          await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          addLog('SW registered successfully', 'success');
+          setTimeout(() => {
+            addLog('Reloading page...', 'warning');
+            window.location.reload();
+          }, 2000);
+          return;
+        }
+        
+        // Force update check
+        addLog('Checking for updates...', 'warning');
+        await registration.update();
+        addLog('Update check complete', 'success');
+        
+        // If there's a waiting SW, activate it immediately
+        if (registration.waiting) {
+          addLog('Activating waiting service worker...', 'warning');
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            addLog('New service worker activated!', 'success');
+            setTimeout(() => {
+              addLog('Reloading page...', 'warning');
+              window.location.reload();
+            }, 1000);
+          });
+        } else if (registration.installing) {
+          addLog('New SW is installing, please wait...', 'warning');
+          
+          registration.installing.addEventListener('statechange', function() {
+            if (this.state === 'installed') {
+              addLog('Installation complete!', 'success');
+              setTimeout(() => {
+                addLog('Reloading page...', 'warning');
+                window.location.reload();
+              }, 1000);
+            }
+          });
+        } else {
+          addLog('No update available (already on latest version)', 'success');
+          addLog('Try clearing cache and reloading...', 'warning');
+          
+          // Clear caches
+          const cacheNames = await caches.keys();
+          for (const name of cacheNames) {
+            await caches.delete(name);
+            addLog(`Deleted cache: ${name}`, 'success');
+          }
+          
+          setTimeout(() => {
+            addLog('Reloading page...', 'warning');
+            window.location.reload();
+          }, 2000);
+        }
+        
+      } catch (error) {
+        addLog(`Error during force update: ${error.message}`, 'error');
+      }
+    }
+    
+    async function nuclearReset() {
+      if (!confirm('⚠️ This will completely unregister the service worker and clear all caches. Continue?')) {
+        return;
+      }
+      
+      addLog('Starting nuclear reset...', 'warning');
+      
+      try {
+        // Unregister all service workers
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const registration of registrations) {
+          await registration.unregister();
+          addLog(`Unregistered SW: ${registration.scope}`, 'success');
+        }
+        
+        // Clear all caches
+        const cacheNames = await caches.keys();
+        for (const name of cacheNames) {
+          await caches.delete(name);
+          addLog(`Deleted cache: ${name}`, 'success');
+        }
+        
+        addLog('Nuclear reset complete!', 'success');
+        addLog('Now close this page and:');
+        addLog('1. Clear Safari history and data', 'warning');
+        addLog('2. Delete the Adoras PWA from home screen', 'warning');
+        addLog('3. Restart your device', 'warning');
+        addLog('4. Reinstall the PWA', 'warning');
+        
+      } catch (error) {
+        addLog(`Error during reset: ${error.message}`, 'error');
+      }
+    }
+    
+    // Auto-check status on load
+    window.addEventListener('load', () => {
+      setTimeout(checkStatus, 500);
+    });
+  </script>
+</body>
+</html>
