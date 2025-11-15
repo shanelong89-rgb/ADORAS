@@ -257,24 +257,6 @@ export function ChatTab({
   // ========================================================================
   // This section intentionally left empty - scroll logic consolidated below
 
-  // 📏 Dynamically measure input box height for proper padding
-  useEffect(() => {
-    const measureInputBox = () => {
-      if (inputBoxRef.current) {
-        const height = inputBoxRef.current.offsetHeight;
-        setInputBoxHeight(height + 20); // Add 20px buffer for safety
-      }
-    };
-
-    // Measure immediately
-    measureInputBox();
-    
-    // Re-measure after animations settle
-    const timer = setTimeout(measureInputBox, 300);
-    
-    return () => clearTimeout(timer);
-  }, [isRecording, pastPrompts.length, currentPromptContext, activePrompt, showEmojiPicker]);
-
   // Enable touch scrolling for iOS PWA
   useEffect(() => {
     const handleTouchMove = (e: TouchEvent) => {
@@ -333,6 +315,24 @@ export function ChatTab({
       .map(([question, timestamp]) => ({ question, timestamp }))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [memories]);
+
+  // 📏 Dynamically measure input box height for proper padding
+  useEffect(() => {
+    const measureInputBox = () => {
+      if (inputBoxRef.current) {
+        const height = inputBoxRef.current.offsetHeight;
+        setInputBoxHeight(height + 20); // Add 20px buffer for safety
+      }
+    };
+
+    // Measure immediately
+    measureInputBox();
+    
+    // Re-measure after animations settle
+    const timer = setTimeout(measureInputBox, 300);
+    
+    return () => clearTimeout(timer);
+  }, [isRecording, pastPrompts.length, currentPromptContext, activePrompt, showEmojiPicker]);
 
   const handleSelectPastPrompt = (promptQuestion: string) => {
     setCurrentPromptContext(promptQuestion);
