@@ -47,7 +47,7 @@ export function InAppToastContainer({
       className={`fixed ${positionClasses[position]} !z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none`}
       style={{ 
         zIndex: 9999,
-        top: 'calc(env(safe-area-inset-top, 0px) + 3rem)' // Extra spacing from status bar
+        top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' // Aligned with dashboard header
       }}
     >
       <AnimatePresence>
