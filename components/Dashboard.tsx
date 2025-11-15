@@ -345,7 +345,7 @@ export function Dashboard({
           console.log(`📖 Marking all messages as read for connection: ${activeConnectionId}`);
           await markConnectionAsRead(activeConnectionId);
         }
-      }, 500); // Reduced to 500ms - fast enough to feel instant, long enough to show badge
+      }, 200); // Reduced to 200ms - mark as read faster to prevent stale badge counts
       
       // DON'T cancel the timer when switching away - let it complete
       // This ensures messages are marked as read even if user quickly switches tabs
@@ -382,7 +382,7 @@ export function Dashboard({
         } finally {
           setIsSwitchingConnection(false);
         }
-      }, 1000); // 1 second delay to allow memories to load and populate state
+      }, 300); // 300ms delay to allow memories to load - faster to prevent badge sync issues
       
       return () => clearTimeout(timer);
     }
