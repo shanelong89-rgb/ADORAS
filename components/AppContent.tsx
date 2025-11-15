@@ -27,6 +27,7 @@ import { subscribeToPushNotifications, isPushSubscribed, getNotificationPreferen
 import { canReceivePushNotifications, isPWAMode, getNotificationCapabilityMessage } from '../utils/pwaDetection'; // PWA detection
 import { NotificationOnboardingDialog } from './NotificationOnboardingDialog'; // First-time notification prompt
 import { projectId, publicAnonKey } from '../utils/supabase/info'; // Supabase credentials
+import { pwaVisibilityHandler } from '../optimized_files/pwaVisibilityHandler'; // PWA foreground/background handler
 import { toast } from 'sonner';
 import type { UserType, UserProfile, Storyteller, LegacyKeeper, Memory, DisplayLanguage } from '../App';
 import type { ConnectionWithPartner, Memory as ApiMemory } from '../utils/api/types';
@@ -419,6 +420,27 @@ export function AppContent() {
 
     setupRealtime();
 
+    // Initialize PWA visibility handler for iOS foreground/background sync
+    pwaVisibilityHandler.initialize(async () => {
+      console.log('🔄 PWA came to foreground - re-syncing...');
+      
+      // Step 1: Reload connections (in case partner sent connection requests)
+      console.log('📡 Step 1: Reloading connections...');
+      await loadConnectionsFromAPI();
+      
+      // Step 2: Reload memories for all active connections
+      console.log('📡 Step 2: Reloading memories...');
+      const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
+      if (activeConnectionId) {
+        console.log(`📦 Fetching messages for active connection: ${activeConnectionId}`);
+        await loadMemoriesForConnection(activeConnectionId, true);
+      }
+      
+      // Step 3: Reconnect realtime channels
+      console.log('📡 Step 3: Reconnecting realtime...');
+      setupRealtime();
+    });
+
     // Cleanup on unmount or when effect re-runs
     return () => {
       isCleanedUp = true; // Mark as cleaned up to prevent stale callbacks
@@ -431,6 +453,9 @@ export function AppContent() {
       }
       // Don't call disconnectAll here - setupRealtime handles disconnection intelligently
       setPresences({});
+      
+      // Cleanup PWA visibility handler
+      pwaVisibilityHandler.cleanup();
     };
     // Watch for changes - but setupRealtime() will decide if cleanup is needed
   }, [userType, activeStorytellerId, activeLegacyKeeperId, user?.id]);
