@@ -580,27 +580,60 @@ export function AppContent() {
    * FIX #2: Helper function to recalculate badge counts from memories
    * Used for initial load AND when PWA comes to foreground after fetching messages
    */
-  const recalculateBadgesFromMemories = useCallback(() => {
+  const recalculateBadgesFromMemories = useCallback(async () => {
     if (!user?.id) return;
     
-    const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
-    
-    // Only calculate if we have some memories loaded
-    if (Object.keys(sourceMap).length === 0) {
-      return;
+    // NEW: Query database directly for accurate unread counts instead of using cached memories
+    try {
+      const connectionIds = userType === 'keeper' 
+        ? Object.keys(memoriesByStoryteller)
+        : Object.keys(memoriesByLegacyKeeper);
+      
+      if (connectionIds.length === 0) return;
+      
+      const newCounts: Record<string, number> = {};
+      
+      // Query each connection's unread messages from database
+      for (const connectionId of connectionIds) {
+        const response = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/messages/${connectionId}/unread-count`,
+          {
+            headers: {
+              'Authorization': `Bearer ${publicAnonKey}`,
+            },
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          newCounts[connectionId] = data.unreadCount || 0;
+        } else {
+          // Fallback to memory-based calculation if API fails
+          const memories = userType === 'keeper' 
+            ? memoriesByStoryteller[connectionId]
+            : memoriesByLegacyKeeper[connectionId];
+          newCounts[connectionId] = memories?.filter(m => 
+            !m.readBy?.includes(user?.id || '') && 
+            m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
+          ).length || 0;
+        }
+      }
+      
+      setUnreadCounts(newCounts);
+      console.log('📊 Recalculated badge counts from database:', newCounts);
+    } catch (error) {
+      console.error('Failed to recalculate badges from database:', error);
+      // Fallback to old memory-based calculation
+      const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
+      const newCounts: Record<string, number> = {};
+      Object.entries(sourceMap).forEach(([connectionId, memories]) => {
+        newCounts[connectionId] = memories?.filter(m => 
+          !m.readBy?.includes(user?.id || '') && 
+          m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
+        ).length || 0;
+      });
+      setUnreadCounts(newCounts);
     }
-    
-    const newCounts: Record<string, number> = {};
-    
-    Object.entries(sourceMap).forEach(([connectionId, memories]) => {
-      newCounts[connectionId] = memories?.filter(m => 
-        !m.readBy?.includes(user?.id || '') && 
-        m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
-      ).length || 0;
-    });
-    
-    setUnreadCounts(newCounts);
-    console.log('📊 Recalculated badge counts from memories:', newCounts);
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id]);
 
   /**
@@ -2985,6 +3018,40 @@ export function AppContent() {
       pwaVisibilityHandler.cleanup();
     };
   }, [user?.id, userType, storytellers, legacyKeepers, loadConnectionsFromAPI, loadMemoriesForConnection, recalculateBadgesFromMemories]);
+
+  /**
+   * Service Worker Message Handler: Handle navigation requests from SW
+   * When user clicks a notification, SW sends NAVIGATE_TO_CHAT message
+   */
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    const handleSWMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'NAVIGATE_TO_CHAT') {
+        const { connectionId, data } = event.data;
+        console.log('📱 [SW] Received navigation request:', { connectionId, data });
+        
+        // Switch to the correct connection based on user type
+        if (connectionId) {
+          if (userType === 'keeper') {
+            setActiveStorytellerId(connectionId);
+          } else {
+            setActiveLegacyKeeperId(connectionId);
+          }
+        }
+        
+        // Dashboard handles tab switching via onActiveTabChange
+        // The navigation will complete when Dashboard renders with updated connection
+        console.log('✅ [SW] Switched to connection:', connectionId);
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleSWMessage);
+    
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleSWMessage);
+    };
+  }, [userType]);
 
   const renderCurrentScreen = () => {
     // Show loading screen while checking authentication
