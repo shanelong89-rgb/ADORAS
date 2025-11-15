@@ -420,27 +420,6 @@ export function AppContent() {
 
     setupRealtime();
 
-    // Initialize PWA visibility handler for iOS foreground/background sync
-    pwaVisibilityHandler.initialize(async () => {
-      console.log('🔄 PWA came to foreground - re-syncing...');
-      
-      // Step 1: Reload connections (in case partner sent connection requests)
-      console.log('📡 Step 1: Reloading connections...');
-      await loadConnectionsFromAPI();
-      
-      // Step 2: Reload memories for all active connections
-      console.log('📡 Step 2: Reloading memories...');
-      const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
-      if (activeConnectionId) {
-        console.log(`📦 Fetching messages for active connection: ${activeConnectionId}`);
-        await loadMemoriesForConnection(activeConnectionId, true);
-      }
-      
-      // Step 3: Reconnect realtime channels
-      console.log('📡 Step 3: Reconnecting realtime...');
-      setupRealtime();
-    });
-
     // Cleanup on unmount or when effect re-runs
     return () => {
       isCleanedUp = true; // Mark as cleaned up to prevent stale callbacks
@@ -453,9 +432,6 @@ export function AppContent() {
       }
       // Don't call disconnectAll here - setupRealtime handles disconnection intelligently
       setPresences({});
-      
-      // Cleanup PWA visibility handler
-      pwaVisibilityHandler.cleanup();
     };
     // Watch for changes - but setupRealtime() will decide if cleanup is needed
   }, [userType, activeStorytellerId, activeLegacyKeeperId, user?.id]);
@@ -601,17 +577,11 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType]);
 
   /**
-   * FIX #2: Calculate INITIAL unread counts on first load only
-   * After initial load, counts are updated incrementally via real-time broadcasts
-   * This prevents background messages from being "lost" when they're not in memories state
+   * FIX #2: Helper function to recalculate badge counts from memories
+   * Used for initial load AND when PWA comes to foreground after fetching messages
    */
-  const hasCalculatedInitialCounts = useRef(false);
-  
-  useEffect(() => {
-    // Only calculate once on initial load when we have connections and haven't calculated yet
-    if (hasCalculatedInitialCounts.current || !user?.id) {
-      return;
-    }
+  const recalculateBadgesFromMemories = useCallback(() => {
+    if (!user?.id) return;
     
     const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
     
@@ -630,9 +600,32 @@ export function AppContent() {
     });
     
     setUnreadCounts(newCounts);
-    console.log('📊 Initial unread counts calculated:', newCounts);
-    hasCalculatedInitialCounts.current = true;
+    console.log('📊 Recalculated badge counts from memories:', newCounts);
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id]);
+
+  /**
+   * Calculate INITIAL unread counts on first load only
+   * After initial load, counts are updated incrementally via real-time broadcasts
+   * This prevents background messages from being "lost" when they're not in memories state
+   */
+  const hasCalculatedInitialCounts = useRef(false);
+  
+  useEffect(() => {
+    // Only calculate once on initial load when we have connections and haven't calculated yet
+    if (hasCalculatedInitialCounts.current || !user?.id) {
+      return;
+    }
+    
+    const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
+    
+    // Only calculate if we have some memories loaded
+    if (Object.keys(sourceMap).length === 0) {
+      return;
+    }
+    
+    recalculateBadgesFromMemories();
+    hasCalculatedInitialCounts.current = true;
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id, recalculateBadgesFromMemories]);
 
   /**
    * FIX #2: Subscribe to user-level real-time updates for sidebar badges
@@ -2944,6 +2937,54 @@ export function AppContent() {
       };
     }
   };
+
+  /**
+   * PWA Visibility Handler: Initialize ONCE when user logs in
+   * This handles foreground/background transitions for iOS PWA
+   * IMPORTANT: Must be AFTER all function declarations (loadConnectionsFromAPI, loadMemoriesForConnection, etc.)
+   */
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('🔄 Initializing PWA visibility handler...');
+    
+    pwaVisibilityHandler.initialize(async () => {
+      console.log('🔄 PWA came to foreground - re-syncing...');
+      
+      // Step 1: Reload connections (in case partner sent connection requests)
+      console.log('📡 Step 1: Reloading connections...');
+      await loadConnectionsFromAPI();
+      
+      // Step 2: Reload memories for ALL connections (not just active)
+      console.log('📡 Step 2: Reloading memories for all connections...');
+      const allConnectionIds = userType === 'keeper'
+        ? storytellers.map(s => s.id).filter(Boolean)
+        : legacyKeepers.map(k => k.id).filter(Boolean);
+      
+      if (allConnectionIds.length > 0) {
+        // Fetch messages for all connections in parallel
+        await Promise.all(
+          allConnectionIds.map(connectionId => 
+            loadMemoriesForConnection(connectionId, false) // false = background fetch
+          )
+        );
+        console.log(`✅ Reloaded messages for ${allConnectionIds.length} connection(s)`);
+        
+        // Step 3: Recalculate badge counts from fetched messages
+        // This is CRITICAL - without this, badges show stale counts from before app was backgrounded
+        console.log('📡 Step 3: Recalculating badge counts from fetched messages...');
+        recalculateBadgesFromMemories();
+      }
+      
+      // Step 4: Reconnect realtime channels (handled by the realtime effect)
+      console.log('✅ PWA foreground sync complete');
+    });
+
+    return () => {
+      console.log('🧹 Cleaning up PWA visibility handler');
+      pwaVisibilityHandler.cleanup();
+    };
+  }, [user?.id, userType, storytellers, legacyKeepers, loadConnectionsFromAPI, loadMemoriesForConnection, recalculateBadgesFromMemories]);
 
   const renderCurrentScreen = () => {
     // Show loading screen while checking authentication
