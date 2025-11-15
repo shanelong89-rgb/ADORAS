@@ -4,13 +4,19 @@
  * Works everywhere - no dependency on push notifications
  */
 
-import React, { useEffect, useState } from 'react';
-import { X, MessageSquare, Image as ImageIcon, Heart, FileText } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useEffect, useState } from "react";
+import {
+  X,
+  MessageSquare,
+  Image as ImageIcon,
+  Heart,
+  FileText,
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 
 export interface ToastNotification {
   id: string;
-  type: 'message' | 'memory' | 'milestone' | 'prompt';
+  type: "message" | "memory" | "milestone" | "prompt";
   title: string;
   body: string;
   avatar?: string;
@@ -24,30 +30,38 @@ export interface ToastNotification {
 interface InAppToastContainerProps {
   notifications: ToastNotification[];
   onClose: (id: string) => void;
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center';
+  position?:
+    | "top-right"
+    | "top-left"
+    | "bottom-right"
+    | "bottom-left"
+    | "top-center";
 }
 
 export function InAppToastContainer({
   notifications,
   onClose,
-  position = 'top-right',
+  position = "top-right",
 }: InAppToastContainerProps) {
   const positionClasses = {
-    'top-right': 'right-4',
-    'top-left': 'left-4',
-    'bottom-right': 'bottom-4 right-4',
-    'bottom-left': 'bottom-4 left-4',
-    'top-center': 'left-1/2 -translate-x-1/2',
+    "top-right": "right-4",
+    "top-left": "left-4",
+    "bottom-right": "bottom-4 right-4",
+    "bottom-left": "bottom-4 left-4",
+    "top-center": "left-1/2 -translate-x-1/2",
   };
 
-  console.log(`🍞 InAppToastContainer rendering: ${notifications.length} notification(s)`, notifications.map(n => n.id));
+  console.log(
+    `🍞 InAppToastContainer rendering: ${notifications.length} notification(s)`,
+    notifications.map((n) => n.id),
+  );
 
   return (
     <div
       className={`fixed ${positionClasses[position]} !z-[9999] flex flex-col gap-2 max-w-sm w-full pointer-events-none`}
-      style={{ 
+      style={{
         zIndex: 9999,
-        top: 'calc(env(safe-area-inset-top, 0px) + 1.5rem)' // Aligned with dashboard header
+        top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)", // Aligned so bottom matches prompt box bottom
       }}
     >
       <AnimatePresence>
@@ -68,7 +82,10 @@ interface InAppToastProps {
   onClose: () => void;
 }
 
-function InAppToast({ notification, onClose }: InAppToastProps) {
+function InAppToast({
+  notification,
+  onClose,
+}: InAppToastProps) {
   const [isExiting, setIsExiting] = useState(false);
   const duration = notification.duration || 5000;
 
@@ -101,13 +118,13 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
 
   const getIcon = () => {
     switch (notification.type) {
-      case 'message':
+      case "message":
         return <MessageSquare className="w-5 h-5" />;
-      case 'memory':
+      case "memory":
         return <ImageIcon className="w-5 h-5" />;
-      case 'milestone':
+      case "milestone":
         return <Heart className="w-5 h-5" />;
-      case 'prompt':
+      case "prompt":
         return <FileText className="w-5 h-5" />;
       default:
         return <MessageSquare className="w-5 h-5" />;
@@ -116,15 +133,19 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
 
   const getColorClasses = () => {
     // Use app's signature dark green color for all notifications
-    return 'bg-[#36453B] text-white';
+    return "bg-[#36453B] text-white";
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: -20, scale: 0.95 }}
       animate={{ opacity: isExiting ? 0 : 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      exit={{
+        opacity: 0,
+        scale: 0.95,
+        transition: { duration: 0.2 },
+      }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className="pointer-events-auto"
     >
       <div
@@ -132,14 +153,16 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
           bg-white dark:bg-gray-800 
           rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700
           overflow-hidden
-          ${notification.onClick ? 'cursor-pointer hover:shadow-xl' : ''}
+          ${notification.onClick ? "cursor-pointer hover:shadow-xl" : ""}
           transition-all
         `}
         onClick={handleClick}
       >
         <div className="flex items-start gap-3 p-4">
           {/* Icon */}
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${getColorClasses()}`}>
+          <div
+            className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${getColorClasses()}`}
+          >
             {getIcon()}
           </div>
 
@@ -149,7 +172,7 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
               <h4 className="font-semibold text-base leading-tight text-gray-900 dark:text-white">
                 {notification.title}
               </h4>
-              
+
               {/* Avatar on the right */}
               {notification.avatar && (
                 <img
@@ -159,7 +182,7 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
                 />
               )}
             </div>
-            
+
             <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-2">
               {notification.body}
             </p>
@@ -180,7 +203,7 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
               <span className="text-xs text-gray-500 dark:text-gray-500">
                 {formatTimeAgo(notification.timestamp)}
               </span>
-              
+
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -194,14 +217,16 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
             </div>
           </div>
         </div>
-
         {/* Progress bar */}
         {duration > 0 && (
           <motion.div
             className={`h-1 ${getColorClasses()}`}
-            initial={{ width: '100%' }}
-            animate={{ width: '0%' }}
-            transition={{ duration: duration / 1000, ease: 'linear' }}
+            initial={{ width: "100%" }}
+            animate={{ width: "0%" }}
+            transition={{
+              duration: duration / 1000,
+              ease: "linear",
+            }}
           />
         )}
       </div>
@@ -210,11 +235,14 @@ function InAppToast({ notification, onClose }: InAppToastProps) {
 }
 
 function formatTimeAgo(date: Date): string {
-  const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-  
-  if (seconds < 60) return 'just now';
+  const seconds = Math.floor(
+    (new Date().getTime() - date.getTime()) / 1000,
+  );
+
+  if (seconds < 60) return "just now";
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 86400)
+    return `${Math.floor(seconds / 3600)}h ago`;
   return `${Math.floor(seconds / 86400)}d ago`;
 }
 
@@ -224,23 +252,34 @@ function formatTimeAgo(date: Date): string {
 export function useInAppToasts() {
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
 
-  const showToast = (toast: Omit<ToastNotification, 'id' | 'timestamp'>) => {
+  const showToast = (
+    toast: Omit<ToastNotification, "id" | "timestamp">,
+  ) => {
     const newToast: ToastNotification = {
       ...toast,
       id: `toast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: new Date(),
     };
 
-    console.log('🍞 Toast created:', newToast.id, '|', newToast.title, '|', newToast.body);
-    setToasts(prev => {
+    console.log(
+      "🍞 Toast created:",
+      newToast.id,
+      "|",
+      newToast.title,
+      "|",
+      newToast.body,
+    );
+    setToasts((prev) => {
       const updated = [...prev, newToast];
-      console.log(`🍞 Toasts array updated: ${updated.length} toast(s)`);
+      console.log(
+        `🍞 Toasts array updated: ${updated.length} toast(s)`,
+      );
       return updated;
     });
 
     // Play sound and vibrate
     playNotificationSound();
-    if ('vibrate' in navigator) {
+    if ("vibrate" in navigator) {
       navigator.vibrate([50, 100, 50]);
     }
 
@@ -248,7 +287,7 @@ export function useInAppToasts() {
   };
 
   const closeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   const clearAll = () => {
@@ -257,7 +296,8 @@ export function useInAppToasts() {
 
   const playNotificationSound = () => {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -266,15 +306,21 @@ export function useInAppToasts() {
 
       // Pleasant notification tone
       oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
+      oscillator.type = "sine";
 
-      gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+      gainNode.gain.setValueAtTime(
+        0.15,
+        audioContext.currentTime,
+      );
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.15,
+      );
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.15);
     } catch (error) {
-      console.log('Could not play notification sound:', error);
+      console.log("Could not play notification sound:", error);
     }
   };
 
