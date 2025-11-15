@@ -1,8 +1,8 @@
 // Adoras Service Worker - PWA Support
-// Version 1.4.0 - iOS Notification Format Update
+// Version 1.5.0 - Force notification format refresh
 
-const CACHE_NAME = 'adoras-v4';
-const RUNTIME_CACHE = 'adoras-runtime-v4';
+const CACHE_NAME = 'adoras-v5';
+const RUNTIME_CACHE = 'adoras-runtime-v5';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
