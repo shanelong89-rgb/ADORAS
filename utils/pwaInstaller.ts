@@ -110,8 +110,28 @@ class PWAInstaller {
         });
       });
 
-      // Check for updates (less frequently on iOS to save battery)
+      // Check for updates immediately and periodically
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      
+      // FORCE IMMEDIATE UPDATE CHECK (for iOS cache issues)
+      console.log('🔄 [SW] Force checking for updates immediately...');
+      setTimeout(() => {
+        registration.update().then(() => {
+          console.log('✅ [SW] Update check complete');
+        }).catch((err) => {
+          console.warn('⚠️ [SW] Update check failed:', err);
+        });
+      }, 1000);
+      
+      // Check again after 10 seconds (iOS sometimes needs multiple checks)
+      if (isIOS) {
+        setTimeout(() => {
+          console.log('🔄 [SW] iOS: Second update check...');
+          registration.update();
+        }, 10000);
+      }
+      
+      // Regular periodic checks (less frequently on iOS to save battery)
       const updateInterval = isIOS ? 6 * 60 * 60 * 1000 : 60 * 60 * 1000; // 6 hours on iOS, 1 hour elsewhere
       setInterval(() => {
         console.log('🔄 [SW] Checking for updates...');
