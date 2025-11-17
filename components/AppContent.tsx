@@ -676,15 +676,20 @@ export function AppContent() {
     
     const newCounts: Record<string, number> = {};
     
+    // 🔥 CRITICAL: Use user.type (from API) not userType (state variable)
+    // userType state may be null during initial load!
+    const currentUserSenderType = user?.type === 'keeper' ? 'keeper' : 'teller';
+    
     Object.entries(sourceMap).forEach(([connectionId, memories]) => {
-      newCounts[connectionId] = memories?.filter(m => 
-        !m.readBy?.includes(user?.id || '') && 
-        m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
-      ).length || 0;
+      newCounts[connectionId] = memories?.filter(m => {
+        const notReadByMe = !m.readBy?.includes(user?.id || '');
+        const notSentByMe = m.sender !== currentUserSenderType;
+        return notReadByMe && notSentByMe;
+      }).length || 0;
     });
     
     setUnreadCounts(newCounts);
-    console.log('📊 Initial unread counts calculated:', newCounts);
+    console.log(`📊 Initial unread counts calculated (user type: ${user?.type}):`, newCounts);
     hasCalculatedInitialCounts.current = true;
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, storytellers, legacyKeepers, userType, user?.id]);
 
@@ -1424,13 +1429,18 @@ export function AppContent() {
           
           // CRITICAL FIX: Recalculate unread count for background connections
           // This ensures badges show correctly when loading memories in background
-          if (user?.id) {
-            const unreadCount = uiMemories.filter(m => 
-              !m.readBy?.includes(user.id || '') && 
-              m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
-            ).length;
+          if (user?.id && user?.type) {
+            // 🔥 CRITICAL: Use user.type (from API) not userType (state variable)
+            // userType state may be null during initial load!
+            const currentUserSenderType = user.type === 'keeper' ? 'keeper' : 'teller';
             
-            console.log(`📊 Calculated ${unreadCount} unread for background connection ${connectionId}`);
+            const unreadCount = uiMemories.filter(m => {
+              const notReadByMe = !m.readBy?.includes(user.id || '');
+              const notSentByMe = m.sender !== currentUserSenderType;
+              return notReadByMe && notSentByMe;
+            }).length;
+            
+            console.log(`📊 Calculated ${unreadCount} unread for background connection ${connectionId} (user type: ${user.type})`);
             
             setUnreadCounts((prev) => ({
               ...prev,
