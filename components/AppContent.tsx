@@ -2611,12 +2611,8 @@ export function AppContent() {
     if (storyteller) {
       console.log(`🔄 Switching to storyteller: ${storyteller.name} (${storytellerId})`);
       
-      // CRITICAL: Clear badge IMMEDIATELY when switching (don't wait for API)
-      setUnreadCounts((prev) => ({
-        ...prev,
-        [storytellerId]: 0,
-      }));
-      console.log(`✨ Badge cleared immediately for ${storytellerId}`);
+      // DON'T clear badge here - wait for mark-as-read API to complete
+      // This prevents iOS badge from being cleared prematurely
       
       setActiveStorytellerId(storytellerId);
       setPartnerProfile({
@@ -2649,12 +2645,8 @@ export function AppContent() {
     if (legacyKeeper) {
       console.log(`🔄 Switching to legacy keeper: ${legacyKeeper.name} (${legacyKeeperId})`);
       
-      // CRITICAL: Clear badge IMMEDIATELY when switching (don't wait for API)
-      setUnreadCounts((prev) => ({
-        ...prev,
-        [legacyKeeperId]: 0,
-      }));
-      console.log(`✨ Badge cleared immediately for ${legacyKeeperId}`);
+      // DON'T clear badge here - wait for mark-as-read API to complete
+      // This prevents iOS badge from being cleared prematurely
       
       setActiveLegacyKeeperId(legacyKeeperId);
       setPartnerProfile({
