@@ -666,7 +666,15 @@ export function Dashboard({
                     {isConnected ? t('connected') : t('notConnected')}
                   </Badge>
                   <span className="text-[10px] sm:text-xs text-muted-foreground max-w-[60px] sm:max-w-[80px] leading-tight truncate" style={{ fontFamily: 'Inter', letterSpacing: '-0.04em' }}>
-                    {memories.length} {t('memories')}
+                    {(() => {
+                      // Show count for ACTIVE connection only (not global memories array)
+                      const activeConnectionId = activeStorytellerId || activeLegacyKeeperId;
+                      if (activeConnectionId) {
+                        const activeMemories = memoriesByStoryteller[activeConnectionId] || memoriesByLegacyKeeper[activeConnectionId] || [];
+                        return `${activeMemories.length} ${t('memories')}`;
+                      }
+                      return `${memories.length} ${t('memories')}`;
+                    })()}
                   </span>
                 </div>
               </div>
