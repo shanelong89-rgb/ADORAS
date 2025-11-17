@@ -1,7 +1,7 @@
 /**
  * AppContent Component
  * Main app logic with access to AuthContext
- * CACHE BUST: v16-CLEANUP-PHASE4 - 2025-11-17-0900
+ * CACHE BUST: v17-BADGE-SYNC-FIX - 2025-11-17-2020
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -29,6 +29,7 @@ import { NotificationOnboardingDialog } from './NotificationOnboardingDialog';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { pwaVisibilityHandler } from '../utils/pwaVisibilityHandler';
 import { mergeMemories, memoryExists, calculateUnreadCount } from '../utils/memoryUtils';
+import { updateAndPersistTotalBadge } from '../utils/sidebarUtils';
 import { getLastMessagePreview, updateConnectionLastMessage } from '../utils/sidebarUtils';
 import { 
   selectActiveConnection, 
@@ -95,30 +96,12 @@ export function AppContent() {
 
   /**
    * iOS PWA Badge API: Update home screen icon badge with total unread count
+   * NOW ALSO PERSISTS to IndexedDB so service worker and app stay in sync
    */
   useEffect(() => {
-    // Calculate total unread across ALL connections
-    const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
-    
-    console.log(`📱 [BADGE-CALC] Unread counts by connection:`, unreadCounts);
-    console.log(`📱 [BADGE-CALC] Total unread: ${totalUnread}`);
-    
-    // Update iOS PWA badge
-    if ('setAppBadge' in navigator) {
-      try {
-        if (totalUnread > 0) {
-          (navigator as any).setAppBadge(totalUnread);
-          console.log(`📱 iOS Badge updated: ${totalUnread} unread messages`);
-        } else {
-          (navigator as any).clearAppBadge();
-          console.log('📱 iOS Badge cleared (all messages read)');
-        }
-      } catch (error) {
-        console.error('❌ Failed to update iOS badge:', error);
-      }
-    } else {
-      console.log('ℹ️ Badge API not supported in this browser/mode');
-    }
+    // Update badge and persist to IndexedDB
+    // This ensures the badge is always available, even after app restart
+    updateAndPersistTotalBadge(unreadCounts);
   }, [unreadCounts]); // Re-run whenever unread counts change
 
   /**
