@@ -114,11 +114,9 @@ class PWAInstaller {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       
       // FORCE IMMEDIATE UPDATE CHECK (for iOS cache issues)
-      console.log('🔄 [SW] Force checking for updates immediately...');
+      // Reduced logging - only log errors
       setTimeout(() => {
-        registration.update().then(() => {
-          console.log('✅ [SW] Update check complete');
-        }).catch((err) => {
+        registration.update().catch((err) => {
           console.warn('⚠️ [SW] Update check failed:', err);
         });
       }, 1000);
@@ -126,7 +124,6 @@ class PWAInstaller {
       // Check again after 10 seconds (iOS sometimes needs multiple checks)
       if (isIOS) {
         setTimeout(() => {
-          console.log('🔄 [SW] iOS: Second update check...');
           registration.update();
         }, 10000);
       }
@@ -142,13 +139,10 @@ class PWAInstaller {
       if (isIOS) {
         setTimeout(async () => {
           const verifyReg = await navigator.serviceWorker.getRegistration();
-          if (verifyReg) {
-            console.log('✅ [SW] iOS: Service worker registration verified!');
-            console.log('📝 [SW] iOS: Active:', !!verifyReg.active);
-            console.log('📝 [SW] iOS: Scope:', verifyReg.scope);
-          } else {
+          if (!verifyReg) {
             console.error('❌ [SW] iOS: Verification failed - no registration found!');
           }
+          // Reduced logging - only log errors
         }, 2000);
       }
 
