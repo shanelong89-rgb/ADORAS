@@ -339,10 +339,12 @@ class RealtimeSyncManager {
         this.presenceCallbacks.forEach(cb => cb(connectionId, presences));
       })
       .on('presence', { event: 'join' }, ({ key }) => {
-        console.log(`✅ User joined ${connectionId}:`, key);
+        // Reduced logging - only log in development if needed
+        // console.log(`✅ User joined ${connectionId}:`, key);
       })
       .on('presence', { event: 'leave' }, ({ key }) => {
-        console.log(`👋 User left ${connectionId}:`, key);
+        // Reduced logging - only log in development if needed
+        // console.log(`👋 User left ${connectionId}:`, key);
       });
 
     // Store channel BEFORE subscribing
