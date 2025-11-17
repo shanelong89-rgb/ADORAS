@@ -224,18 +224,25 @@ self.addEventListener('push', (event) => {
       
       // CRITICAL: Set app badge IMMEDIATELY when push arrives (iOS PWA in background!)
       // Note: In service worker context, use navigator (not self.navigator)
-      try {
-        if ('setAppBadge' in navigator) {
-          await navigator.setAppBadge(badgeCount);
-          console.log('[SW] ✅ iOS Badge set to:', badgeCount, '(from push event, BEFORE showing notification)');
-        } else if (self.navigator && 'setAppBadge' in self.navigator) {
-          await self.navigator.setAppBadge(badgeCount);
-          console.log('[SW] ✅ iOS Badge set to:', badgeCount, '(via self.navigator)');
-        } else {
-          console.log('[SW] ⚠️ Badge API not available in service worker context');
-        }
-      } catch (badgeError) {
-        console.error('[SW] ❌ Failed to set app badge:', badgeError);
+      // Use .then() instead of await since we're not in an async function yet
+      if ('setAppBadge' in navigator) {
+        navigator.setAppBadge(badgeCount)
+          .then(() => {
+            console.log('[SW] ✅ iOS Badge set to:', badgeCount, '(from push event, BEFORE showing notification)');
+          })
+          .catch((badgeError) => {
+            console.error('[SW] ❌ Failed to set app badge:', badgeError);
+          });
+      } else if (self.navigator && 'setAppBadge' in self.navigator) {
+        self.navigator.setAppBadge(badgeCount)
+          .then(() => {
+            console.log('[SW] ✅ iOS Badge set to:', badgeCount, '(via self.navigator)');
+          })
+          .catch((badgeError) => {
+            console.error('[SW] ❌ Failed to set app badge:', badgeError);
+          });
+      } else {
+        console.log('[SW] ⚠️ Badge API not available in service worker context');
       }
       
     } catch (error) {
