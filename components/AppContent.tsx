@@ -1,7 +1,7 @@
 /**
  * AppContent Component
  * Main app logic with access to AuthContext
- * CACHE BUST: v14-CONNECTION-SWITCH-CALLBACK-FIX - 2025-11-14-1950
+ * CACHE BUST: v15-BACKGROUND-UNREAD-BADGE-FIX - 2025-11-17-0640
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -455,11 +455,20 @@ export function AppContent() {
         // Then load all other connections in background (for badge counts)
         const otherConnectionIds = allConnectionIds.filter(id => id !== activeConnectionId);
         if (otherConnectionIds.length > 0) {
-          console.log(`📦 Fetching messages for ${otherConnectionIds.length} other connections (background)...`);
-          Promise.all(otherConnectionIds.map(id => loadMemoriesForConnection(id, false))).catch(err => {
+          console.log(`📦 Fetching messages for ${otherConnectionIds.length} other connection(s) in background (for badge counts)...`);
+          Promise.all(otherConnectionIds.map(id => {
+            console.log(`   → Loading memories for ${id}...`);
+            return loadMemoriesForConnection(id, false);
+          })).then(() => {
+            console.log('✅ All background connections loaded - badges should be accurate now');
+          }).catch(err => {
             console.warn('⚠️ Some background memory loads failed:', err);
           });
+        } else {
+          console.log('ℹ️ No other connections to load in background');
         }
+      } else {
+        console.log('⚠️ No active connection or connection list empty - skipping memory reload');
       }
       
       // Step 3: Reconnect realtime channels
@@ -1408,6 +1417,22 @@ export function AppContent() {
           });
         } else {
           console.log(`ℹ️ Skipping global memories update for background connection: ${connectionId}`);
+          
+          // CRITICAL FIX: Recalculate unread count for background connections
+          // This ensures badges show correctly when loading memories in background
+          if (user?.id) {
+            const unreadCount = uiMemories.filter(m => 
+              !m.readBy?.includes(user.id || '') && 
+              m.sender !== (userType === 'keeper' ? 'keeper' : 'teller')
+            ).length;
+            
+            console.log(`📊 Calculated ${unreadCount} unread for background connection ${connectionId}`);
+            
+            setUnreadCounts((prev) => ({
+              ...prev,
+              [connectionId]: unreadCount,
+            }));
+          }
         }
       } else {
         console.warn(`⚠️ API call succeeded but no memories found for connection: ${connectionId}`);
