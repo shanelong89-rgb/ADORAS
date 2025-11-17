@@ -362,26 +362,30 @@ export function Dashboard({
     
     // Only trigger when connection actually changes
     if (currentConnectionId && currentConnectionId !== prevConnectionIdRef.current && prevConnectionIdRef.current !== undefined) {
-      console.log(`🔄 Connection switched to ${currentConnectionId}, will mark as read after memories load`);
+      console.log(`🔄 Connection switched to ${currentConnectionId}`);
       
       // Show loading state during switch
       setIsSwitchingConnection(true);
       setConnectionSwitchError(null);
       
-      // 🔥 CRITICAL FIX: Delay mark-as-read to allow memories to load first
-      // Memories are loaded async in AppContent, so we need to wait for them to populate
-      // global state before trying to update readBy arrays locally
+      // 🔥 CRITICAL FIX: Only mark as read if user is on CHAT tab
+      // If they're on Prompts/Media/Profile tabs, DON'T mark messages as read
+      // This prevents the bug where switching connections clears unread badges
+      // even though the user hasn't actually viewed the chat messages
       const timer = setTimeout(async () => {
-        console.log(`📖 Marking messages as read after memory load: ${currentConnectionId}`);
-        try {
-          await markConnectionAsRead(currentConnectionId);
-          console.log(`✅ Connection switch completed for: ${currentConnectionId}`);
-        } catch (error) {
-          console.error(`❌ Connection switch failed:`, error);
-          setConnectionSwitchError(String(error));
-        } finally {
-          setIsSwitchingConnection(false);
+        if (activeTab === 'chat') {
+          console.log(`📖 Marking messages as read (Chat tab active): ${currentConnectionId}`);
+          try {
+            await markConnectionAsRead(currentConnectionId);
+            console.log(`✅ Connection switch completed for: ${currentConnectionId}`);
+          } catch (error) {
+            console.error(`❌ Connection switch failed:`, error);
+            setConnectionSwitchError(String(error));
+          }
+        } else {
+          console.log(`ℹ️ Skipping mark-as-read (on ${activeTab} tab, not chat)`);
         }
+        setIsSwitchingConnection(false);
       }, 1000); // 1 second delay to allow memories to load and populate state
       
       return () => clearTimeout(timer);
