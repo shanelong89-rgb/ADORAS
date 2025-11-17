@@ -8,6 +8,7 @@
 
 import { useEffect } from 'react';
 import { pwaVisibilityHandler } from '../pwaVisibilityHandler';
+import { getPersistedBadge } from '../sidebarUtils';
 import type { UserType, Storyteller, LegacyKeeper } from '../../App';
 
 interface UsePWAVisibilitySyncParams {
@@ -37,6 +38,18 @@ export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
     // Initialize PWA visibility handler for iOS foreground/background sync
     pwaVisibilityHandler.initialize(async () => {
       console.log('🔄 PWA came to foreground - re-syncing...');
+      
+      // CRITICAL: Read persisted badge count FIRST for instant display
+      // This shows the badge immediately without waiting for API
+      const persistedBadgeCount = await getPersistedBadge();
+      if (persistedBadgeCount > 0 && 'setAppBadge' in navigator) {
+        try {
+          await (navigator as any).setAppBadge(persistedBadgeCount);
+          console.log(`📱 [INSTANT-BADGE] Restored badge from persistence: ${persistedBadgeCount} unread`);
+        } catch (error) {
+          console.error('❌ Failed to restore badge:', error);
+        }
+      }
       
       // Step 1: Reload connections (in case partner sent connection requests)
       console.log('📡 Step 1: Reloading connections...');
