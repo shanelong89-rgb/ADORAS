@@ -51,10 +51,10 @@ export function InAppToastContainer({
     "top-center": "left-1/2 -translate-x-1/2",
   };
 
-  console.log(
-    `🍞 InAppToastContainer rendering: ${notifications.length} notification(s)`,
-    notifications.map((n) => n.id),
-  );
+  // Only log when notifications actually change (not on every render)
+  if (notifications.length > 0) {
+    console.log(`🍞 ${notifications.length} in-app notification(s) active`);
+  }
 
   return (
     <div
