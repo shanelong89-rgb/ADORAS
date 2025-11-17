@@ -85,6 +85,9 @@ export function AppContent() {
     // Calculate total unread across ALL connections
     const totalUnread = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
     
+    console.log(`📱 [BADGE-CALC] Unread counts by connection:`, unreadCounts);
+    console.log(`📱 [BADGE-CALC] Total unread: ${totalUnread}`);
+    
     // Update iOS PWA badge
     if ('setAppBadge' in navigator) {
       try {
@@ -96,9 +99,10 @@ export function AppContent() {
           console.log('📱 iOS Badge cleared (all messages read)');
         }
       } catch (error) {
-        // Badge API not supported (not a PWA or browser doesn't support it)
-        // This is OK - silently fail
+        console.error('❌ Failed to update iOS badge:', error);
       }
+    } else {
+      console.log('ℹ️ Badge API not supported in this browser/mode');
     }
   }, [unreadCounts]); // Re-run whenever unread counts change
 
