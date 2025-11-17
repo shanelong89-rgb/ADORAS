@@ -1,7 +1,7 @@
 /**
  * AppContent Component
  * Main app logic with access to AuthContext
- * CACHE BUST: v16-CLEANUP - 2025-11-17-0700
+ * CACHE BUST: v16-CLEANUP-PHASE2 - 2025-11-17-0730
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -29,6 +29,7 @@ import { NotificationOnboardingDialog } from './NotificationOnboardingDialog';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { pwaVisibilityHandler } from '../utils/pwaVisibilityHandler';
 import { mergeMemories, memoryExists, calculateUnreadCount } from '../utils/memoryUtils';
+import { getLastMessagePreview, updateConnectionLastMessage } from '../utils/sidebarUtils';
 import { toast } from 'sonner';
 import type { UserType, UserProfile, Storyteller, LegacyKeeper, Memory, DisplayLanguage } from '../App';
 import type { ConnectionWithPartner, Memory as ApiMemory } from '../utils/api/types';
@@ -758,24 +759,20 @@ export function AppContent() {
         // Update the last message preview in the sidebar
         if (update.lastMessage) {
           const userType = userTypeRef.current;
+          const messageInfo = { 
+            message: update.lastMessage.preview, 
+            time: update.lastMessage.timestamp 
+          };
           
           if (userType === 'keeper') {
             // Update storytellers array
             setStorytellers((prev) => 
-              prev.map((st) => 
-                st.id === update.connectionId
-                  ? { ...st, lastMessage: update.lastMessage.preview, lastMessageTime: update.lastMessage.timestamp }
-                  : st
-              )
+              updateConnectionLastMessage(prev, update.connectionId, messageInfo)
             );
           } else {
             // Update legacyKeepers array
             setLegacyKeepers((prev) =>
-              prev.map((lk) =>
-                lk.id === update.connectionId
-                  ? { ...lk, lastMessage: update.lastMessage.preview, lastMessageTime: update.lastMessage.timestamp }
-                  : lk
-              )
+              updateConnectionLastMessage(prev, update.connectionId, messageInfo)
             );
           }
           console.log(`📱 Updated sidebar preview for ${update.connectionId}: "${update.lastMessage.preview}"`);
@@ -1056,39 +1053,7 @@ export function AppContent() {
    */
   const getLastMessageForConnection = React.useCallback((connectionId: string): { message: string; time: Date } | null => {
     const connectionMemories = memoriesByStoryteller[connectionId] || memoriesByLegacyKeeper[connectionId] || [];
-    if (connectionMemories.length === 0) return null;
-    
-    // Filter to only text and voice messages (not photos, videos, documents, or prompts)
-    const messages = connectionMemories.filter(m => 
-      (m.type === 'text' || m.type === 'voice') && 
-      !m.promptQuestion // Exclude prompt questions
-    );
-    
-    if (messages.length === 0) return null;
-    
-    // Sort messages by timestamp to ensure we get the actual latest message
-    // Messages might be added out of order via realtime updates
-    const sortedMessages = [...messages].sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-    
-    // Get the most recent message (last in sorted array)
-    const lastMsg = sortedMessages[sortedMessages.length - 1];
-    
-    // Create preview text
-    let preview = '';
-    if (lastMsg.type === 'voice') {
-      preview = lastMsg.transcript || '🎤 Voice message';
-    } else {
-      preview = lastMsg.content;
-    }
-    
-    // Truncate to 50 characters
-    if (preview.length > 50) {
-      preview = preview.substring(0, 50) + '...';
-    }
-    
-    return { message: preview, time: lastMsg.timestamp };
+    return getLastMessagePreview(connectionMemories);
   }, [memoriesByStoryteller, memoriesByLegacyKeeper]);
 
   /**
@@ -1107,27 +1072,11 @@ export function AppContent() {
     
     if (currentUserType === 'keeper') {
       setStorytellers(prev => 
-        prev.map(storyteller => 
-          storyteller.id === connectionId
-            ? {
-                ...storyteller,
-                lastMessage: lastMessageInfo?.message,
-                lastMessageTime: lastMessageInfo?.time,
-              }
-            : storyteller
-        )
+        updateConnectionLastMessage(prev, connectionId, lastMessageInfo)
       );
     } else if (currentUserType === 'teller') {
       setLegacyKeepers(prev =>
-        prev.map(keeper =>
-          keeper.id === connectionId
-            ? {
-                ...keeper,
-                lastMessage: lastMessageInfo?.message,
-                lastMessageTime: lastMessageInfo?.time,
-              }
-            : keeper
-        )
+        updateConnectionLastMessage(prev, connectionId, lastMessageInfo)
       );
     }
   }, [getLastMessageForConnection]); // Removed userType dependency - using ref instead
@@ -1594,31 +1543,14 @@ export function AppContent() {
             await loadMemoriesForConnection(id);
             
             // Update sidebar last message after loading background connections
-            // Inline logic to avoid stale closure issues
             const connectionMemories = (userType === 'keeper' ? memoriesByStoryteller[id] : memoriesByLegacyKeeper[id]) || [];
-            const messages = connectionMemories.filter(m => 
-              (m.type === 'text' || m.type === 'voice') && !m.promptQuestion
-            );
+            const messageInfo = getLastMessagePreview(connectionMemories);
             
-            if (messages.length > 0) {
-              const sortedMessages = [...messages].sort((a, b) => 
-                new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-              );
-              const lastMsg = sortedMessages[sortedMessages.length - 1];
-              let preview = lastMsg.type === 'voice' 
-                ? (lastMsg.transcript || '🎤 Voice message')
-                : lastMsg.content;
-              if (preview.length > 50) preview = preview.substring(0, 50) + '...';
-              
-              // Update sidebar
+            if (messageInfo) {
               if (userType === 'keeper') {
-                setStorytellers(prev => prev.map(s => 
-                  s.id === id ? { ...s, lastMessage: preview, lastMessageTime: lastMsg.timestamp } : s
-                ));
+                setStorytellers(prev => updateConnectionLastMessage(prev, id, messageInfo));
               } else {
-                setLegacyKeepers(prev => prev.map(k => 
-                  k.id === id ? { ...k, lastMessage: preview, lastMessageTime: lastMsg.timestamp } : k
-                ));
+                setLegacyKeepers(prev => updateConnectionLastMessage(prev, id, messageInfo));
               }
             }
           }
