@@ -9,7 +9,17 @@ const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-dede
 
 // Check if notifications are supported
 export function isNotificationSupported(): boolean {
-  return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  // iOS Safari doesn't expose PushManager globally, but it IS available via serviceWorker.pushManager
+  // So we check for serviceWorker instead of PushManager in window
+  const hasBasicSupport = 'Notification' in window && 'serviceWorker' in navigator;
+  
+  if (!hasBasicSupport) {
+    return false;
+  }
+  
+  // For iOS: Even though 'PushManager' may not be in window, push notifications work
+  // The PushManager is accessible via registration.pushManager
+  return true;
 }
 
 // Get current notification permission
@@ -554,6 +564,7 @@ export async function notifyNewMemory(params: {
   memoryId: string;
   previewText?: string;
   mediaUrl?: string;
+  connectionId?: string; // Connection ID to help backend calculate badge count
 }): Promise<boolean> {
   try {
     console.log('📱 notifyNewMemory called:', {
