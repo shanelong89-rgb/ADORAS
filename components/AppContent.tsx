@@ -464,18 +464,11 @@ export function AppContent() {
           Promise.all(otherConnectionIds.map(id => {
             console.log(`   → Loading memories for ${id}...`);
             return loadMemoriesForConnection(id, false);
-          })).then(() => {
-            console.log('✅ All background connections loaded - recalculating badges...');
-            // CRITICAL FIX: Recalculate badges after reloading memories
-            // This ensures any messages received while backgrounded are counted
-            recalculateUnreadCounts();
-          }).catch(err => {
+          })).catch(err => {
             console.warn('⚠️ Some background memory loads failed:', err);
           });
         } else {
           console.log('ℹ️ No other connections to load in background');
-          // Still recalculate badges for the active connection
-          recalculateUnreadCounts();
         }
       } else {
         console.log('⚠️ No active connection or connection list empty - skipping memory reload');
@@ -718,6 +711,27 @@ export function AppContent() {
     console.log('📊 Initial unread counts calculated');
     hasCalculatedInitialCounts.current = true;
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, storytellers, legacyKeepers, user?.type, user?.id, recalculateUnreadCounts]);
+
+  /**
+   * CRITICAL FIX: Recalculate badges whenever memory maps change AFTER initial load
+   * This handles foreground resume and other cases where memories are reloaded
+   */
+  useEffect(() => {
+    // Only run after initial counts have been calculated
+    if (!hasCalculatedInitialCounts.current || !user?.id || !user?.type) {
+      return;
+    }
+    
+    // Don't recalculate if memory maps are empty (being cleared/reset)
+    const sourceMap = user.type === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
+    if (Object.keys(sourceMap).length === 0) {
+      console.log('⏭️ Skipping badge recalculation - memory maps are empty');
+      return;
+    }
+    
+    // Recalculate badges based on updated memory maps
+    recalculateUnreadCounts();
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, user?.type, user?.id, recalculateUnreadCounts]);
 
   /**
    * FIX #2: Subscribe to user-level real-time updates for sidebar badges
