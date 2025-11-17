@@ -439,12 +439,27 @@ export function AppContent() {
       console.log('📡 Step 1: Reloading connections...');
       await loadConnectionsFromAPI();
       
-      // Step 2: Reload memories for all active connections
-      console.log('📡 Step 2: Reloading memories...');
+      // Step 2: Reload memories for ALL connections (not just active)
+      // This ensures unread badge counts are accurate after backgrounding
+      console.log('📡 Step 2: Reloading memories for all connections...');
       const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
-      if (activeConnectionId) {
+      const allConnectionIds = userType === 'keeper' 
+        ? storytellers.map(s => s.id) 
+        : legacyKeepers.map(k => k.id);
+      
+      if (activeConnectionId && allConnectionIds.includes(activeConnectionId)) {
+        // Load active connection FIRST (priority)
         console.log(`📦 Fetching messages for active connection: ${activeConnectionId}`);
         await loadMemoriesForConnection(activeConnectionId, true);
+        
+        // Then load all other connections in background (for badge counts)
+        const otherConnectionIds = allConnectionIds.filter(id => id !== activeConnectionId);
+        if (otherConnectionIds.length > 0) {
+          console.log(`📦 Fetching messages for ${otherConnectionIds.length} other connections (background)...`);
+          Promise.all(otherConnectionIds.map(id => loadMemoriesForConnection(id, false))).catch(err => {
+            console.warn('⚠️ Some background memory loads failed:', err);
+          });
+        }
       }
       
       // Step 3: Reconnect realtime channels
@@ -615,6 +630,9 @@ export function AppContent() {
    * FIX #2: Calculate INITIAL unread counts on first load only
    * After initial load, counts are updated incrementally via real-time broadcasts
    * This prevents background messages from being "lost" when they're not in memories state
+   * 
+   * CRITICAL FIX: Wait for ALL connections to have loaded memories before calculating
+   * Otherwise badges will be incorrect if other connections haven't loaded yet
    */
   const hasCalculatedInitialCounts = useRef(false);
   
@@ -625,10 +643,22 @@ export function AppContent() {
     }
     
     const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
+    const allConnectionIds = userType === 'keeper' 
+      ? storytellers.map(s => s.id) 
+      : legacyKeepers.map(k => k.id);
     
-    // Only calculate if we have some memories loaded
-    if (Object.keys(sourceMap).length === 0) {
-      return;
+    // Only calculate if we have memories loaded for ALL connections
+    // This ensures accurate badge counts from the start
+    if (allConnectionIds.length === 0) {
+      return; // No connections yet
+    }
+    
+    const loadedConnectionIds = Object.keys(sourceMap);
+    const allLoaded = allConnectionIds.every(id => loadedConnectionIds.includes(id));
+    
+    if (!allLoaded) {
+      console.log(`⏳ Waiting for all connections to load memories: ${loadedConnectionIds.length}/${allConnectionIds.length}`);
+      return; // Wait for all connections to load
     }
     
     const newCounts: Record<string, number> = {};
@@ -643,7 +673,7 @@ export function AppContent() {
     setUnreadCounts(newCounts);
     console.log('📊 Initial unread counts calculated:', newCounts);
     hasCalculatedInitialCounts.current = true;
-  }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType, user?.id]);
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, storytellers, legacyKeepers, userType, user?.id]);
 
   /**
    * FIX #2: Subscribe to user-level real-time updates for sidebar badges
