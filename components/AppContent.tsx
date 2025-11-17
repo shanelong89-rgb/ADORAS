@@ -1,7 +1,7 @@
 /**
  * AppContent Component
  * Main app logic with access to AuthContext
- * CACHE BUST: v15-BACKGROUND-UNREAD-BADGE-FIX - 2025-11-17-0640
+ * CACHE BUST: v16-CLEANUP - 2025-11-17-0700
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -15,19 +15,20 @@ import { Dashboard } from './Dashboard';
 import { useAuth } from '../utils/api/AuthContext';
 import { apiClient } from '../utils/api/client';
 import { uploadPhoto, uploadVideo, uploadAudio, uploadDocument } from '../utils/api/storage';
-import { compressImage, validateVideo, validateAudio, formatFileSize } from '../utils/mediaOptimizer'; // Phase 3d
-import { useNetworkStatus } from '../utils/networkStatus'; // Phase 3e
-import { prefetchMedia, clearExpiredCache } from '../utils/mediaCache'; // Phase 3e
-import { queueOperation, processQueue, setupAutoSync, getQueueStats, type QueuedOperation } from '../utils/offlineQueue'; // Phase 3e
-import { autoTagPhoto } from '../utils/aiService'; // Phase 4a
-import { autoTranscribeVoiceNote, getLanguageCode } from '../utils/aiService'; // Phase 4b
-import { realtimeSync, type PresenceState, type MemoryUpdate } from '../utils/realtimeSync'; // Phase 5
-import { initializeDailyPromptScheduler } from '../utils/dailyPromptScheduler'; // Daily prompts
-import { subscribeToPushNotifications, isPushSubscribed, getNotificationPreferences } from '../utils/notificationService'; // Push notifications
-import { canReceivePushNotifications, isPWAMode, getNotificationCapabilityMessage } from '../utils/pwaDetection'; // PWA detection
-import { NotificationOnboardingDialog } from './NotificationOnboardingDialog'; // First-time notification prompt
-import { projectId, publicAnonKey } from '../utils/supabase/info'; // Supabase credentials
-import { pwaVisibilityHandler } from '../utils/pwaVisibilityHandler'; // PWA foreground/background handler
+import { compressImage, validateVideo, validateAudio, formatFileSize } from '../utils/mediaOptimizer';
+import { useNetworkStatus } from '../utils/networkStatus';
+import { prefetchMedia, clearExpiredCache } from '../utils/mediaCache';
+import { queueOperation, processQueue, setupAutoSync, getQueueStats, type QueuedOperation } from '../utils/offlineQueue';
+import { autoTagPhoto } from '../utils/aiService';
+import { autoTranscribeVoiceNote, getLanguageCode } from '../utils/aiService';
+import { realtimeSync, type PresenceState, type MemoryUpdate } from '../utils/realtimeSync';
+import { initializeDailyPromptScheduler } from '../utils/dailyPromptScheduler';
+import { subscribeToPushNotifications, isPushSubscribed, getNotificationPreferences } from '../utils/notificationService';
+import { canReceivePushNotifications, isPWAMode, getNotificationCapabilityMessage } from '../utils/pwaDetection';
+import { NotificationOnboardingDialog } from './NotificationOnboardingDialog';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
+import { pwaVisibilityHandler } from '../utils/pwaVisibilityHandler';
+import { mergeMemories, memoryExists, calculateUnreadCount } from '../utils/memoryUtils';
 import { toast } from 'sonner';
 import type { UserType, UserProfile, Storyteller, LegacyKeeper, Memory, DisplayLanguage } from '../App';
 import type { ConnectionWithPartner, Memory as ApiMemory } from '../utils/api/types';
@@ -75,7 +76,7 @@ export function AppContent() {
   const [showNotificationOnboarding, setShowNotificationOnboarding] = useState(false);
   const [hasCheckedNotificationOnboarding, setHasCheckedNotificationOnboarding] = useState(false);
 
-  // FIX #1: Track unread counts per connection for badges
+  // Track unread counts per connection for badges
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   /**
@@ -197,7 +198,7 @@ export function AppContent() {
         return;
       }
 
-      // CRITICAL FIX: Only subscribe to ACTIVE connection (prevents badge bleeding)
+      // Only subscribe to ACTIVE connection (prevents badge bleeding)
       const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
       
       console.log('🎯 [REALTIME-SETUP] Active connection ID:', activeConnectionId);
@@ -219,8 +220,7 @@ export function AppContent() {
         await realtimeSync.disconnectAll();
       } else if (isConnectionChanged) {
         console.log(`🔄 Connection changed from ${prev.connectionId} to ${activeConnectionId} - switching channel`);
-        // ❌ CRITICAL BUG FIX: DON'T return early! We need to re-register callbacks!
-        // Just note that this is a switch, but continue to re-register callbacks below
+        // Don't return early - we need to re-register callbacks for the new connection
         // The callbacks were cleared by disconnectAll() when switching connections
         console.log(`🔄 Re-registering callbacks for new connection...`);
         // Note: we don't call disconnectAll() here because channels are already set up
@@ -252,8 +252,7 @@ export function AppContent() {
       console.log(`📡 Setting up realtime sync for ${allConnectionIds.length} connection(s):`, allConnectionIds);
 
       try {
-        // CRITICAL: Register callbacks BEFORE subscribing to channels
-        // This prevents race conditions where broadcasts arrive before callbacks are registered
+        // Register callbacks BEFORE subscribing to channels to prevent race conditions
         
         // Subscribe to presence updates (now receives connectionId)
         unsubscribePresence = realtimeSync.onPresenceChange((connectionId, presenceState) => {
@@ -274,8 +273,7 @@ export function AppContent() {
               return; // Ignore stale callbacks
             }
 
-            // CRITICAL FIX: Use refs to get CURRENT active connection (not closure values)
-            // This ensures the callback always has the latest connection ID even after switching
+            // Use refs to get current active connection (not closure values)
             const currentUserType = userTypeRef.current;
             const currentActiveConnectionId = activeConnectionIdRef.current;
             const isActiveConnection = update.connectionId === currentActiveConnectionId;
@@ -301,13 +299,11 @@ export function AppContent() {
             
             console.log(`   ➕ Adding new memory: ${newMemory.id} (${newMemory.type})`);
             
-            // CRITICAL: Update per-connection cache FIRST (for Dashboard validation)
-            // Use currentUserType from ref (not closure variable) to handle connection switches
+            // Update per-connection cache first (for Dashboard validation)
             if (currentUserType === 'keeper') {
               setMemoriesByStoryteller((prev) => {
-                // Prevent duplicates in per-connection cache too
                 const existing = prev[update.connectionId] || [];
-                if (existing.some(m => m.id === newMemory.id)) {
+                if (memoryExists(existing, newMemory.id)) {
                   console.log(`   ⚠️ Memory ${newMemory.id} already exists in connection cache, skipping`);
                   return prev;
                 }
@@ -318,9 +314,8 @@ export function AppContent() {
               });
             } else {
               setMemoriesByLegacyKeeper((prev) => {
-                // Prevent duplicates in per-connection cache too
                 const existing = prev[update.connectionId] || [];
-                if (existing.some(m => m.id === newMemory.id)) {
+                if (memoryExists(existing, newMemory.id)) {
                   console.log(`   ⚠️ Memory ${newMemory.id} already exists in connection cache, skipping`);
                   return prev;
                 }
@@ -331,11 +326,10 @@ export function AppContent() {
               });
             }
 
-            // THEN update global memories array if this is the ACTIVE connection
+            // Then update global memories array if this is the ACTIVE connection
             if (isActiveConnection) {
               setMemories((prev) => {
-                // Check if memory already exists (prevent duplicates)
-                if (prev.some(m => m.id === newMemory.id)) {
+                if (memoryExists(prev, newMemory.id)) {
                   console.log(`   ⚠️ Memory ${newMemory.id} already exists in global array, skipping`);
                   return prev;
                 }
@@ -358,8 +352,7 @@ export function AppContent() {
             // Update existing memory
             const updatedMemory = convertApiMemoryToUIMemory(update.memory);
             
-            // CRITICAL: Update per-connection cache FIRST (for Dashboard validation)
-            // Use currentUserType from ref (not closure variable) to handle connection switches
+            // Update per-connection cache first (for Dashboard validation)
             if (currentUserType === 'keeper') {
               setMemoriesByStoryteller((prev) => ({
                 ...prev,
@@ -372,7 +365,7 @@ export function AppContent() {
               }));
             }
             
-            // THEN update global memories array if this is the ACTIVE connection
+            // Then update global memories array if this is the ACTIVE connection
             if (isActiveConnection) {
               setMemories((prev) =>
                 prev.map((m) => (m.id === update.memoryId ? updatedMemory : m))
@@ -381,8 +374,7 @@ export function AppContent() {
           } else if (update.action === 'delete') {
             console.log(`   🗑️ Deleting memory: ${update.memoryId}`);
             
-            // CRITICAL: Update per-connection cache FIRST (for Dashboard validation)
-            // Use currentUserType from ref (not closure variable) to handle connection switches
+            // Update per-connection cache first (for Dashboard validation)
             if (currentUserType === 'keeper') {
               setMemoriesByStoryteller((prev) => ({
                 ...prev,
@@ -395,7 +387,7 @@ export function AppContent() {
               }));
             }
             
-            // THEN update global memories array if this is the ACTIVE connection
+            // Then update global memories array if this is the ACTIVE connection
             if (isActiveConnection) {
               setMemories((prev) => {
                 const filtered = prev.filter((m) => m.id !== update.memoryId);
@@ -656,11 +648,7 @@ export function AppContent() {
     const currentUserSenderType = user.type === 'keeper' ? 'keeper' : 'teller';
     
     Object.entries(sourceMap).forEach(([connectionId, memories]) => {
-      newCounts[connectionId] = memories?.filter(m => {
-        const notReadByMe = !m.readBy?.includes(user.id || '');
-        const notSentByMe = m.sender !== currentUserSenderType;
-        return notReadByMe && notSentByMe;
-      }).length || 0;
+      newCounts[connectionId] = calculateUnreadCount(memories || [], user.id || '', currentUserSenderType);
     });
     
     setUnreadCounts(newCounts);
@@ -668,18 +656,17 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, user?.type, user?.id]);
 
   /**
-   * FIX #2: Calculate INITIAL unread counts on first load only
+   * Calculate INITIAL unread counts on first load only
    * After initial load, counts are updated incrementally via real-time broadcasts
    * This prevents background messages from being "lost" when they're not in memories state
    * 
-   * CRITICAL FIX: Wait for ALL connections to have loaded memories before calculating
-   * Otherwise badges will be incorrect if other connections haven't loaded yet
+   * Waits for ALL connections to have loaded memories before calculating to ensure accurate badges
    */
   const hasCalculatedInitialCounts = useRef(false);
   
   useEffect(() => {
     // Only calculate once on initial load when we have connections and haven't calculated yet
-    // CRITICAL: Also require user.type to be set to avoid race condition
+    // Require user.type to be set to avoid race condition
     if (hasCalculatedInitialCounts.current || !user?.id || !user?.type) {
       return;
     }
@@ -713,7 +700,7 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, storytellers, legacyKeepers, user?.type, user?.id, recalculateUnreadCounts]);
 
   /**
-   * CRITICAL FIX: Recalculate badges whenever memory maps change AFTER initial load
+   * Recalculate badges whenever memory maps change AFTER initial load
    * This handles foreground resume and other cases where memories are reloaded
    */
   useEffect(() => {
@@ -734,7 +721,7 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, user?.type, user?.id, recalculateUnreadCounts]);
 
   /**
-   * FIX #2: Subscribe to user-level real-time updates for sidebar badges
+   * Subscribe to user-level real-time updates for sidebar badges
    * This receives lightweight sidebar-update broadcasts for ALL connections
    * IMPORTANT: Only subscribe ONCE when user logs in (not when switching connections)
    */
@@ -810,11 +797,8 @@ export function AppContent() {
           console.log(`ℹ️ Skip badge for ${update.connectionId} (actively viewing chat tab)`);
         }
       } else if (update.action === 'clear_unread') {
-        // CRITICAL FIX: Only clear badge for the user who actually marked messages as read
-        // This broadcast should only affect the current user's badge, not other users
+        // Clear badge when user marks messages as read
         // The backend sends this to the specific user who marked messages as read
-        
-        // Clear unread count for this connection
         setUnreadCounts((prev) => ({
           ...prev,
           [update.connectionId]: 0,
@@ -828,11 +812,7 @@ export function AppContent() {
     };
   }, [user?.id]); // ✅ Only re-run when user changes, NOT when switching connections
 
-  /**
-   * REMOVED INEFFECTIVE FIX: Syncing unread counts to storytellers/legacyKeepers arrays
-   * Dashboard doesn't use these properties - it calculates badges from memoriesByStoryteller/Keeper
-   * The real issue is that Dashboard's getUnreadCountForConnection callback isn't triggering re-renders
-   */
+
 
   /**
    * Phase 3e: Clear expired cache and prefetch media on mount
@@ -1087,7 +1067,7 @@ export function AppContent() {
     if (messages.length === 0) return null;
     
     // Sort messages by timestamp to ensure we get the actual latest message
-    // This is critical because messages might be added out of order via realtime updates
+    // Messages might be added out of order via realtime updates
     const sortedMessages = [...messages].sort((a, b) => 
       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
@@ -1115,7 +1095,7 @@ export function AppContent() {
    * Update sidebar lastMessage preview for a specific connection
    * Called when new messages arrive via real-time sync or periodic refresh
    * 
-   * CRITICAL: This function MUST be stable (not recreate on every render)
+   * This function MUST be stable (not recreate on every render)
    * Otherwise the periodic refresh interval will restart constantly
    */
   const updateSidebarLastMessage = React.useCallback((connectionId: string) => {
@@ -1393,29 +1373,8 @@ export function AppContent() {
           console.log(`   📌 Comparing with state: ${connectionId} === ${activeConnectionId} = ${shouldUpdateGlobal}`);
         }
         
-        // CRITICAL: Update per-connection cache FIRST before global memories
+        // Update per-connection cache FIRST before global memories
         // This ensures Dashboard's validation logic always has the correct expected data
-        // Use MERGE strategy to preserve newer memories not yet in API response
-        const mergeMemories = (existing: Memory[], incoming: Memory[]): Memory[] => {
-          const existingById = new Map(existing.map(m => [m.id, m]));
-          const incomingById = new Map(incoming.map(m => [m.id, m]));
-          
-          // Keep all existing, update with incoming data if available
-          const merged = existing.map(m => incomingById.get(m.id) || m);
-          
-          // Add new memories not in existing
-          incoming.forEach(m => {
-            if (!existingById.has(m.id)) {
-              merged.push(m);
-            }
-          });
-          
-          // Sort chronologically
-          merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-          
-          return merged;
-        };
-        
         if (userType === 'keeper') {
           setMemoriesByStoryteller((prev) => {
             // Mark state change timestamp for validation
@@ -1436,55 +1395,25 @@ export function AppContent() {
           });
         }
         
-        // THEN update the global memories array if this is the ACTIVE connection
+        // Then update the global memories array if this is the ACTIVE connection
         // This prevents background refreshes from mixing chats
         if (shouldUpdateGlobal) {
           console.log(`✅ Updating global memories for ACTIVE connection: ${connectionId}`);
           
-          // MERGE strategy: Preserve newer memories that might not be in the API response yet
           setMemories((prevMemories) => {
-            // Create a map of existing memories by ID for fast lookup
-            const existingById = new Map(prevMemories.map(m => [m.id, m]));
-            
-            // Create a map of new memories by ID
-            const newById = new Map(uiMemories.map(m => [m.id, m]));
-            
-            // Merge: Keep all existing memories, update with new data if available
-            const merged = prevMemories.map(existing => 
-              newById.get(existing.id) || existing
-            );
-            
-            // Add any new memories that weren't in the existing array
-            uiMemories.forEach(newMem => {
-              if (!existingById.has(newMem.id)) {
-                merged.push(newMem);
-              }
-            });
-            
-            // Sort by timestamp to maintain chronological order
-            merged.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-            
+            const merged = mergeMemories(prevMemories, uiMemories);
             console.log(`📊 Merged memories: ${prevMemories.length} existing + ${uiMemories.length} from API = ${merged.length} total`);
-            
             return merged;
           });
         } else {
           console.log(`ℹ️ Skipping global memories update for background connection: ${connectionId}`);
           
-          // CRITICAL FIX: Recalculate unread count for background connections
-          // This ensures badges show correctly when loading memories in background
-          // BUT: Only do this AFTER initial counts are calculated to avoid race condition
-          // that causes badge to jump from 0 → correct value on iOS
+          // Recalculate unread count for background connections
+          // Only do this AFTER initial counts are calculated to avoid race condition
           if (user?.id && user?.type && hasCalculatedInitialCounts.current) {
-            // 🔥 CRITICAL: Use user.type (from API) not userType (state variable)
-            // userType state may be null during initial load!
+            // Use user.type (from API) not userType (state variable)
             const currentUserSenderType = user.type === 'keeper' ? 'keeper' : 'teller';
-            
-            const unreadCount = uiMemories.filter(m => {
-              const notReadByMe = !m.readBy?.includes(user.id || '');
-              const notSentByMe = m.sender !== currentUserSenderType;
-              return notReadByMe && notSentByMe;
-            }).length;
+            const unreadCount = calculateUnreadCount(uiMemories, user.id, currentUserSenderType);
             
             console.log(`📊 Calculated ${unreadCount} unread for background connection ${connectionId} (user type: ${user.type})`);
             
@@ -1664,7 +1593,7 @@ export function AppContent() {
           for (const id of backgroundConnections) {
             await loadMemoriesForConnection(id);
             
-            // 🔥 CRITICAL FIX: Update sidebar last message after loading background connections
+            // Update sidebar last message after loading background connections
             // Inline logic to avoid stale closure issues
             const connectionMemories = (userType === 'keeper' ? memoriesByStoryteller[id] : memoriesByLegacyKeeper[id]) || [];
             const messages = connectionMemories.filter(m => 
@@ -1709,7 +1638,7 @@ export function AppContent() {
     const interval = setInterval(refreshAllConnections, 120000);
     
     return () => clearInterval(interval);
-    // CRITICAL: Don't include storytellers/legacyKeepers/memoriesBy* in deps!
+    // Don't include storytellers/legacyKeepers/memoriesBy* in deps!
     // They change on EVERY message (lastMessage updates), which would restart the interval
     // Only restart periodic refresh when switching users/connections, NOT on every message
     // We inline the sidebar update logic to avoid stale closure issues
@@ -2498,7 +2427,7 @@ export function AppContent() {
         category: memory.category,
         tags: memory.tags || [],
         estimatedDate: memory.estimatedDate,
-        notes: memory.note, // Fix: note -> notes
+        notes: memory.note,
         location: memory.location,
         promptQuestion: memory.promptQuestion,
         conversationContext: memory.conversationContext,
@@ -2562,7 +2491,7 @@ export function AppContent() {
         // Convert API memory to UI format
         const newMemory = convertApiMemoryToUIMemory(response.memory);
         
-        // CRITICAL: Update per-connection cache FIRST (for Dashboard validation)
+        // Update per-connection cache first (for Dashboard validation)
         if (userType === 'keeper') {
           setMemoriesByStoryteller((prev) => ({
             ...prev,
@@ -2827,11 +2756,11 @@ export function AppContent() {
         }
       } else {
         console.error('❌ Failed to update memory:', response.error);
-        // TODO: Show error toast to user
+        toast.error('Failed to update memory. Please try again.');
       }
     } catch (error) {
       console.error('❌ Failed to update memory:', error);
-      // TODO: Show error toast to user
+      toast.error('Failed to update memory. Please try again.');
     }
   };
 
@@ -2942,11 +2871,11 @@ export function AppContent() {
         });
       } else {
         console.error('❌ Failed to update profile:', response.error);
-        // TODO: Show error toast to user
+        toast.error('Failed to update profile. Please try again.');
       }
     } catch (error) {
       console.error('❌ Failed to update profile:', error);
-      // TODO: Show error toast to user
+      toast.error('Failed to update profile. Please try again.');
     }
   };
 
