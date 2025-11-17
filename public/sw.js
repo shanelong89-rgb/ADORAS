@@ -192,6 +192,7 @@ self.addEventListener('push', (event) => {
     body: 'New memory shared!',
     icon: '/icon-192.png',
     badge: '/icon-192.png',
+    badgeCount: 1, // CRITICAL: Badge count for iOS
     data: {},
     type: 'message', // message, prompt, milestone
   };
@@ -200,11 +201,19 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       const data = event.data.json();
+      
+      // CRITICAL: Extract badge count from data
+      const badgeCount = typeof data.badge === 'number' ? data.badge : 
+                        (data.data?.badgeCount || 1);
+      
+      console.log('[SW] 📱 iOS Badge count from notification:', badgeCount);
+      
       notificationData = {
         title: data.title || 'Adoras',
         body: data.body || 'New memory shared!',
         icon: data.icon || '/icon-192.png',
-        badge: data.badge || '/icon-192.png',
+        badge: '/icon-192.png', // Badge icon (keep as icon path)
+        badgeCount: badgeCount, // Badge COUNT for iOS
         data: data.data || {},
         tag: data.tag || 'adoras-notification',
         type: data.type || 'message',
@@ -212,6 +221,19 @@ self.addEventListener('push', (event) => {
         image: data.image,
         silent: data.silent || false,
       };
+      
+      // CRITICAL: Set app badge in service worker (works on iOS PWA)
+      try {
+        if (self.navigator && self.navigator.setAppBadge) {
+          self.navigator.setAppBadge(badgeCount);
+          console.log('[SW] ✅ iOS Badge set to:', badgeCount);
+        } else {
+          console.log('[SW] ⚠️ Badge API not available in service worker');
+        }
+      } catch (badgeError) {
+        console.log('[SW] ⚠️ Failed to set app badge:', badgeError);
+      }
+      
     } catch (error) {
       console.error('[SW] Error parsing push data:', error);
       notificationData.body = event.data.text();
