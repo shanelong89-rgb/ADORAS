@@ -652,12 +652,15 @@ export function AppContent() {
   
   useEffect(() => {
     // Only calculate once on initial load when we have connections and haven't calculated yet
-    if (hasCalculatedInitialCounts.current || !user?.id) {
+    // CRITICAL: Also require user.type to be set to avoid race condition
+    if (hasCalculatedInitialCounts.current || !user?.id || !user?.type) {
       return;
     }
     
-    const sourceMap = userType === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
-    const allConnectionIds = userType === 'keeper' 
+    // Use user.type (from authenticated user) instead of userType state
+    // to avoid null issues during initial load
+    const sourceMap = user.type === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
+    const allConnectionIds = user.type === 'keeper' 
       ? storytellers.map(s => s.id) 
       : legacyKeepers.map(k => k.id);
     
@@ -693,7 +696,7 @@ export function AppContent() {
     setUnreadCounts(newCounts);
     console.log(`📊 Initial unread counts calculated (user type: ${user?.type}):`, newCounts);
     hasCalculatedInitialCounts.current = true;
-  }, [memoriesByStoryteller, memoriesByLegacyKeeper, storytellers, legacyKeepers, userType, user?.id]);
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, storytellers, legacyKeepers, user?.type, user?.id]);
 
   /**
    * FIX #2: Subscribe to user-level real-time updates for sidebar badges
@@ -1431,7 +1434,9 @@ export function AppContent() {
           
           // CRITICAL FIX: Recalculate unread count for background connections
           // This ensures badges show correctly when loading memories in background
-          if (user?.id && user?.type) {
+          // BUT: Only do this AFTER initial counts are calculated to avoid race condition
+          // that causes badge to jump from 0 → correct value on iOS
+          if (user?.id && user?.type && hasCalculatedInitialCounts.current) {
             // 🔥 CRITICAL: Use user.type (from API) not userType (state variable)
             // userType state may be null during initial load!
             const currentUserSenderType = user.type === 'keeper' ? 'keeper' : 'teller';
@@ -1448,6 +1453,8 @@ export function AppContent() {
               ...prev,
               [connectionId]: unreadCount,
             }));
+          } else if (!hasCalculatedInitialCounts.current) {
+            console.log(`⏳ Deferring badge calculation for background connection ${connectionId} until initial counts are calculated`);
           }
         }
       } else {
