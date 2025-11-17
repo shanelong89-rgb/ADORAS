@@ -10,6 +10,7 @@ export class PWAVisibilityHandler {
   private reconnectCallback: (() => void) | null = null;
   private isInitialized = false;
   private lastVisibleTime = Date.now();
+  private lastReconnectTime = 0; // Track last reconnect to prevent duplicates
 
   initialize(reconnectCallback: () => void) {
     if (this.isInitialized) {
@@ -36,13 +37,17 @@ export class PWAVisibilityHandler {
   private handleVisibilityChange = () => {
     const now = Date.now();
     const timeSinceLastVisible = now - this.lastVisibleTime;
+    const timeSinceLastReconnect = now - this.lastReconnectTime;
     
     if (document.visibilityState === 'visible') {
       console.log(`📱 App resumed (was hidden for ${Math.round(timeSinceLastVisible / 1000)}s)`);
       
-      // Only reconnect if hidden for >5 seconds (avoid rapid tab switches)
-      if (timeSinceLastVisible > 5000) {
+      // Only reconnect if:
+      // 1. Hidden for >5 seconds (avoid rapid tab switches)
+      // 2. Haven't reconnected in the last 2 seconds (avoid duplicate calls)
+      if (timeSinceLastVisible > 5000 && timeSinceLastReconnect > 2000) {
         console.log('🔌 Reconnecting realtime channels...');
+        this.lastReconnectTime = now;
         setTimeout(() => {
           this.reconnectCallback?.();
         }, 500); // Small delay for iOS stability
@@ -61,17 +66,29 @@ export class PWAVisibilityHandler {
 
   private handlePageShow = (event: PageTransitionEvent) => {
     if (event.persisted) {
-      console.log('📱 App restored from bfcache (iOS) - reconnecting...');
-      this.reconnectCallback?.();
+      const now = Date.now();
+      const timeSinceLastReconnect = now - this.lastReconnectTime;
+      
+      // Avoid duplicate calls within 2 seconds
+      if (timeSinceLastReconnect > 2000) {
+        console.log('📱 App restored from bfcache (iOS) - reconnecting...');
+        this.lastReconnectTime = now;
+        this.reconnectCallback?.();
+      }
     }
   };
 
   private handleFocus = () => {
     const now = Date.now();
     const timeSinceLastVisible = now - this.lastVisibleTime;
+    const timeSinceLastReconnect = now - this.lastReconnectTime;
     
-    if (timeSinceLastVisible > 10000) {
+    // Only reconnect if:
+    // 1. Haven't been visible for >10 seconds
+    // 2. Haven't reconnected in the last 2 seconds (avoid duplicate calls)
+    if (timeSinceLastVisible > 10000 && timeSinceLastReconnect > 2000) {
       console.log('🪟 Window focused after 10s+ - reconnecting...');
+      this.lastReconnectTime = now;
       this.reconnectCallback?.();
     }
   };
