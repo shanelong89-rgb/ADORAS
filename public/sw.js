@@ -1,8 +1,8 @@
 // Adoras Service Worker - PWA Support
-// Version 1.6.0 - Aggressive force update for iOS
+// Version 1.7.0 - Realtime Fix + iOS Notification Debug
 
-const CACHE_NAME = 'adoras-v6';
-const RUNTIME_CACHE = 'adoras-runtime-v6';
+const CACHE_NAME = 'adoras-v7';
+const RUNTIME_CACHE = 'adoras-runtime-v7';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -316,6 +316,13 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     (async () => {
+      // DEBUG: Log exactly what we're sending to iOS
+      console.log('[SW] 🔔 Showing notification with:', {
+        title: notificationData.title,
+        body: options.body,
+        fullPayload: { title: notificationData.title, ...options }
+      });
+      
       // Show notification
       await self.registration.showNotification(notificationData.title, options);
       
