@@ -179,16 +179,27 @@ export function AppContent() {
     let isCleanedUp = false; // Track if this subscription has been cleaned up
 
     const setupRealtime = async () => {
+      console.log('🔧 [REALTIME-SETUP] setupRealtime() called', {
+        hasUser: !!user,
+        userId: user?.id,
+        userType,
+        activeStorytellerId,
+        activeLegacyKeeperId
+      });
+      
       // Only connect if user is authenticated
       if (!user) {
+        console.log('⚠️ [REALTIME-SETUP] No user - skipping realtime setup');
         return;
       }
 
       // CRITICAL FIX: Only subscribe to ACTIVE connection (prevents badge bleeding)
       const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
       
+      console.log('🎯 [REALTIME-SETUP] Active connection ID:', activeConnectionId);
+      
       if (!activeConnectionId) {
-        console.log('ℹ️ No active connection to subscribe to');
+        console.log('ℹ️ [REALTIME-SETUP] No active connection to subscribe to');
         return;
       }
 
