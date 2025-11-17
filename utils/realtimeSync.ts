@@ -161,11 +161,11 @@ class RealtimeSyncManager {
     const channelName = `messages:${connectionId}`;
 
     if (this.channels.has(channelName)) {
-      console.log(`ℹ️ Already subscribed to ${channelName}`);
+      console.log(`ℹ️ [REALTIME-SUB] Already subscribed to ${channelName}`);
       return;
     }
 
-    console.log(`📨 [HYBRID] Subscribing to messages for: ${connectionId}`);
+    console.log(`📨 [REALTIME-SUB] Starting subscription to messages for: ${connectionId}`);
 
     const channel = supabase
       .channel(channelName, {
@@ -234,15 +234,22 @@ class RealtimeSyncManager {
       .on('broadcast', { event: 'memory-update' }, ({ payload }) => {
         const update = payload as MemoryUpdate;
         
+        console.log(`📨 [REALTIME-RECEIVE] 🔔🔔🔔 BROADCAST RECEIVED for ${connectionId}:`, {
+          memoryId: update.memoryId,
+          senderId: update.userId,
+          currentUserId: userId,
+          action: update.action
+        });
+        
         // Don't notify for own messages
         if (update.userId === userId) {
-          console.log(`ℹ️ [BROADCAST] Ignoring own update: ${update.memoryId}`);
+          console.log(`ℹ️ [REALTIME-RECEIVE] Ignoring own update: ${update.memoryId}`);
           return;
         }
 
         // Process ALL updates - this is a subscribed channel so we want all its messages
         // The connectionId filter was breaking cross-connection notifications!
-        console.log(`📨 [BROADCAST] Memory update received:`, update);
+        console.log(`📨 [REALTIME-RECEIVE] Processing memory update - calling ${this.memoryUpdateCallbacks.length} callback(s)`);
         this.memoryUpdateCallbacks.forEach(cb => cb(update));
       })
       // ALSO listen to typing indicators
@@ -270,23 +277,23 @@ class RealtimeSyncManager {
       }, 10000); // 10 second timeout
 
       channel.subscribe((status) => {
-        console.log(`📡 [HYBRID] Subscription status for ${connectionId}:`, status);
+        console.log(`📡 [REALTIME-SUB] Subscription status for ${connectionId}:`, status);
         
         if (status === 'SUBSCRIBED') {
           clearTimeout(timeout);
-          console.log(`✅ [HYBRID] Subscribed to messages: ${connectionId}`);
+          console.log(`✅ [REALTIME-SUB] ✓✓✓ SUCCESSFULLY SUBSCRIBED to messages: ${connectionId}`);
           resolve();
         } else if (status === 'CHANNEL_ERROR') {
           clearTimeout(timeout);
-          console.error(`❌ [HYBRID] Subscription error for ${connectionId}`);
+          console.error(`❌ [REALTIME-SUB] Subscription error for ${connectionId}`);
           reject(new Error(`Channel subscription failed for ${connectionId}`));
         } else if (status === 'TIMED_OUT') {
           clearTimeout(timeout);
-          console.error(`⏰ [HYBRID] Subscription timed out for ${connectionId}`);
+          console.error(`⏰ [REALTIME-SUB] Subscription timed out for ${connectionId}`);
           reject(new Error(`Channel subscription timed out for ${connectionId}`));
         } else if (status === 'CLOSED') {
           clearTimeout(timeout);
-          console.warn(`🔒 [HYBRID] Channel closed for ${connectionId}`);
+          console.warn(`🔒 [REALTIME-SUB] Channel closed for ${connectionId}`);
           reject(new Error(`Channel closed for ${connectionId}`));
         }
         // Note: We don't handle other statuses to avoid premature resolution
