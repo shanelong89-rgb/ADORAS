@@ -1929,12 +1929,9 @@ export function AppContent() {
         legacyKeepers: legacyKeepers.map(k => ({ id: k.id, name: k.name, isConnected: k.isConnected }))
       });
       
-      // Check if connections are still loading
-      if (isLoadingConnections) {
-        console.warn('⏳ Connections are still loading - please wait');
-        toast.warning('Please wait while connections load...');
-        return;
-      }
+      // REMOVED: isLoadingConnections check - was causing race condition where
+      // messages couldn't be sent even though connections were loaded.
+      // The connectionId check below is sufficient and more accurate.
       
       if (!connectionId) {
         console.error('❌ No active connection - cannot create memory');
