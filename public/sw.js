@@ -1,8 +1,8 @@
 // Adoras Service Worker - PWA Support
-// Version 2.0.0 - Service Worker Badge from Backend Total
+// Version 2.0.2 - Fixed iOS badge API (proper registration.setAppBadge + IndexedDB persistence)
 
-const CACHE_NAME = 'adoras-v10';
-const RUNTIME_CACHE = 'adoras-runtime-v10';
+const CACHE_NAME = 'adoras-v12';
+const RUNTIME_CACHE = 'adoras-runtime-v12';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -222,27 +222,48 @@ self.addEventListener('push', (event) => {
         silent: data.silent || false,
       };
       
-      // CRITICAL: Set app badge when push arrives (iOS PWA in background)
-      // Backend sends TOTAL unread count, not just "+1"
-      // When app comes to foreground, it can recalculate and override if needed
-      if ('setAppBadge' in navigator) {
-        navigator.setAppBadge(badgeCount)
+      // CRITICAL: Set app badge for iOS PWA (when app is closed/backgrounded)
+      // iOS PWAs support Badge API in service worker context
+      // This is THE ONLY way to update badge when app is not running
+      try {
+        // Store badge in IndexedDB for persistence
+        const dbRequest = indexedDB.open('adoras-badge-store', 1);
+        dbRequest.onsuccess = (event) => {
+          const db = event.target.result;
+          const transaction = db.transaction(['badges'], 'readwrite');
+          const store = transaction.objectStore('badges');
+          store.put(badgeCount, 'totalBadgeCount');
+          console.log('[SW] 💾 Persisted badge count to IndexedDB:', badgeCount);
+        };
+        dbRequest.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains('badges')) {
+            db.createObjectStore('badges');
+          }
+        };
+      } catch (error) {
+        console.error('[SW] ❌ Failed to persist badge to IndexedDB:', error);
+      }
+      
+      // Set the badge count (iOS PWA support)
+      if (self.registration && self.registration.setAppBadge) {
+        self.registration.setAppBadge(badgeCount)
           .then(() => {
-            console.log('[SW] ✅ iOS Badge set to TOTAL unread count:', badgeCount, '(from backend)');
+            console.log('[SW] ✅ iOS Badge set via registration.setAppBadge:', badgeCount);
           })
-          .catch((badgeError) => {
-            console.error('[SW] ❌ Failed to set app badge:', badgeError);
+          .catch((err) => {
+            console.error('[SW] ❌ Failed to set badge via registration:', err);
           });
-      } else if (self.navigator && 'setAppBadge' in self.navigator) {
-        self.navigator.setAppBadge(badgeCount)
+      } else if ('setAppBadge' in self) {
+        self.setAppBadge(badgeCount)
           .then(() => {
-            console.log('[SW] ✅ iOS Badge set to TOTAL unread count:', badgeCount, '(via self.navigator)');
+            console.log('[SW] ✅ iOS Badge set via self.setAppBadge:', badgeCount);
           })
-          .catch((badgeError) => {
-            console.error('[SW] ❌ Failed to set app badge:', badgeError);
+          .catch((err) => {
+            console.error('[SW] ❌ Failed to set badge via self:', err);
           });
       } else {
-        console.log('[SW] ℹ️ Badge API not available in service worker context');
+        console.log('[SW] ℹ️ Badge API not available - badge count stored in notification');
       }
       
     } catch (error) {
@@ -356,23 +377,8 @@ self.addEventListener('push', (event) => {
         fullPayload: { title: notificationData.title, ...options }
       });
       
-      // Show notification
+      // Show notification (badge already set above, before showing notification)
       await self.registration.showNotification(notificationData.title, options);
-      
-      // Update badge count for iOS (if supported)
-      if ('setAppBadge' in navigator) {
-        try {
-          // Get current badge count from notificationData (NOT data.badgeCount)
-          const badgeCount = notificationData.badgeCount || notificationData.data?.badgeCount || 1;
-          console.log('[SW] 📱 Setting iOS badge to:', badgeCount);
-          await navigator.setAppBadge(badgeCount);
-          console.log('[SW] ✅ iOS Badge successfully set');
-        } catch (error) {
-          console.log('[SW] ⚠️ Badge API failed:', error);
-        }
-      } else {
-        console.log('[SW] ⚠️ setAppBadge not available in navigator');
-      }
       
       // iOS-specific: Try to vibrate even if API not available in options
       if (navigator.vibrate && options.vibrate) {
