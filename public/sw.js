@@ -1,8 +1,8 @@
 // Adoras Service Worker - PWA Support
-// Version 1.9.0 - Remove Service Worker Badge Management
+// Version 2.0.0 - Service Worker Badge from Backend Total
 
-const CACHE_NAME = 'adoras-v9';
-const RUNTIME_CACHE = 'adoras-runtime-v9';
+const CACHE_NAME = 'adoras-v10';
+const RUNTIME_CACHE = 'adoras-runtime-v10';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -222,10 +222,28 @@ self.addEventListener('push', (event) => {
         silent: data.silent || false,
       };
       
-      // DON'T set badge here - let the app control badges based on database counts
-      // Service worker notifications can have stale/incorrect badge counts
-      // The app will recalculate and set the correct badge when it comes to foreground
-      console.log('[SW] 📱 Push received with badge count:', badgeCount, '(NOT setting badge - app will recalculate)');
+      // CRITICAL: Set app badge when push arrives (iOS PWA in background)
+      // Backend sends TOTAL unread count, not just "+1"
+      // When app comes to foreground, it can recalculate and override if needed
+      if ('setAppBadge' in navigator) {
+        navigator.setAppBadge(badgeCount)
+          .then(() => {
+            console.log('[SW] ✅ iOS Badge set to TOTAL unread count:', badgeCount, '(from backend)');
+          })
+          .catch((badgeError) => {
+            console.error('[SW] ❌ Failed to set app badge:', badgeError);
+          });
+      } else if (self.navigator && 'setAppBadge' in self.navigator) {
+        self.navigator.setAppBadge(badgeCount)
+          .then(() => {
+            console.log('[SW] ✅ iOS Badge set to TOTAL unread count:', badgeCount, '(via self.navigator)');
+          })
+          .catch((badgeError) => {
+            console.error('[SW] ❌ Failed to set app badge:', badgeError);
+          });
+      } else {
+        console.log('[SW] ℹ️ Badge API not available in service worker context');
+      }
       
     } catch (error) {
       console.error('[SW] Error parsing push data:', error);
