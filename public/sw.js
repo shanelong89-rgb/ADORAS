@@ -1,8 +1,10 @@
 // Adoras Service Worker - PWA Support
-// Version 1.7.0 - Realtime Fix + iOS Notification Debug
+// Version 1.8.0 - Badge Persistence Fix
 
-const CACHE_NAME = 'adoras-v7';
-const RUNTIME_CACHE = 'adoras-runtime-v7';
+const CACHE_NAME = 'adoras-v8';
+const RUNTIME_CACHE = 'adoras-runtime-v8';
+const BADGE_STORE_NAME = 'adoras-badge-store';
+const BADGE_DB_VERSION = 1;
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -12,6 +14,65 @@ const PRECACHE_ASSETS = [
   '/icon-192.png',
   '/icon-512.png'
 ];
+
+// Helper: Open IndexedDB for badge persistence
+async function openBadgeDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(BADGE_STORE_NAME, BADGE_DB_VERSION);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('badges')) {
+        db.createObjectStore('badges');
+      }
+    };
+  });
+}
+
+// Helper: Store badge count in IndexedDB
+async function storeBadgeCount(count) {
+  try {
+    const db = await openBadgeDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['badges'], 'readwrite');
+      const store = transaction.objectStore('badges');
+      const request = store.put(count, 'totalBadgeCount');
+      
+      request.onsuccess = () => {
+        console.log('[SW] 💾 Badge count stored in IndexedDB:', count);
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('[SW] ❌ Failed to store badge count:', error);
+  }
+}
+
+// Helper: Get badge count from IndexedDB
+async function getBadgeCount() {
+  try {
+    const db = await openBadgeDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(['badges'], 'readonly');
+      const store = transaction.objectStore('badges');
+      const request = store.get('totalBadgeCount');
+      
+      request.onsuccess = () => {
+        const count = request.result || 0;
+        console.log('[SW] 📖 Badge count read from IndexedDB:', count);
+        resolve(count);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('[SW] ❌ Failed to read badge count:', error);
+    return 0;
+  }
+}
 
 // Install event - cache essential assets
 self.addEventListener('install', (event) => {
@@ -223,26 +284,31 @@ self.addEventListener('push', (event) => {
       };
       
       // CRITICAL: Set app badge IMMEDIATELY when push arrives (iOS PWA in background!)
-      // Note: In service worker context, use navigator (not self.navigator)
-      // Use .then() instead of await since we're not in an async function yet
+      // AND persist it to IndexedDB so app can read it on foreground
       if ('setAppBadge' in navigator) {
         navigator.setAppBadge(badgeCount)
-          .then(() => {
+          .then(async () => {
             console.log('[SW] ✅ iOS Badge set to:', badgeCount, '(from push event, BEFORE showing notification)');
+            // Persist to IndexedDB
+            await storeBadgeCount(badgeCount);
           })
           .catch((badgeError) => {
             console.error('[SW] ❌ Failed to set app badge:', badgeError);
           });
       } else if (self.navigator && 'setAppBadge' in self.navigator) {
         self.navigator.setAppBadge(badgeCount)
-          .then(() => {
+          .then(async () => {
             console.log('[SW] ✅ iOS Badge set to:', badgeCount, '(via self.navigator)');
+            // Persist to IndexedDB
+            await storeBadgeCount(badgeCount);
           })
           .catch((badgeError) => {
             console.error('[SW] ❌ Failed to set app badge:', badgeError);
           });
       } else {
         console.log('[SW] ⚠️ Badge API not available in service worker context');
+        // Still persist to IndexedDB even if badge API not available
+        storeBadgeCount(badgeCount);
       }
       
     } catch (error) {
