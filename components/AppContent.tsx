@@ -258,7 +258,8 @@ export function AppContent() {
         // Subscribe to presence updates (now receives connectionId)
         unsubscribePresence = realtimeSync.onPresenceChange((connectionId, presenceState) => {
           if (isCleanedUp) return; // Ignore stale callbacks
-          console.log(`👥 Presence updated for ${connectionId}:`, presenceState);
+          // Reduced logging - presence updates happen frequently
+          // console.log(`👥 Presence updated for ${connectionId}:`, presenceState);
           // For now, only track presence for active connection
           if (connectionId === activeConnectionId) {
             setPresences(presenceState);
@@ -670,7 +671,8 @@ export function AppContent() {
     const allLoaded = allConnectionIds.every(id => loadedConnectionIds.includes(id));
     
     if (!allLoaded) {
-      console.log(`⏳ Waiting for all connections to load memories: ${loadedConnectionIds.length}/${allConnectionIds.length}`);
+      // Reduced logging - this happens on every render during load
+      // console.log(`⏳ Waiting for all connections to load memories: ${loadedConnectionIds.length}/${allConnectionIds.length}`);
       return; // Wait for all connections to load
     }
     
