@@ -659,6 +659,14 @@ export function AppContent() {
     }
     
     const sourceMap = user.type === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
+    
+    // CRITICAL FIX: Don't recalculate if memories haven't loaded yet
+    // This prevents clearing badges to 0 when sourceMap is empty
+    if (Object.keys(sourceMap).length === 0) {
+      console.log('⏭️ Skipping badge recalculation - no memories loaded yet');
+      return;
+    }
+    
     const newCounts: Record<string, number> = {};
     const currentUserSenderType = user.type === 'keeper' ? 'keeper' : 'teller';
     
