@@ -2575,6 +2575,7 @@ export function AppContent() {
                     memoryId: newMemory.id,
                     previewText,
                     mediaUrl: uploadedMediaUrl,
+                    connectionId: activeConnectionId, // Pass connection ID so backend can calculate badge count
                   }).then(() => {
                     console.log('📱 Background push notification sent');
                   }).catch((err) => {
