@@ -222,16 +222,20 @@ self.addEventListener('push', (event) => {
         silent: data.silent || false,
       };
       
-      // CRITICAL: Set app badge in service worker (works on iOS PWA)
+      // CRITICAL: Set app badge IMMEDIATELY when push arrives (iOS PWA in background!)
+      // Note: In service worker context, use navigator (not self.navigator)
       try {
-        if (self.navigator && self.navigator.setAppBadge) {
-          self.navigator.setAppBadge(badgeCount);
-          console.log('[SW] ✅ iOS Badge set to:', badgeCount);
+        if ('setAppBadge' in navigator) {
+          await navigator.setAppBadge(badgeCount);
+          console.log('[SW] ✅ iOS Badge set to:', badgeCount, '(from push event, BEFORE showing notification)');
+        } else if (self.navigator && 'setAppBadge' in self.navigator) {
+          await self.navigator.setAppBadge(badgeCount);
+          console.log('[SW] ✅ iOS Badge set to:', badgeCount, '(via self.navigator)');
         } else {
-          console.log('[SW] ⚠️ Badge API not available in service worker');
+          console.log('[SW] ⚠️ Badge API not available in service worker context');
         }
       } catch (badgeError) {
-        console.log('[SW] ⚠️ Failed to set app badge:', badgeError);
+        console.error('[SW] ❌ Failed to set app badge:', badgeError);
       }
       
     } catch (error) {
@@ -351,12 +355,16 @@ self.addEventListener('push', (event) => {
       // Update badge count for iOS (if supported)
       if ('setAppBadge' in navigator) {
         try {
-          // Get current badge count from data or default to 1
-          const badgeCount = notificationData.data?.badgeCount || 1;
+          // Get current badge count from notificationData (NOT data.badgeCount)
+          const badgeCount = notificationData.badgeCount || notificationData.data?.badgeCount || 1;
+          console.log('[SW] 📱 Setting iOS badge to:', badgeCount);
           await navigator.setAppBadge(badgeCount);
+          console.log('[SW] ✅ iOS Badge successfully set');
         } catch (error) {
-          console.log('[SW] Badge API not supported or failed:', error);
+          console.log('[SW] ⚠️ Badge API failed:', error);
         }
+      } else {
+        console.log('[SW] ⚠️ setAppBadge not available in navigator');
       }
       
       // iOS-specific: Try to vibrate even if API not available in options
