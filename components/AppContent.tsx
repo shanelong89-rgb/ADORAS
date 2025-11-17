@@ -465,12 +465,17 @@ export function AppContent() {
             console.log(`   → Loading memories for ${id}...`);
             return loadMemoriesForConnection(id, false);
           })).then(() => {
-            console.log('✅ All background connections loaded - badges should be accurate now');
+            console.log('✅ All background connections loaded - recalculating badges...');
+            // CRITICAL FIX: Recalculate badges after reloading memories
+            // This ensures any messages received while backgrounded are counted
+            recalculateUnreadCounts();
           }).catch(err => {
             console.warn('⚠️ Some background memory loads failed:', err);
           });
         } else {
           console.log('ℹ️ No other connections to load in background');
+          // Still recalculate badges for the active connection
+          recalculateUnreadCounts();
         }
       } else {
         console.log('⚠️ No active connection or connection list empty - skipping memory reload');
@@ -641,6 +646,35 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType]);
 
   /**
+   * Helper function: Recalculate unread counts from actual memories
+   * This is called:
+   * 1. On initial load (via useEffect below)
+   * 2. When app comes back to foreground (after reloading memories)
+   * 3. Any time we need to ensure badges are accurate
+   */
+  const recalculateUnreadCounts = useCallback(() => {
+    if (!user?.id || !user?.type) {
+      console.log('⏭️ Skipping badge recalculation - no user');
+      return;
+    }
+    
+    const sourceMap = user.type === 'keeper' ? memoriesByStoryteller : memoriesByLegacyKeeper;
+    const newCounts: Record<string, number> = {};
+    const currentUserSenderType = user.type === 'keeper' ? 'keeper' : 'teller';
+    
+    Object.entries(sourceMap).forEach(([connectionId, memories]) => {
+      newCounts[connectionId] = memories?.filter(m => {
+        const notReadByMe = !m.readBy?.includes(user.id || '');
+        const notSentByMe = m.sender !== currentUserSenderType;
+        return notReadByMe && notSentByMe;
+      }).length || 0;
+    });
+    
+    setUnreadCounts(newCounts);
+    console.log(`📊 Unread counts recalculated (user type: ${user.type}):`, newCounts);
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, user?.type, user?.id]);
+
+  /**
    * FIX #2: Calculate INITIAL unread counts on first load only
    * After initial load, counts are updated incrementally via real-time broadcasts
    * This prevents background messages from being "lost" when they're not in memories state
@@ -679,24 +713,11 @@ export function AppContent() {
       return; // Wait for all connections to load
     }
     
-    const newCounts: Record<string, number> = {};
-    
-    // 🔥 CRITICAL: Use user.type (from API) not userType (state variable)
-    // userType state may be null during initial load!
-    const currentUserSenderType = user?.type === 'keeper' ? 'keeper' : 'teller';
-    
-    Object.entries(sourceMap).forEach(([connectionId, memories]) => {
-      newCounts[connectionId] = memories?.filter(m => {
-        const notReadByMe = !m.readBy?.includes(user?.id || '');
-        const notSentByMe = m.sender !== currentUserSenderType;
-        return notReadByMe && notSentByMe;
-      }).length || 0;
-    });
-    
-    setUnreadCounts(newCounts);
-    console.log(`📊 Initial unread counts calculated (user type: ${user?.type}):`, newCounts);
+    // Use the helper function to calculate badges
+    recalculateUnreadCounts();
+    console.log('📊 Initial unread counts calculated');
     hasCalculatedInitialCounts.current = true;
-  }, [memoriesByStoryteller, memoriesByLegacyKeeper, storytellers, legacyKeepers, user?.type, user?.id]);
+  }, [memoriesByStoryteller, memoriesByLegacyKeeper, storytellers, legacyKeepers, user?.type, user?.id, recalculateUnreadCounts]);
 
   /**
    * FIX #2: Subscribe to user-level real-time updates for sidebar badges
@@ -775,12 +796,16 @@ export function AppContent() {
           console.log(`ℹ️ Skip badge for ${update.connectionId} (actively viewing chat tab)`);
         }
       } else if (update.action === 'clear_unread') {
+        // CRITICAL FIX: Only clear badge for the user who actually marked messages as read
+        // This broadcast should only affect the current user's badge, not other users
+        // The backend sends this to the specific user who marked messages as read
+        
         // Clear unread count for this connection
         setUnreadCounts((prev) => ({
           ...prev,
           [update.connectionId]: 0,
         }));
-        console.log(`🧹 Cleared badge for ${update.connectionId}`);
+        console.log(`🧹 Cleared badge for ${update.connectionId} (user marked messages as read)`);
       }
     });
     
