@@ -1,7 +1,7 @@
 /**
  * AppContent Component
  * Main app logic with access to AuthContext
- * CACHE BUST: v16-CLEANUP-PHASE2 - 2025-11-17-0730
+ * CACHE BUST: v16-CLEANUP-PHASE3 - 2025-11-17-0800
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -30,6 +30,13 @@ import { projectId, publicAnonKey } from '../utils/supabase/info';
 import { pwaVisibilityHandler } from '../utils/pwaVisibilityHandler';
 import { mergeMemories, memoryExists, calculateUnreadCount } from '../utils/memoryUtils';
 import { getLastMessagePreview, updateConnectionLastMessage } from '../utils/sidebarUtils';
+import { 
+  selectActiveConnection, 
+  persistActiveConnection, 
+  connectionToUserProfile,
+  prepareConnectionSwitch,
+  logConnectionSelection 
+} from '../utils/connectionSwitchingUtils';
 import { toast } from 'sonner';
 import type { UserType, UserProfile, Storyteller, LegacyKeeper, Memory, DisplayLanguage } from '../App';
 import type { ConnectionWithPartner, Memory as ApiMemory } from '../utils/api/types';
@@ -1110,68 +1117,35 @@ export function AppContent() {
 
     setStorytellers(storytellerList);
     
-    // Try to restore the last active connection from localStorage
-    let targetConnection: Storyteller | undefined;
-    if (user?.id) {
-      const lastActiveId = localStorage.getItem(`adoras_last_active_connection_${user.id}`);
-      if (lastActiveId) {
-        targetConnection = storytellerList.find((s) => s.id === lastActiveId && s.isConnected);
-        if (targetConnection) {
-          console.log(`   ♻️ Restoring last active connection: ${targetConnection.name} (${lastActiveId})`);
-        } else {
-          console.log(`   ⚠️ Last active connection ${lastActiveId} not found or not active, falling back to first`);
+    // Select which connection should be active (restore from localStorage, first active, or first pending)
+    const selection = selectActiveConnection(storytellerList, user?.id);
+    logConnectionSelection(selection, 'keeper');
+    
+    if (selection.connection) {
+      setActiveStorytellerId(selection.connection.id);
+      setPartnerProfile(connectionToUserProfile(selection.connection));
+      setIsConnected(selection.isConnected);
+      
+      if (selection.isConnected) {
+        // Load memories for the active connection FIRST (priority)
+        // Pass true to explicitly mark this as the active connection
+        console.log(`   📦 Loading memories for active connection: ${selection.connection.id}...`);
+        await loadMemoriesForConnection(selection.connection.id, true);
+        
+        // Then load memories for all other connections in background (for notification badges)
+        const otherConnections = storytellerList.filter(s => s.id !== selection.connection!.id);
+        if (otherConnections.length > 0) {
+          console.log(`   📦 Loading memories for ${otherConnections.length} other connections in background...`);
+          Promise.all(otherConnections.map(s => loadMemoriesForConnection(s.id, false))).catch(err => {
+            console.warn('⚠️ Some background memory loads failed:', err);
+          });
         }
+      } else {
+        // Pending connection - no memories to load
+        setMemories([]);
       }
-    }
-    
-    // If no restored connection, use first active connection as default
-    if (!targetConnection) {
-      targetConnection = storytellerList.find((s) => s.isConnected);
-      console.log(`   First active storyteller:`, targetConnection);
-    }
-    
-    if (targetConnection) {
-      console.log(`   🎯 Setting activeStorytellerId to: ${targetConnection.id}`);
-      setActiveStorytellerId(targetConnection.id);
-      setPartnerProfile({
-        id: targetConnection.id,
-        name: targetConnection.name,
-        relationship: targetConnection.relationship,
-        bio: targetConnection.bio,
-        photo: targetConnection.photo,
-      });
-      setIsConnected(true);
-      console.log(`   ✅ Connected to storyteller: ${targetConnection.name} (ID: ${targetConnection.id})`);
-      
-      // Load memories for the active connection FIRST (priority)
-      // Pass true to explicitly mark this as the active connection
-      console.log(`   📦 Loading memories for active connection: ${targetConnection.id}...`);
-      await loadMemoriesForConnection(targetConnection.id, true);
-      
-      // Then load memories for all other connections in background (for notification badges)
-      const otherConnections = storytellerList.filter(s => s.id !== targetConnection!.id);
-      if (otherConnections.length > 0) {
-        console.log(`   📦 Loading memories for ${otherConnections.length} other connections in background...`);
-        Promise.all(otherConnections.map(s => loadMemoriesForConnection(s.id, false))).catch(err => {
-          console.warn('⚠️ Some background memory loads failed:', err);
-        });
-      }
-    } else if (storytellerList.length > 0) {
-      const firstPending = storytellerList[0];
-      console.log(`   🎯 Setting activeStorytellerId to pending: ${firstPending.id}`);
-      setActiveStorytellerId(firstPending.id);
-      setPartnerProfile({
-        id: firstPending.id,
-        name: firstPending.name,
-        relationship: firstPending.relationship,
-        bio: firstPending.bio,
-        photo: firstPending.photo,
-      });
-      setIsConnected(false);
-      console.log(`   ⏳ Pending connection to: ${firstPending.name} (ID: ${firstPending.id})`);
-      setMemories([]);
     } else {
-      console.log(`   ❌ No storytellers found - clearing active connection`);
+      // No connections at all
       setActiveStorytellerId('');
       setPartnerProfile(null);
       setIsConnected(false);
@@ -1208,67 +1182,35 @@ export function AppContent() {
 
     setLegacyKeepers(keeperList);
     
-    // Try to restore the last active connection from localStorage
-    let targetConnection: LegacyKeeper | undefined;
-    if (user?.id) {
-      const lastActiveId = localStorage.getItem(`adoras_last_active_connection_${user.id}`);
-      if (lastActiveId) {
-        targetConnection = keeperList.find((k) => k.id === lastActiveId && k.isConnected);
-        if (targetConnection) {
-          console.log(`   ♻️ Restoring last active connection: ${targetConnection.name} (${lastActiveId})`);
-        } else {
-          console.log(`   ⚠️ Last active connection ${lastActiveId} not found or not active, falling back to first`);
+    // Select which connection should be active (restore from localStorage, first active, or first pending)
+    const selection = selectActiveConnection(keeperList, user?.id);
+    logConnectionSelection(selection, 'teller');
+    
+    if (selection.connection) {
+      setActiveLegacyKeeperId(selection.connection.id);
+      setPartnerProfile(connectionToUserProfile(selection.connection));
+      setIsConnected(selection.isConnected);
+      
+      if (selection.isConnected) {
+        // Load memories for the active connection FIRST (priority)
+        // Pass true to explicitly mark this as the active connection
+        console.log(`   📦 Loading memories for active connection: ${selection.connection.id}...`);
+        await loadMemoriesForConnection(selection.connection.id, true);
+        
+        // Then load memories for all other connections in background (for notification badges)
+        const otherConnections = keeperList.filter(k => k.id !== selection.connection!.id);
+        if (otherConnections.length > 0) {
+          console.log(`   📦 Loading memories for ${otherConnections.length} other connections in background...`);
+          Promise.all(otherConnections.map(k => loadMemoriesForConnection(k.id, false))).catch(err => {
+            console.warn('⚠️ Some background memory loads failed:', err);
+          });
         }
+      } else {
+        // Pending connection - no memories to load
+        setMemories([]);
       }
-    }
-    
-    // If no restored connection, use first active connection as default
-    if (!targetConnection) {
-      targetConnection = keeperList.find((k) => k.isConnected);
-    }
-    
-    if (targetConnection) {
-      console.log(`   🎯 Setting activeLegacyKeeperId to: ${targetConnection.id}`);
-      setActiveLegacyKeeperId(targetConnection.id);
-      setPartnerProfile({
-        id: targetConnection.id,
-        name: targetConnection.name,
-        relationship: targetConnection.relationship,
-        bio: targetConnection.bio,
-        photo: targetConnection.photo,
-      });
-      setIsConnected(true);
-      console.log(`   ✅ Connected to legacy keeper: ${targetConnection.name} (ID: ${targetConnection.id})`);
-      
-      // Load memories for the active connection FIRST (priority)
-      // Pass true to explicitly mark this as the active connection
-      console.log(`   📦 Loading memories for active connection: ${targetConnection.id}...`);
-      await loadMemoriesForConnection(targetConnection.id, true);
-      
-      // Then load memories for all other connections in background (for notification badges)
-      const otherConnections = keeperList.filter(k => k.id !== targetConnection!.id);
-      if (otherConnections.length > 0) {
-        console.log(`   📦 Loading memories for ${otherConnections.length} other connections in background...`);
-        Promise.all(otherConnections.map(k => loadMemoriesForConnection(k.id, false))).catch(err => {
-          console.warn('⚠️ Some background memory loads failed:', err);
-        });
-      }
-    } else if (keeperList.length > 0) {
-      const firstPending = keeperList[0];
-      console.log(`   🎯 Setting activeLegacyKeeperId to pending: ${firstPending.id}`);
-      setActiveLegacyKeeperId(firstPending.id);
-      setPartnerProfile({
-        id: firstPending.id,
-        name: firstPending.name,
-        relationship: firstPending.relationship,
-        bio: firstPending.bio,
-        photo: firstPending.photo,
-      });
-      setIsConnected(false);
-      console.log(`   ⏳ Pending connection to: ${firstPending.name} (ID: ${firstPending.id})`);
-      setMemories([]);
     } else {
-      console.log(`   ❌ No legacy keepers found - clearing active connection`);
+      // No connections at all
       setActiveLegacyKeeperId('');
       setPartnerProfile(null);
       setIsConnected(false);
@@ -2531,32 +2473,24 @@ export function AppContent() {
   
   const handleSwitchStoryteller = async (storytellerId: string) => {
     const storyteller = storytellers.find((s) => s.id === storytellerId);
-    if (storyteller) {
-      console.log(`🔄 Switching to storyteller: ${storyteller.name} (${storytellerId})`);
+    const switchData = prepareConnectionSwitch(storyteller, memoriesByStoryteller);
+    
+    if (switchData) {
+      console.log(`🔄 Switching to storyteller: ${storyteller!.name} (${storytellerId})`);
       
       // DON'T clear badge here - wait for mark-as-read API to complete
       // This prevents iOS badge from being cleared prematurely
       
-      setActiveStorytellerId(storytellerId);
-      setPartnerProfile({
-        id: storyteller.id,
-        name: storyteller.name,
-        relationship: storyteller.relationship,
-        bio: storyteller.bio,
-        photo: storyteller.photo,
-      });
-      setIsConnected(storyteller.isConnected);
+      setActiveStorytellerId(switchData.connectionId);
+      setPartnerProfile(switchData.partnerProfile);
+      setIsConnected(switchData.isConnected);
       
       // Persist the last active connection to localStorage
-      if (user?.id) {
-        localStorage.setItem(`adoras_last_active_connection_${user.id}`, storytellerId);
-        console.log(`💾 Persisted last active connection: ${storytellerId}`);
-      }
+      persistActiveConnection(user?.id, switchData.connectionId);
       
       // Immediately load cached memories for instant UI update
-      const cachedMemories = memoriesByStoryteller[storytellerId] || [];
-      console.log(`📦 Loading ${cachedMemories.length} cached memories for ${storyteller.name}`);
-      setMemories(cachedMemories);
+      console.log(`📦 Loading ${switchData.cachedMemories.length} cached memories for ${storyteller!.name}`);
+      setMemories(switchData.cachedMemories);
       
       // Then refresh from API in the background (explicitly mark as active connection)
       await loadMemoriesForConnection(storytellerId, true);
@@ -2565,32 +2499,24 @@ export function AppContent() {
   
   const handleSwitchLegacyKeeper = async (legacyKeeperId: string) => {
     const legacyKeeper = legacyKeepers.find((lk) => lk.id === legacyKeeperId);
-    if (legacyKeeper) {
-      console.log(`🔄 Switching to legacy keeper: ${legacyKeeper.name} (${legacyKeeperId})`);
+    const switchData = prepareConnectionSwitch(legacyKeeper, memoriesByLegacyKeeper);
+    
+    if (switchData) {
+      console.log(`🔄 Switching to legacy keeper: ${legacyKeeper!.name} (${legacyKeeperId})`);
       
       // DON'T clear badge here - wait for mark-as-read API to complete
       // This prevents iOS badge from being cleared prematurely
       
-      setActiveLegacyKeeperId(legacyKeeperId);
-      setPartnerProfile({
-        id: legacyKeeper.id,
-        name: legacyKeeper.name,
-        relationship: legacyKeeper.relationship,
-        bio: legacyKeeper.bio,
-        photo: legacyKeeper.photo,
-      });
-      setIsConnected(legacyKeeper.isConnected);
+      setActiveLegacyKeeperId(switchData.connectionId);
+      setPartnerProfile(switchData.partnerProfile);
+      setIsConnected(switchData.isConnected);
       
       // Persist the last active connection to localStorage
-      if (user?.id) {
-        localStorage.setItem(`adoras_last_active_connection_${user.id}`, legacyKeeperId);
-        console.log(`💾 Persisted last active connection: ${legacyKeeperId}`);
-      }
+      persistActiveConnection(user?.id, switchData.connectionId);
       
       // Immediately load cached memories for instant UI update
-      const cachedMemories = memoriesByLegacyKeeper[legacyKeeperId] || [];
-      console.log(`📦 Loading ${cachedMemories.length} cached memories for ${legacyKeeper.name}`);
-      setMemories(cachedMemories);
+      console.log(`📦 Loading ${switchData.cachedMemories.length} cached memories for ${legacyKeeper!.name}`);
+      setMemories(switchData.cachedMemories);
       
       // Load memories from API (explicitly mark as active connection)
       await loadMemoriesForConnection(legacyKeeperId, true);
