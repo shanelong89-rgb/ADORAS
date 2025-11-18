@@ -479,6 +479,20 @@ class RealtimeSyncManager {
             console.error('❌ Error in sidebar callback:', error);
           }
         });
+      })
+      .on('broadcast', { event: 'user-deleted' }, ({ payload }) => {
+        console.log(`🗑️ User deleted event received:`, payload);
+        // Trigger a sidebar update to refresh connections list
+        this.sidebarUpdateCallbacks.forEach(cb => {
+          try {
+            cb({
+              type: 'user-deleted',
+              data: payload
+            } as SidebarUpdate);
+          } catch (error) {
+            console.error('❌ Error in user-deleted callback:', error);
+          }
+        });
       });
 
     // Store channel BEFORE subscribing
