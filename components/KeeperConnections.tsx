@@ -319,13 +319,13 @@ export function KeeperConnections({
             {/* Connection Requests Tab */}
             <TabsContent value="requests" className="m-0 flex-1 min-h-0" style={{ overflowX: 'hidden' }}>
               <ScrollArea className="h-full" style={{ overflowX: 'hidden' }}>
-                <div className="px-4 sm:px-6" style={{ overflowX: 'hidden', maxWidth: '100%' }}>
+                <div className="px-4 sm:px-6 pb-6" style={{ overflowX: 'hidden', maxWidth: '100%' }}>
                   {isLoadingRequests ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : requests.length === 0 ? (
-                    <Alert className="mt-4 mx-0">
+                    <Alert className="mt-4 mx-0 mb-4">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       <AlertDescription>
                         No pending connection requests
@@ -414,13 +414,13 @@ export function KeeperConnections({
             {/* Active Connections Tab */}
             <TabsContent value="connections" className="m-0 flex-1 min-h-0" style={{ overflowX: 'hidden' }}>
               <ScrollArea className="h-full" style={{ overflowX: 'hidden' }}>
-                <div className="px-4 sm:px-6" style={{ overflowX: 'hidden', maxWidth: '100%' }}>
+                <div className="px-4 sm:px-6 pb-6" style={{ overflowX: 'hidden', maxWidth: '100%' }}>
                   {isLoadingConnections ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                     </div>
                   ) : connections.length === 0 ? (
-                    <Alert className="mt-4 mx-0">
+                    <Alert className="mt-4 mx-0 mb-4">
                       <AlertCircle className="h-4 w-4 shrink-0" />
                       <AlertDescription>
                         No active connections yet. Accept connection requests or create invitations to get started.
