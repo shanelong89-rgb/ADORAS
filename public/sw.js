@@ -196,12 +196,25 @@ self.addEventListener('push', (event) => {
         notificationData = data.data || data;
         console.log('[SW] iOS APNS format - title:', title, 'badge:', badgeCount);
       } else {
-        // Standard web push format: { title, body, badge }
+        // Standard web push format: { title, body, badge, data: { badgeCount } }
         title = data.title || 'Adoras';
         body = data.body || 'New message!';
-        badgeCount = typeof data.badge === 'number' ? data.badge : 1;
+        // Try multiple sources for badge count (all should match from backend)
+        badgeCount = typeof data.badge === 'number' ? data.badge : 
+                     (data.data?.badgeCount || data.badgeCount || 1);
         notificationData = data.data || data;
         console.log('[SW] Web push format - title:', title, 'badge:', badgeCount);
+      }
+      
+      // CRITICAL FIX v2.2.1: Set iOS App Badge immediately
+      // This ensures the home screen icon shows the correct count
+      if ('setAppBadge' in navigator) {
+        try {
+          navigator.setAppBadge(badgeCount);
+          console.log('[SW] ✅ iOS App Badge set to:', badgeCount);
+        } catch (badgeError) {
+          console.error('[SW] ❌ Failed to set app badge:', badgeError);
+        }
       }
       
       // Persist badge to IndexedDB for app restoration
