@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check Adapture Profile - Adoras</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #1a202c;
+      font-weight: 700;
+    }
+    
+    .subtitle {
+      color: #718096;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    button:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .result {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .result.success {
+      background: #f0fdf4;
+      border: 2px solid #86efac;
+      color: #166534;
+    }
+    
+    .result.warning {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      color: #92400e;
+    }
+    
+    .result.error {
+      background: #fef2f2;
+      border: 2px solid #fca5a5;
+      color: #991b1b;
+    }
+    
+    .result h3 {
+      font-size: 18px;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    
+    .data-section {
+      margin-top: 15px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .data-item {
+      padding: 8px;
+      background: #f9fafb;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #334155;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Check Adapture Profile</h1>
+    <p class="subtitle">Check if Adapture's user profile still exists in the database</p>
+    
+    <button onclick="checkUser()" id="checkBtn">
+      Check User Profile
+    </button>
+    
+    <button onclick="checkAllUsers()" id="allUsersBtn" style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);">
+      List All Users
+    </button>
+    
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const API_URL = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    
+    async function checkUser() {
+      const resultDiv = document.getElementById('result');
+      const checkBtn = document.getElementById('checkBtn');
+      
+      checkBtn.disabled = true;
+      checkBtn.innerHTML = '<span class="spinner"></span> Checking...';
+      
+      try {
+        const response = await fetch(`${API_URL}/diagnostic/user-exists/info@adapture.co`);
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to check user');
+        }
+        
+        if (!data.exists) {
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = `
+            <h3>✅ User Profile Deleted</h3>
+            <p>No user profile found for <code>info@adapture.co</code></p>
+            <p style="margin-top: 15px;">The user profile has been deleted from the database.</p>
+          `;
+        } else {
+          resultDiv.className = 'result warning';
+          resultDiv.innerHTML = `
+            <h3>⚠️ User Profile Still Exists!</h3>
+            <p><strong>This is the problem!</strong> Adapture's profile exists in the KV database.</p>
+            
+            <div class="data-section">
+              <div class="data-item">ID: ${data.user.id}</div>
+              <div class="data-item">Name: ${data.user.name}</div>
+              <div class="data-item">Email: ${data.user.email}</div>
+              <div class="data-item">Type: ${data.user.type}</div>
+            </div>
+            
+            <div class="data-section">
+              <div class="data-item">Connections: ${data.connectionCount}</div>
+              <div class="data-item">Invitations: ${data.invitationCount}</div>
+              <div class="data-item">Memories: ${data.memoryCount}</div>
+            </div>
+            
+            <p style="margin-top: 15px; color: #dc2626;">
+              <strong>Issue:</strong> The Supabase auth account is deleted, but the KV user profile still exists.<br>
+              This is why the invitation still shows in Shane's "Manage Invitations".
+            </p>
+            
+            <p style="margin-top: 15px; padding: 15px; background: #e0f2fe; border-radius: 8px; color: #0c4a6e;">
+              <strong>Next Step:</strong> We need to manually delete this user profile from the KV database.
+            </p>
+          `;
+        }
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+        `;
+      } finally {
+        checkBtn.disabled = false;
+        checkBtn.innerHTML = 'Check User Profile';
+      }
+    }
+    
+    async function checkAllUsers() {
+      const resultDiv = document.getElementById('result');
+      const allUsersBtn = document.getElementById('allUsersBtn');
+      
+      allUsersBtn.disabled = true;
+      allUsersBtn.innerHTML = '<span class="spinner"></span> Loading...';
+      
+      try {
+        const response = await fetch(`${API_URL}/diagnostic/users`);
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to get users');
+        }
+        
+        const adaptureUser = data.users.find(u => u.email === 'info@adapture.co');
+        
+        resultDiv.className = 'result ' + (adaptureUser ? 'warning' : 'success');
+        resultDiv.innerHTML = `
+          <h3>${adaptureUser ? '⚠️' : '✅'} All Users (${data.totalUsers})</h3>
+          
+          <div class="data-section">
+            ${data.users.map(user => `
+              <div class="data-item" style="${user.email === 'info@adapture.co' ? 'background: #fef3c7; border: 2px solid #f59e0b;' : ''}">
+                <strong>${user.name}</strong> (${user.email})
+                <br>Type: ${user.type} | ID: ${user.id}
+                ${user.email === 'info@adapture.co' ? '<br><span style="color: #dc2626; font-weight: bold;">⚠️ THIS SHOULD BE DELETED</span>' : ''}
+              </div>
+            `).join('')}
+          </div>
+          
+          ${adaptureUser ? `
+            <p style="margin-top: 15px; color: #dc2626;">
+              <strong>Found Adapture:</strong> User profile exists with ID: ${adaptureUser.id}
+            </p>
+          ` : `
+            <p style="margin-top: 15px; color: #059669;">
+              <strong>No Adapture profile found.</strong> User has been properly deleted.
+            </p>
+          `}
+        `;
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+        `;
+      } finally {
+        allUsersBtn.disabled = false;
+        allUsersBtn.innerHTML = 'List All Users';
+      }
+    }
+  </script>
+</body>
+</html>
