@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cleanup Orphaned Invitations - Adoras</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #1a202c;
+      font-weight: 700;
+    }
+    
+    .subtitle {
+      color: #718096;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .warning {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .warning h3 {
+      color: #92400e;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    
+    .warning p {
+      color: #78350f;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .result {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .result.success {
+      background: #f0fdf4;
+      border: 2px solid #86efac;
+      color: #166534;
+    }
+    
+    .result.error {
+      background: #fef2f2;
+      border: 2px solid #fca5a5;
+      color: #991b1b;
+    }
+    
+    .result h3 {
+      font-size: 18px;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    
+    .data-section {
+      margin-top: 15px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .data-section h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+    
+    .data-item {
+      padding: 8px;
+      background: #f9fafb;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧹 Cleanup Orphaned Invitations</h1>
+    <p class="subtitle">Remove invitation records where the keeper or teller account has been deleted</p>
+    
+    <div class="warning">
+      <h3>⚠️ What This Does</h3>
+      <p>
+        This tool scans all invitations and removes those where:
+        <br>• The keeper (creator) account has been deleted
+        <br>• The teller (recipient) account has been deleted
+        <br><br>
+        This fixes the issue where deleted users still appear in "Manage Invitations".
+      </p>
+    </div>
+    
+    <button onclick="cleanupInvitations()" id="cleanupBtn">
+      🗑️ Run Cleanup
+    </button>
+    
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const API_URL = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    
+    async function cleanupInvitations() {
+      const resultDiv = document.getElementById('result');
+      const cleanupBtn = document.getElementById('cleanupBtn');
+      
+      // Show loading state
+      cleanupBtn.disabled = true;
+      cleanupBtn.innerHTML = '<span class="spinner"></span> Cleaning up...';
+      resultDiv.className = 'result';
+      resultDiv.innerHTML = '<p>Scanning for orphaned invitations...</p>';
+      
+      try {
+        const response = await fetch(`${API_URL}/diagnostic/cleanup-orphaned-invitations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to cleanup invitations');
+        }
+        
+        if (data.cleanedCount === 0) {
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = `
+            <h3>✅ No Orphaned Invitations Found</h3>
+            <p>All invitations are valid. No cleanup needed!</p>
+          `;
+        } else {
+          resultDiv.className = 'result success';
+          resultDiv.innerHTML = `
+            <h3>✅ Cleanup Complete</h3>
+            <p><strong>Cleaned up ${data.cleanedCount} orphaned invitation(s)</strong></p>
+            
+            ${data.cleanedInvitations.length > 0 ? `
+              <div class="data-section">
+                <h4>Removed Invitations</h4>
+                ${data.cleanedInvitations.map(inv => `
+                  <div class="data-item">
+                    <strong>${inv.tellerName || 'Unknown'}</strong> (${inv.code})
+                    <br>
+                    Keeper exists: ${inv.keeperExists ? '✓' : '✗'}
+                    | Teller exists: ${inv.tellerExists ? '✓' : '✗'}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+            
+            <p style="margin-top: 15px; color: #059669;">
+              ✓ Invitation records deleted<br>
+              ✓ User invitation lists updated<br>
+              ✓ Shane's "Manage Invitations" should now show correct count
+            </p>
+            
+            <p style="margin-top: 15px; padding: 15px; background: #e0f2fe; border-radius: 8px; color: #0c4a6e;">
+              <strong>Next Step:</strong> Shane should refresh the "Manage Invitations" dialog to see the updated list.
+            </p>
+          `;
+        }
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+          <p style="margin-top: 10px; font-size: 12px; color: #6b7280;">
+            Make sure the backend is deployed and accessible.
+          </p>
+        `;
+      } finally {
+        cleanupBtn.disabled = false;
+        cleanupBtn.innerHTML = '🗑️ Run Cleanup';
+      }
+    }
+  </script>
+</body>
+</html>
