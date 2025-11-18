@@ -1,146 +1,102 @@
 /**
- * Delete Connection Data Component
- * 
- * Allows Keeper to:
- * 1. Export all memories as JSON
- * 2. Delete all memories for a connection (with GitHub-style confirmation)
- * 
- * CRITICAL: This is a destructive operation that cannot be undone
+ * DeleteConnectionData Component
+ * Secure deletion of all memories between users with export functionality
+ * Requires typing partner's name to confirm
  */
 
-import { useState } from 'react';
-import { AlertTriangle, Download, Trash2, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
-import { Progress } from './ui/progress';
+import { Trash2, Download, AlertTriangle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { apiClient } from '../utils/api/client';
-import { toast } from 'sonner@2.0.3';
 
 interface DeleteConnectionDataProps {
   connectionId: string;
   partnerName: string;
   memoriesCount: number;
-  onDeleted?: () => void;
+  onDeleted: () => void;
 }
 
 export function DeleteConnectionData({
   connectionId,
   partnerName,
   memoriesCount,
-  onDeleted,
+  onDeleted
 }: DeleteConnectionDataProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [confirmationInput, setConfirmationInput] = useState('');
-  const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteProgress, setDeleteProgress] = useState(0);
+  const [isExporting, setIsExporting] = useState(false);
 
-  // Download memories as JSON
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      console.log(`📦 Exporting memories for connection: ${connectionId}`);
+      const response = await apiClient.exportConnectionData(connectionId);
       
-      const result = await apiClient.exportConnectionMemories(connectionId);
-      
-      if (!result.success || !result.data) {
-        throw new Error(result.error || 'Failed to export memories');
-      }
+      if (response.success && response.memories) {
+        // Create JSON export
+        const exportData = {
+          exportDate: new Date().toISOString(),
+          partnerName,
+          memoriesCount: response.memories.length,
+          memories: response.memories.map((memory: any) => ({
+            id: memory.id,
+            content: memory.content,
+            media: memory.media,
+            createdAt: memory.createdAt,
+            createdBy: memory.createdBy,
+            tags: memory.tags,
+          }))
+        };
 
-      // Convert data to JSON string
-      const jsonString = JSON.stringify(result.data, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `adoras-memories-${partnerName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      
-      toast.success(`Exported ${result.memoriesCount || 0} memories`, {
-        description: 'Your data has been downloaded successfully',
-      });
-      
-      console.log(`✅ Exported ${result.memoriesCount || 0} memories`);
+        // Download as JSON
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `adoras-${partnerName.toLowerCase().replace(/\s+/g, '-')}-memories-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast.success('Data exported successfully');
+      } else {
+        toast.error(response.error || 'Failed to export data');
+      }
     } catch (error) {
-      console.error('❌ Export error:', error);
-      toast.error('Failed to export memories', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
+      console.error('Export error:', error);
+      toast.error('Network error during export');
     } finally {
       setIsExporting(false);
     }
   };
 
-  // Delete all memories (with confirmation)
   const handleDelete = async () => {
-    if (confirmationInput.trim().toLowerCase() !== partnerName.trim().toLowerCase()) {
-      toast.error('Confirmation does not match', {
-        description: `Please type "${partnerName}" exactly to confirm`,
-      });
+    if (!confirmationMatches) {
+      toast.error(`Please type "${partnerName}" to confirm`);
       return;
     }
 
     setIsDeleting(true);
-    setDeleteProgress(0);
-
     try {
-      console.log(`🗑️ Deleting all memories for connection: ${connectionId}`);
+      const response = await apiClient.deleteConnectionData(connectionId);
       
-      // Simulate progress for better UX
-      const progressInterval = setInterval(() => {
-        setDeleteProgress(prev => Math.min(prev + 10, 90));
-      }, 200);
-      
-      const result = await apiClient.deleteAllConnectionMemories(
-        connectionId,
-        confirmationInput
-      );
-      
-      clearInterval(progressInterval);
-      setDeleteProgress(100);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to delete memories');
+      if (response.success) {
+        toast.success(`All memories with ${partnerName} have been deleted`);
+        setIsDialogOpen(false);
+        setConfirmationInput('');
+        onDeleted();
+      } else {
+        toast.error(response.error || 'Failed to delete data');
       }
-
-      console.log(`✅ Deleted ${result.deletedCount || 0} memories and ${result.mediaFilesDeleted || 0} media files`);
-      
-      toast.success('All memories deleted', {
-        description: `Deleted ${result.deletedCount || 0} memories and ${result.mediaFilesDeleted || 0} media files`,
-      });
-      
-      // Close dialog and notify parent
-      setIsDialogOpen(false);
-      setConfirmationInput('');
-      
-      // Wait a bit for toast to show
-      setTimeout(() => {
-        if (onDeleted) {
-          onDeleted();
-        }
-      }, 1000);
-      
     } catch (error) {
-      console.error('❌ Delete error:', error);
-      toast.error('Failed to delete memories', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-      setDeleteProgress(0);
+      console.error('Delete error:', error);
+      toast.error('Network error during deletion');
     } finally {
       setIsDeleting(false);
     }
@@ -157,9 +113,10 @@ export function DeleteConnectionData({
         onClick={handleExport}
         disabled={isExporting || memoriesCount === 0}
         className="h-9 gap-1.5 text-xs w-full sm:w-auto sm:flex-1 shrink-0"
+        style={{ display: 'flex', minWidth: '0' }}
       >
         <Download className="w-3.5 h-3.5 shrink-0" />
-        {isExporting ? 'Exporting...' : 'Export Data'}
+        <span className="truncate">{isExporting ? 'Exporting...' : 'Export Data'}</span>
       </Button>
 
       {/* Delete Button */}
@@ -169,64 +126,67 @@ export function DeleteConnectionData({
         onClick={() => setIsDialogOpen(true)}
         disabled={memoriesCount === 0}
         className="h-9 gap-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 w-full sm:w-auto sm:flex-1 shrink-0"
+        style={{ display: 'flex', minWidth: '0' }}
       >
         <Trash2 className="w-3.5 h-3.5 shrink-0" />
-        Delete All
+        <span className="truncate">Delete All</span>
       </Button>
 
       {/* Confirmation Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent 
+          className="max-w-[min(calc(100vw-2rem),500px)] p-4 sm:p-6"
+          style={{ overflowX: 'hidden', width: '100%' }}
+        >
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="w-5 h-5" />
-              Delete All Memories
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg" style={{ fontFamily: 'Archivo' }}>
+              <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+              <span className="truncate">Delete All Memories?</span>
             </DialogTitle>
-            <DialogDescription className="space-y-3 pt-2">
-              <p>
-                This will permanently delete <strong>{memoriesCount} {memoriesCount === 1 ? 'memory' : 'memories'}</strong> from your connection with <strong>{partnerName}</strong>.
-              </p>
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>This action cannot be undone.</strong> All photos, videos, voice notes, and text memories will be permanently deleted from both you and {partnerName}'s accounts.
-                </AlertDescription>
-              </Alert>
-              <p className="text-sm">
-                We recommend exporting your data first using the "Export Data" button.
-              </p>
+            <DialogDescription className="text-xs sm:text-sm" style={{ fontFamily: 'Inter' }}>
+              This action cannot be undone. All memories with {partnerName} will be permanently deleted.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Confirmation Input */}
-          <div className="space-y-4 pt-4">
+          <div className="space-y-4 py-4" style={{ overflowX: 'hidden' }}>
+            <Alert variant="destructive" className="border-red-200 bg-red-50/50">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <AlertDescription className="text-xs sm:text-sm" style={{ fontFamily: 'Inter' }}>
+                <strong className="block mb-1">Warning:</strong>
+                You are about to delete <strong>{memoriesCount} {memoriesCount === 1 ? 'memory' : 'memories'}</strong> between you and {partnerName}. 
+                This will remove all photos, videos, audio recordings, and text from both users' accounts.
+              </AlertDescription>
+            </Alert>
+
             <div className="space-y-2">
-              <Label htmlFor="confirmation" className="text-sm font-medium">
-                Please type <strong>{partnerName}</strong> to confirm:
+              <Label htmlFor="confirmation" className="text-xs sm:text-sm" style={{ fontFamily: 'Inter' }}>
+                Type <strong>{partnerName}</strong> to confirm:
               </Label>
               <Input
                 id="confirmation"
+                type="text"
                 value={confirmationInput}
                 onChange={(e) => setConfirmationInput(e.target.value)}
-                placeholder={partnerName}
+                placeholder={`Type "${partnerName}"`}
                 disabled={isDeleting}
-                className={confirmationMatches ? 'border-green-500' : ''}
-                autoComplete="off"
+                className="text-sm"
+                style={{ fontFamily: 'Inter' }}
               />
+              {confirmationInput && !confirmationMatches && (
+                <p className="text-xs text-red-600" style={{ fontFamily: 'Inter' }}>
+                  Name doesn't match. Please type exactly: {partnerName}
+                </p>
+              )}
             </div>
 
-            {isDeleting && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Deleting...</span>
-                  <span>{deleteProgress}%</span>
-                </div>
-                <Progress value={deleteProgress} className="h-2" />
-              </div>
-            )}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-xs text-blue-900" style={{ fontFamily: 'Inter' }}>
+                <strong>💡 Tip:</strong> Export your data first if you want to keep a backup.
+              </p>
+            </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => {
@@ -234,17 +194,27 @@ export function DeleteConnectionData({
                 setConfirmationInput('');
               }}
               disabled={isDeleting}
+              className="w-full sm:w-auto text-xs sm:text-sm h-9"
             >
-              <X className="w-4 h-4 mr-2" />
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleDelete}
               disabled={!confirmationMatches || isDeleting}
+              className="w-full sm:w-auto gap-2 text-xs sm:text-sm h-9"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {isDeleting ? 'Deleting...' : 'Delete All Memories'}
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 shrink-0" />
+                  Delete All Memories
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
