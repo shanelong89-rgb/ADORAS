@@ -20,6 +20,7 @@ interface UsePWAVisibilitySyncParams {
   loadConnectionsFromAPI: () => Promise<void>;
   loadMemoriesForConnection: (connectionId: string, isActiveConnection: boolean) => Promise<void>;
   setupRealtime: () => Promise<void>;
+  fetchAndUpdateUnreadSummary?: () => Promise<void>; // NEW: For badge recalibration
 }
 
 export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
@@ -32,6 +33,7 @@ export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
     loadConnectionsFromAPI,
     loadMemoriesForConnection,
     setupRealtime,
+    fetchAndUpdateUnreadSummary,
   } = params;
 
   useEffect(() => {
@@ -55,32 +57,27 @@ export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
       console.log('📡 Step 1: Reloading connections...');
       await loadConnectionsFromAPI();
       
-      // Step 2: Reload memories for ALL connections (not just active)
-      // This ensures unread badge counts are accurate after backgrounding
-      console.log('📡 Step 2: Reloading memories for all connections...');
+      // Step 1.5: Fetch unread summary from backend for accurate badge counts
+      // This is MUCH faster than loading all memories for all connections
+      if (fetchAndUpdateUnreadSummary) {
+        console.log('📊 Step 1.5: Fetching unread summary from backend...');
+        await fetchAndUpdateUnreadSummary();
+      }
+      
+      // Step 2: Reload memories for active connection only (for viewing)
+      // Background connection badges are updated via the unread summary API
+      console.log('📡 Step 2: Reloading memories for active connection...');
       const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
       const allConnectionIds = userType === 'keeper' 
         ? storytellers.map(s => s.id) 
         : legacyKeepers.map(k => k.id);
       
       if (activeConnectionId && allConnectionIds.includes(activeConnectionId)) {
-        // Load active connection FIRST (priority)
+        // Load ONLY active connection (user is viewing this one)
+        // Badge counts for background connections are already updated via unread summary API
         console.log(`📦 Fetching messages for active connection: ${activeConnectionId}`);
         await loadMemoriesForConnection(activeConnectionId, true);
-        
-        // Then load all other connections in background (for badge counts)
-        const otherConnectionIds = allConnectionIds.filter(id => id !== activeConnectionId);
-        if (otherConnectionIds.length > 0) {
-          console.log(`📦 Fetching messages for ${otherConnectionIds.length} other connection(s) in background (for badge counts)...`);
-          Promise.all(otherConnectionIds.map(id => {
-            console.log(`   → Loading memories for ${id}...`);
-            return loadMemoriesForConnection(id, false);
-          })).catch(err => {
-            console.warn('⚠️ Some background memory loads failed:', err);
-          });
-        } else {
-          console.log('ℹ️ No other connections to load in background');
-        }
+        console.log('ℹ️ Background connections NOT loaded (badges updated via API)');
       } else {
         console.log('⚠️ No active connection or connection list empty - skipping memory reload');
       }
