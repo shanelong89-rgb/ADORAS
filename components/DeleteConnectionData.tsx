@@ -153,23 +153,25 @@ export function DeleteConnectionData({
       {/* Export Button */}
       <Button
         variant="outline"
+        size="sm"
         onClick={handleExport}
         disabled={isExporting || memoriesCount === 0}
-        className="gap-2"
+        className="h-9 gap-1.5 text-xs flex-1 sm:flex-none"
       >
-        <Download className="w-4 h-4" />
+        <Download className="w-3.5 h-3.5" />
         {isExporting ? 'Exporting...' : 'Export Data'}
       </Button>
 
       {/* Delete Button */}
       <Button
-        variant="destructive"
+        variant="outline"
+        size="sm"
         onClick={() => setIsDialogOpen(true)}
         disabled={memoriesCount === 0}
-        className="gap-2"
+        className="h-9 gap-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 flex-1 sm:flex-none"
       >
-        <Trash2 className="w-4 h-4" />
-        Delete All Memories
+        <Trash2 className="w-3.5 h-3.5" />
+        Delete All
       </Button>
 
       {/* Confirmation Dialog */}
