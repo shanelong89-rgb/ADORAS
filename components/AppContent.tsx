@@ -1002,42 +1002,10 @@ export function AppContent() {
   });
 
   /**
-   * Helper function: Fetch unread summary from backend for badge recalibration
-   * This is the SOURCE OF TRUTH for badge counts (not local calculation)
-   * Called when app comes to foreground to ensure badges are accurate
+   * REMOVED: fetchAndUpdateUnreadSummary
+   * The apiClient doesn't have a .get() method and the endpoint doesn't exist
+   * Badge calculation works correctly from loaded memories via recalculateUnreadCounts
    */
-  const fetchAndUpdateUnreadSummary = useCallback(async () => {
-    if (!user?.id) {
-      console.log("⏭️ Skipping unread summary fetch - no user");
-      return;
-    }
-
-    try {
-      console.log("📊 [BADGE-RECAL] Fetching unread summary from backend...");
-      const response = await apiClient.get("/unread/summary");
-      
-      if (response.success && response.unreadCounts) {
-        console.log("📊 [BADGE-RECAL] Backend unread summary:", response.unreadCounts);
-        console.log("📊 [BADGE-RECAL] Total:", response.total);
-        
-        // Update state with backend counts (SOURCE OF TRUTH)
-        setUnreadCounts(response.unreadCounts);
-        
-        // Update iOS badge immediately
-        const total = response.total || 0;
-        if (total > 0) {
-          await setAndPersistBadge(total);
-          console.log(`📱 [BADGE-RECAL] ✅ Badge set to ${total}`);
-        } else {
-          await clearBadge();
-          console.log("📱 [BADGE-RECAL] ✅ Badge cleared");
-        }
-      }
-    } catch (error) {
-      console.error("📊 [BADGE-RECAL] Failed to fetch unread summary:", error);
-      // Error is logged, badge will be recalculated via local method after memories load
-    }
-  }, [user?.id, setUnreadCounts]);
 
   // Setup PWA visibility sync for iOS
   usePWAVisibilitySync({
@@ -1049,7 +1017,7 @@ export function AppContent() {
     loadConnectionsFromAPI,
     loadMemoriesForConnection,
     setupRealtime: triggerReconnect,
-    fetchAndUpdateUnreadSummary, // CRITICAL: Badge recalibration on app open
+    // Badge recalibration happens automatically after memories load via recalculateUnreadCounts
   });
 
   /**
@@ -1221,13 +1189,13 @@ export function AppContent() {
   }, [memoriesByStoryteller, memoriesByLegacyKeeper, userType]);
 
   /**
-   * Helper function: Recalculate unread counts from actual memories (LOCAL ONLY)
-   * This is called:
-   * 1. On initial load (via useEffect below)
-   * 2. When app comes back to foreground (after reloading memories)
-   * 3. Any time we need to ensure badges are accurate
-   * 
-   * NOTE: This is now a FALLBACK. The primary method is fetchAndUpdateUnreadSummary()
+   * Helper function: Recalculate unread counts from loaded memories
+   * This is the SOURCE OF TRUTH for badge counts
+   * Called after:
+   * 1. Initial load
+   * 2. App comes back to foreground (after reloading memories)
+   * 3. Memories are marked as read
+   * 4. Any time memories change
    */
   const recalculateUnreadCounts = useCallback(() => {
     if (!user?.id || !user?.type) {
