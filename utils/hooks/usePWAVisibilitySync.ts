@@ -20,7 +20,7 @@ interface UsePWAVisibilitySyncParams {
   loadConnectionsFromAPI: () => Promise<void>;
   loadMemoriesForConnection: (connectionId: string, isActiveConnection: boolean) => Promise<void>;
   setupRealtime: () => Promise<void>;
-  fetchAndUpdateUnreadSummary?: () => Promise<void>; // NEW: For badge recalibration
+  // Badge recalibration removed - happens automatically after memories load
 }
 
 export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
@@ -33,7 +33,6 @@ export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
     loadConnectionsFromAPI,
     loadMemoriesForConnection,
     setupRealtime,
-    fetchAndUpdateUnreadSummary,
   } = params;
 
   useEffect(() => {
@@ -57,15 +56,8 @@ export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
       console.log('📡 Step 1: Reloading connections...');
       await loadConnectionsFromAPI();
       
-      // Step 1.5: Fetch unread summary from backend for accurate badge counts
-      // This is MUCH faster than loading all memories for all connections
-      if (fetchAndUpdateUnreadSummary) {
-        console.log('📊 Step 1.5: Fetching unread summary from backend...');
-        await fetchAndUpdateUnreadSummary();
-      }
-      
       // Step 2: Reload memories for active connection only (for viewing)
-      // Background connection badges are updated via the unread summary API
+      // Badge recalibration happens automatically after memories load via recalculateUnreadCounts
       console.log('📡 Step 2: Reloading memories for active connection...');
       const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
       const allConnectionIds = userType === 'keeper' 
@@ -74,10 +66,10 @@ export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
       
       if (activeConnectionId && allConnectionIds.includes(activeConnectionId)) {
         // Load ONLY active connection (user is viewing this one)
-        // Badge counts for background connections are already updated via unread summary API
+        // Badge counts will be recalculated automatically after memories load
         console.log(`📦 Fetching messages for active connection: ${activeConnectionId}`);
         await loadMemoriesForConnection(activeConnectionId, true);
-        console.log('ℹ️ Background connections NOT loaded (badges updated via API)');
+        console.log('ℹ️ Background connections NOT loaded (optimized for speed)');
       } else {
         console.log('⚠️ No active connection or connection list empty - skipping memory reload');
       }
@@ -100,6 +92,5 @@ export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
     loadConnectionsFromAPI,
     loadMemoriesForConnection,
     setupRealtime,
-    fetchAndUpdateUnreadSummary, // Include in deps
   ]);
 }
