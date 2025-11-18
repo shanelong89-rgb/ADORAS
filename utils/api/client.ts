@@ -731,6 +731,8 @@ class AdorasAPIClient {
     error?: string;
   }> {
     try {
+      console.log('🔄 API: Starting export for connection:', connectionId);
+      
       const result = await this.request<any>(
         `/connections/${connectionId}/memories/export`,
         {
@@ -738,8 +740,19 @@ class AdorasAPIClient {
         }
       );
       
+      console.log('📥 API: Raw response:', {
+        type: typeof result,
+        success: result?.success,
+        hasData: !!result?.data,
+        hasMemories: !!result?.memories,
+        memoriesCount: result?.data?.memories?.length || result?.memories?.length || 0,
+        error: result?.error,
+        keys: result ? Object.keys(result) : []
+      });
+      
       // Check if backend returned an error
       if (result && result.success === false) {
+        console.error('❌ API: Backend returned error:', result.error);
         return {
           success: false,
           error: result.error || 'Export failed',
@@ -748,6 +761,7 @@ class AdorasAPIClient {
       
       // Backend returns the data structure wrapped in {success, data}
       if (result.data) {
+        console.log('✅ API: Export successful with wrapped data structure');
         return {
           success: true,
           data: result.data,
@@ -759,18 +773,27 @@ class AdorasAPIClient {
       const memories = result.memories || [];
       
       if (memories.length >= 0) {
+        console.log('⚠️ API: Using fallback path with', memories.length, 'memories');
         return {
           success: true,
           memories: memories,
         };
       }
       
+      console.error('❌ API: No valid data structure found in response');
       return {
         success: false,
         error: 'No memories found',
       };
     } catch (error) {
-      console.error('Export error:', error);
+      console.error('❌ API: Export exception caught:', error);
+      if (error instanceof Error) {
+        console.error('Exception details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to export data',
