@@ -149,16 +149,16 @@ export function DeleteConnectionData({
   const confirmationMatches = confirmationInput.trim().toLowerCase() === partnerName.trim().toLowerCase();
 
   return (
-    <div className="contents">
+    <>
       {/* Export Button */}
       <Button
         variant="outline"
         size="sm"
         onClick={handleExport}
         disabled={isExporting || memoriesCount === 0}
-        className="h-9 gap-1.5 text-xs w-full sm:w-auto sm:flex-1"
+        className="h-9 gap-1.5 text-xs w-full sm:w-auto sm:flex-1 shrink-0"
       >
-        <Download className="w-3.5 h-3.5" />
+        <Download className="w-3.5 h-3.5 shrink-0" />
         {isExporting ? 'Exporting...' : 'Export Data'}
       </Button>
 
@@ -168,9 +168,9 @@ export function DeleteConnectionData({
         size="sm"
         onClick={() => setIsDialogOpen(true)}
         disabled={memoriesCount === 0}
-        className="h-9 gap-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 w-full sm:w-auto sm:flex-1"
+        className="h-9 gap-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 w-full sm:w-auto sm:flex-1 shrink-0"
       >
-        <Trash2 className="w-3.5 h-3.5" />
+        <Trash2 className="w-3.5 h-3.5 shrink-0" />
         Delete All
       </Button>
 
@@ -249,6 +249,6 @@ export function DeleteConnectionData({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
