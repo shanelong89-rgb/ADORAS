@@ -45,15 +45,27 @@ export function DeleteConnectionData({
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
   const [showProgressDialog, setShowProgressDialog] = useState(false);
 
-  const downloadMediaFile = async (url: string, fileName: string): Promise<Blob | null> => {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.blob();
-    } catch (error) {
-      console.error(`Failed to download ${fileName}:`, error);
-      return null;
+  const downloadMediaFile = async (url: string, fileName: string, retries = 2): Promise<Blob | null> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          cache: 'no-cache', // Don't use cached expired URLs
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return await response.blob();
+      } catch (error) {
+        console.error(`Failed to download ${fileName} (attempt ${attempt + 1}/${retries + 1}):`, error);
+        if (attempt === retries) {
+          return null; // Failed after all retries
+        }
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
     }
+    return null;
   };
 
   const getFileExtension = (url: string): string => {
@@ -198,6 +210,8 @@ Example: Memory "abc123" → media/photos/abc123.jpg
       setExportProgress({ phase: 'downloading', current: 0, total: totalMediaFiles });
 
       let downloaded = 0;
+      let successful = 0;
+      let failed = 0;
       const CONCURRENT_DOWNLOADS = 5; // Download 5 files at a time
 
       for (let i = 0; i < mediaFiles.length; i += CONCURRENT_DOWNLOADS) {
@@ -208,6 +222,9 @@ Example: Memory "abc123" → media/photos/abc123.jpg
             const blob = await downloadMediaFile(file.url, file.path);
             if (blob) {
               zip.file(file.path, blob);
+              successful++;
+            } else {
+              failed++;
             }
             downloaded++;
             setExportProgress({ 
@@ -220,6 +237,8 @@ Example: Memory "abc123" → media/photos/abc123.jpg
           })
         );
       }
+
+      console.log(`📦 Download complete: ${successful} successful, ${failed} failed out of ${totalMediaFiles} total`);
 
       // Phase 3: Create ZIP
       setExportProgress({ phase: 'creating', current: 0, total: 100 });
@@ -249,7 +268,11 @@ Example: Memory "abc123" → media/photos/abc123.jpg
       
       setTimeout(() => {
         setShowProgressDialog(false);
-        toast.success(`Exported ${memories.length} memories with ${downloaded} media files`);
+        if (failed > 0) {
+          toast.warning(`Exported ${memories.length} memories. ${successful} of ${totalMediaFiles} media files downloaded successfully (${failed} failed).`);
+        } else {
+          toast.success(`Exported ${memories.length} memories with all ${successful} media files!`);
+        }
       }, 1500);
 
     } catch (error) {
