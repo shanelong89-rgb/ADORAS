@@ -81,10 +81,14 @@ export function DeleteConnectionData({
 
     try {
       // Phase 1: Load memory data from backend
+      console.log('🔄 Starting export for connection:', connectionId);
       const response = await apiClient.exportConnectionData(connectionId);
+      console.log('📥 Export response:', response);
       
       if (!response.success || !response.data) {
+        console.error('❌ Export failed:', response.error || 'No data returned');
         toast.error(response.error || 'Failed to export data');
+        setShowProgressDialog(false);
         return;
       }
 
