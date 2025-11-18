@@ -728,12 +728,24 @@ class AdorasAPIClient {
         }
       );
       
-      // Backend returns the data directly (not wrapped in {success, data})
-      // The data structure is: { exportDate, partnerName, memoriesCount, memories: [...] }
-      if (result && result.memories) {
+      console.log('📦 Export result:', JSON.stringify(result, null, 2));
+      
+      // Check if backend returned an error
+      if (result && result.success === false) {
+        return {
+          success: false,
+          error: result.error || 'Export failed',
+        };
+      }
+      
+      // Backend returns the data structure wrapped in {success, data} OR directly
+      // Try to get memories from different possible locations
+      const memories = result.memories || result.data?.memories || [];
+      
+      if (memories.length >= 0) {
         return {
           success: true,
-          memories: result.memories,
+          memories: memories,
         };
       }
       
