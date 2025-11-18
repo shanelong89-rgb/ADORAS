@@ -1,6 +1,7 @@
 /**
  * KeeperConnections Component
  * Unified page for Keepers showing both connection requests and active connections
+ * With Export and Delete All Memories functionality
  */
 
 import React, { useState, useEffect } from 'react';
@@ -29,6 +30,7 @@ import {
 import { toast } from 'sonner';
 import { apiClient } from '../utils/api/client';
 import { DisconnectConfirmDialog } from './DisconnectConfirmDialog';
+import { DeleteConnectionData } from './DeleteConnectionData';
 import { format, isValid, parseISO } from 'date-fns';
 
 interface ConnectionRequest {
@@ -244,13 +246,16 @@ export function KeeperConnections({
     }
   };
 
-  // Disconnect from Connection
-  const handleDisconnect = async () => {
+  // Disconnect from Connection (without deleting memories)
+  const handleDisconnectOnly = async (deleteMemories: boolean = false) => {
     if (!selectedConnection) return;
 
     setIsDisconnecting(true);
     try {
-      const response = await apiClient.disconnectConnection(selectedConnection.id);
+      const response = await apiClient.disconnectConnection(
+        selectedConnection.id,
+        deleteMemories
+      );
       
       if (response.success) {
         toast.success(`Disconnected from ${selectedConnection.partner.name}`);
@@ -276,205 +281,238 @@ export function KeeperConnections({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] p-0">
-          <DialogHeader className="px-6 pt-6 pb-4">
-            <DialogTitle className="text-2xl" style={{ fontFamily: 'Archivo' }}>
+        <DialogContent 
+          className="max-w-[min(calc(100vw-1rem),640px)] max-h-[90vh] p-0 flex flex-col"
+          style={{ overflowX: 'hidden', width: '100%' }}
+        >
+          <DialogHeader className="px-4 sm:px-6 pt-6 pb-4 shrink-0" style={{ overflowX: 'hidden' }}>
+            <DialogTitle className="text-xl sm:text-2xl truncate" style={{ fontFamily: 'Archivo' }}>
               Connections
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm" style={{ fontFamily: 'Inter' }}>
               Manage your storyteller connections and pending requests
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'requests' | 'connections')} className="flex-1">
-            <div className="px-6">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="requests" className="relative">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={(v) => setActiveTab(v as 'requests' | 'connections')} 
+            className="flex-1 flex flex-col min-h-0"
+            style={{ overflowX: 'hidden' }}
+          >
+            <div className="px-4 sm:px-6 shrink-0" style={{ overflowX: 'hidden' }}>
+              <TabsList className="grid w-full grid-cols-2" style={{ maxWidth: '100%' }}>
+                <TabsTrigger value="requests" className="relative text-xs sm:text-sm">
                   Requests
                   {requests.length > 0 && (
-                    <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 text-xs">
+                    <Badge variant="destructive" className="ml-2 h-5 w-5 rounded-full p-0 text-xs shrink-0">
                       {requests.length > 9 ? '9+' : requests.length}
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="connections">
+                <TabsTrigger value="connections" className="text-xs sm:text-sm">
                   Active ({connections.length})
                 </TabsTrigger>
               </TabsList>
             </div>
 
             {/* Connection Requests Tab */}
-            <TabsContent value="requests" className="m-0 flex-1">
-              <ScrollArea className="h-[calc(90vh-200px)] px-6">
-                {isLoadingRequests ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : requests.length === 0 ? (
-                  <Alert className="mt-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      No pending connection requests
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="space-y-4 py-4">
-                    {requests.map((request) => (
-                      <div
-                        key={request.id}
-                        className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                      >
-                        <Avatar className="w-12 h-12 border-2 border-primary/20">
-                          <AvatarImage src={request.sender.photo} />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {request.sender.name[0]}
-                          </AvatarFallback>
-                        </Avatar>
+            <TabsContent value="requests" className="m-0 flex-1 min-h-0" style={{ overflowX: 'hidden' }}>
+              <ScrollArea className="h-full" style={{ overflowX: 'hidden' }}>
+                <div className="px-4 sm:px-6" style={{ overflowX: 'hidden', maxWidth: '100%' }}>
+                  {isLoadingRequests ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : requests.length === 0 ? (
+                    <Alert className="mt-4 mx-0">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <AlertDescription>
+                        No pending connection requests
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <div className="space-y-4 py-4">
+                      {requests.map((request) => (
+                        <div
+                          key={request.id}
+                          className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                          style={{ overflowX: 'hidden', maxWidth: '100%' }}
+                        >
+                          <Avatar className="w-12 h-12 border-2 border-primary/20 shrink-0">
+                            <AvatarImage src={request.sender.photo} />
+                            <AvatarFallback className="bg-primary/10 text-primary">
+                              {request.sender.name[0]}
+                            </AvatarFallback>
+                          </Avatar>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium truncate" style={{ fontFamily: 'Archivo' }}>
-                                {request.sender.name}
-                              </h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Mail className="w-3 h-3 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground truncate">
-                                  {request.sender.email}
-                                </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm sm:text-base truncate" style={{ fontFamily: 'Archivo' }}>
+                                  {request.sender.name}
+                                </h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+                                  <span className="text-xs sm:text-sm text-muted-foreground truncate">
+                                    {request.sender.email}
+                                  </span>
+                                </div>
+                                {request.sender.relationship && (
+                                  <Badge variant="secondary" className="mt-2 text-xs">
+                                    {request.sender.relationship}
+                                  </Badge>
+                                )}
                               </div>
-                              {request.sender.relationship && (
-                                <Badge variant="secondary" className="mt-2">
-                                  {request.sender.relationship}
-                                </Badge>
-                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                              <Clock className="w-3 h-3 shrink-0" />
+                              <span className="truncate">Requested {formatSafeDate(request.createdAt, 'MMM d, yyyy', 'Recently')}</span>
+                            </div>
+
+                            {request.message && (
+                              <p className="mt-2 text-xs sm:text-sm text-muted-foreground italic line-clamp-2">
+                                "{request.message}"
+                              </p>
+                            )}
+
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                onClick={() => handleAccept(request.id, request.sender.name)}
+                                disabled={processingRequestId === request.id}
+                                className="flex-1 h-9 text-xs"
+                              >
+                                {processingRequestId === request.id ? (
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin shrink-0" />
+                                ) : (
+                                  <Check className="w-3 h-3 mr-1 shrink-0" />
+                                )}
+                                <span className="truncate">Accept</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDecline(request.id, request.sender.name)}
+                                disabled={processingRequestId === request.id}
+                                className="flex-1 h-9 text-xs"
+                              >
+                                <X className="w-3 h-3 mr-1 shrink-0" />
+                                <span className="truncate">Decline</span>
+                              </Button>
                             </div>
                           </div>
-
-                          <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>Requested {formatSafeDate(request.createdAt, 'MMM d, yyyy', 'Recently')}</span>
-                          </div>
-
-                          {request.message && (
-                            <p className="mt-2 text-sm text-muted-foreground italic">
-                              "{request.message}"
-                            </p>
-                          )}
-
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              size="sm"
-                              onClick={() => handleAccept(request.id, request.sender.name)}
-                              disabled={processingRequestId === request.id}
-                              className="flex-1"
-                            >
-                              {processingRequestId === request.id ? (
-                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                              ) : (
-                                <Check className="w-3 h-3 mr-1" />
-                              )}
-                              Accept
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDecline(request.id, request.sender.name)}
-                              disabled={processingRequestId === request.id}
-                              className="flex-1"
-                            >
-                              <X className="w-3 h-3 mr-1" />
-                              Decline
-                            </Button>
-                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </ScrollArea>
             </TabsContent>
 
             {/* Active Connections Tab */}
-            <TabsContent value="connections" className="m-0 flex-1">
-              <ScrollArea className="h-[calc(90vh-200px)] px-6">
-                {isLoadingConnections ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : connections.length === 0 ? (
-                  <Alert className="mt-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      No active connections yet. Accept connection requests or create invitations to get started.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="space-y-4 py-4">
-                    {connections.map((connection) => (
-                      <div
-                        key={connection.id}
-                        className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                      >
-                        <Avatar className="w-12 h-12 border-2 border-primary/20">
-                          <AvatarImage src={connection.partner.photo} />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {connection.partner.name[0]}
-                          </AvatarFallback>
-                        </Avatar>
+            <TabsContent value="connections" className="m-0 flex-1 min-h-0" style={{ overflowX: 'hidden' }}>
+              <ScrollArea className="h-full" style={{ overflowX: 'hidden' }}>
+                <div className="px-4 sm:px-6" style={{ overflowX: 'hidden', maxWidth: '100%' }}>
+                  {isLoadingConnections ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : connections.length === 0 ? (
+                    <Alert className="mt-4 mx-0">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <AlertDescription>
+                        No active connections yet. Accept connection requests or create invitations to get started.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <div className="space-y-4 py-4">
+                      {connections.map((connection) => (
+                        <div
+                          key={connection.id}
+                          className="flex flex-col gap-3 p-3 sm:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                          style={{ overflowX: 'hidden', maxWidth: '100%' }}
+                        >
+                          {/* Header: Avatar + Name + Badge */}
+                          <div className="flex items-start gap-3">
+                            <Avatar className="w-12 h-12 sm:w-16 sm:h-16 border-2 border-primary/20 shrink-0">
+                              <AvatarImage src={connection.partner.photo} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-base sm:text-lg">
+                                {connection.partner.name[0]}
+                              </AvatarFallback>
+                            </Avatar>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium truncate" style={{ fontFamily: 'Archivo' }}>
-                                {connection.partner.name}
-                              </h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Mail className="w-3 h-3 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground truncate">
-                                  {connection.partner.email}
-                                </span>
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="font-medium text-sm sm:text-base truncate" style={{ fontFamily: 'Archivo' }}>
+                                  {connection.partner.name}
+                                </h4>
+                                <Badge variant="default" className="bg-green-100 text-green-800 border-green-300 text-xs shrink-0">
+                                  <UserCheck className="w-3 h-3 mr-1 shrink-0" />
+                                  Connected
+                                </Badge>
                               </div>
                               {connection.partner.relationship && (
-                                <Badge variant="secondary" className="mt-2">
+                                <Badge variant="secondary" className="mt-1 text-xs">
                                   {connection.partner.relationship}
                                 </Badge>
                               )}
                             </div>
-                            <Badge variant="default" className="bg-green-100 text-green-800 border-green-300">
-                              <UserCheck className="w-3 h-3 mr-1" />
-                              Connected
-                            </Badge>
                           </div>
 
-                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <MessageCircle className="w-3 h-3" />
-                              <span>{connection.memoriesCount} memories</span>
+                          {/* Email */}
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+                            <span className="text-xs sm:text-sm text-muted-foreground truncate">
+                              {connection.partner.email}
+                            </span>
+                          </div>
+
+                          {/* Stats */}
+                          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1 shrink-0">
+                              <MessageCircle className="w-3 h-3 shrink-0" />
+                              <span>{connection.memoriesCount} {connection.memoriesCount === 1 ? 'memory' : 'memories'}</span>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              <span>Since {formatSafeDate(connection.acceptedAt || connection.createdAt, 'MMM yyyy', 'Recently')}</span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Calendar className="w-3 h-3 shrink-0" />
+                              <span className="truncate">Since {formatSafeDate(connection.acceptedAt || connection.createdAt, 'MMM yyyy', 'Recently')}</span>
                             </div>
                           </div>
 
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => {
-                              setSelectedConnection(connection);
-                              setShowDisconnectDialog(true);
-                            }}
-                            className="mt-3"
-                          >
-                            <UserX className="w-3 h-3 mr-1" />
-                            Disconnect
-                          </Button>
+                          {/* Actions: Export + Delete + Disconnect */}
+                          <div className="flex flex-col sm:flex-row gap-2 w-full" style={{ overflowX: 'hidden' }}>
+                            <DeleteConnectionData
+                              connectionId={connection.id}
+                              partnerName={connection.partner.name}
+                              memoriesCount={connection.memoriesCount}
+                              onDeleted={() => {
+                                // Reload connections after deletion
+                                loadConnections();
+                                if (onConnectionsChanged) {
+                                  onConnectionsChanged();
+                                }
+                              }}
+                            />
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                setSelectedConnection(connection);
+                                setShowDisconnectDialog(true);
+                              }}
+                              className="h-9 text-xs w-full sm:w-auto shrink-0"
+                            >
+                              <UserX className="w-3 h-3 mr-1 shrink-0" />
+                              <span className="truncate">Disconnect</span>
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                      ))}
+                    </div>
+                  )}
+                </div>
               </ScrollArea>
             </TabsContent>
           </Tabs>
@@ -489,10 +527,10 @@ export function KeeperConnections({
             setShowDisconnectDialog(false);
             setSelectedConnection(null);
           }}
-          onConfirm={handleDisconnect}
+          onConfirm={handleDisconnectOnly}
           partnerName={selectedConnection.partner.name}
           memoriesCount={selectedConnection.memoriesCount}
-          isDisconnecting={isDisconnecting}
+          isLoading={isDisconnecting}
         />
       )}
     </>
