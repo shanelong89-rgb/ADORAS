@@ -255,23 +255,28 @@ Example: Memory "abc123" → media/photos/abc123.jpg
       );
 
       // Phase 4: Download
+      const filename = `adoras-${partnerName.toLowerCase().replace(/\s+/g, '-')}-memories-${new Date().toISOString().split('T')[0]}.zip`;
+      console.log(`💾 Creating download: ${filename} (${(zipBlob.size / 1024 / 1024).toFixed(2)} MB)`);
+      
       const url = URL.createObjectURL(zipBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `adoras-${partnerName.toLowerCase().replace(/\s+/g, '-')}-memories-${new Date().toISOString().split('T')[0]}.zip`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
+      console.log(`✅ Download triggered: ${filename}`);
       setExportProgress({ phase: 'complete', current: 100, total: 100 });
       
       setTimeout(() => {
         setShowProgressDialog(false);
+        const sizeInfo = `(${(zipBlob.size / 1024 / 1024).toFixed(2)} MB)`;
         if (failed > 0) {
-          toast.warning(`Exported ${memories.length} memories. ${successful} of ${totalMediaFiles} media files downloaded successfully (${failed} failed).`);
+          toast.warning(`✅ ZIP file downloaded ${sizeInfo}: ${memories.length} memories, ${successful}/${totalMediaFiles} media files (${failed} failed).`);
         } else {
-          toast.success(`Exported ${memories.length} memories with all ${successful} media files!`);
+          toast.success(`✅ ZIP file downloaded ${sizeInfo}: ${memories.length} memories with all ${successful} media files!`);
         }
       }, 1500);
 
