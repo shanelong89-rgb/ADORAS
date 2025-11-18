@@ -715,6 +715,56 @@ class AdorasAPIClient {
     });
   }
 
+  /**
+   * Export connection data (alias for exportConnectionMemories)
+   * Returns the raw export data structure from the backend
+   */
+  async exportConnectionData(connectionId: string): Promise<{ success: boolean; memories?: any[]; error?: string }> {
+    try {
+      const result = await this.request<any>(
+        `/connections/${connectionId}/memories/export`,
+        {
+          method: 'GET',
+        }
+      );
+      
+      // Backend returns the data directly (not wrapped in {success, data})
+      // The data structure is: { exportDate, partnerName, memoriesCount, memories: [...] }
+      if (result && result.memories) {
+        return {
+          success: true,
+          memories: result.memories,
+        };
+      }
+      
+      return {
+        success: false,
+        error: 'No memories found',
+      };
+    } catch (error) {
+      console.error('Export error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to export data',
+      };
+    }
+  }
+
+  /**
+   * Delete connection data (alias for deleteAllConnectionMemories)
+   */
+  async deleteConnectionData(connectionId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    // For deleteConnectionData, we don't require confirmation phrase in the API call
+    // The confirmation is handled in the UI
+    return this.request<{ success: boolean; message?: string; error?: string }>(
+      `/connections/${connectionId}/memories/all`,
+      {
+        method: 'DELETE',
+        body: JSON.stringify({ confirmationPhrase: 'CONFIRMED' }),
+      }
+    );
+  }
+
   // ============================================================================
   // HEALTH CHECK
   // ============================================================================
