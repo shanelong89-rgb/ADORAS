@@ -202,18 +202,18 @@ self.addEventListener('push', (event) => {
     try {
       const data = event.data.json();
       
-      // CRITICAL: Extract badge count from data
+      // CRITICAL: Extract badge count from data (iOS PWA badge support)
       const badgeCount = typeof data.badge === 'number' ? data.badge : 
                         (data.data?.badgeCount || 1);
       
-      console.log('[SW] 📱 iOS Badge count from notification:', badgeCount);
+      console.log('[SW] 📱 iOS Badge count from notification:', badgeCount, 'type:', typeof badgeCount);
       
       notificationData = {
         title: data.title || 'Adoras',
         body: data.body || 'New memory shared!',
         icon: data.icon || '/icon-192.png',
-        badge: '/icon-192.png', // Badge icon (keep as icon path)
-        badgeCount: badgeCount, // Badge COUNT for iOS
+        badge: data.badgeIcon || '/icon-192.png', // Badge icon (string path for notification display)
+        badgeCount: badgeCount, // Badge COUNT (number for iOS home screen icon)
         data: data.data || {},
         tag: data.tag || 'adoras-notification',
         type: data.type || 'message',
@@ -223,10 +223,11 @@ self.addEventListener('push', (event) => {
       };
       
       // CRITICAL: Set app badge for iOS PWA (when app is closed/backgrounded)
-      // iOS PWAs support Badge API in service worker context
-      // This is THE ONLY way to update badge when app is not running
+      // ⚠️ IMPORTANT: iOS PWAs do NOT support Badge API in Service Workers!
+      // iOS badges can ONLY be set through APNS push notification payload
+      // We persist to IndexedDB so the app can restore on foreground
       try {
-        // Store badge in IndexedDB for persistence
+        // Store badge in IndexedDB for app to restore when it opens
         const dbRequest = indexedDB.open('adoras-badge-store', 1);
         dbRequest.onsuccess = (event) => {
           const db = event.target.result;
@@ -245,25 +246,28 @@ self.addEventListener('push', (event) => {
         console.error('[SW] ❌ Failed to persist badge to IndexedDB:', error);
       }
       
-      // Set the badge count (iOS PWA support)
-      if (self.registration && self.registration.setAppBadge) {
+      // Try Badge API (works on Android, NOT on iOS standalone PWAs)
+      console.log('[SW] 📱 Attempting Badge API (badge count:', badgeCount, ')');
+      if (self.registration && typeof self.registration.setAppBadge === 'function') {
         self.registration.setAppBadge(badgeCount)
           .then(() => {
-            console.log('[SW] ✅ iOS Badge set via registration.setAppBadge:', badgeCount);
+            console.log('[SW] ✅ Badge set via registration.setAppBadge:', badgeCount);
           })
           .catch((err) => {
-            console.error('[SW] ❌ Failed to set badge via registration:', err);
+            console.warn('[SW] ⚠️ Badge API failed (expected on iOS):', err.message);
+            console.log('[SW] ℹ️ iOS PWAs: Badge must be set by APNS push payload, not Badge API');
           });
-      } else if ('setAppBadge' in self) {
+      } else if (typeof self.setAppBadge === 'function') {
         self.setAppBadge(badgeCount)
           .then(() => {
-            console.log('[SW] ✅ iOS Badge set via self.setAppBadge:', badgeCount);
+            console.log('[SW] ✅ Badge set via self.setAppBadge:', badgeCount);
           })
           .catch((err) => {
-            console.error('[SW] ❌ Failed to set badge via self:', err);
+            console.warn('[SW] ⚠️ Badge API failed (expected on iOS):', err.message);
           });
       } else {
-        console.log('[SW] ℹ️ Badge API not available - badge count stored in notification');
+        console.log('[SW] ℹ️ Badge API not available (expected on iOS - relies on APNS)');\
+        console.log('[SW] ℹ️ iOS badge will be set by push notification payload sent to APNS');
       }
       
     } catch (error) {
