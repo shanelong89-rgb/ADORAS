@@ -719,7 +719,17 @@ class AdorasAPIClient {
    * Export connection data (alias for exportConnectionMemories)
    * Returns the raw export data structure from the backend
    */
-  async exportConnectionData(connectionId: string): Promise<{ success: boolean; memories?: any[]; error?: string }> {
+  async exportConnectionData(connectionId: string): Promise<{ 
+    success: boolean; 
+    data?: {
+      connection: any;
+      memories: any[];
+      exportedAt: string;
+      totalMemories: number;
+    };
+    memories?: any[]; // Legacy support
+    error?: string;
+  }> {
     try {
       const result = await this.request<any>(
         `/connections/${connectionId}/memories/export`,
@@ -738,9 +748,17 @@ class AdorasAPIClient {
         };
       }
       
-      // Backend returns the data structure wrapped in {success, data} OR directly
-      // Try to get memories from different possible locations
-      const memories = result.memories || result.data?.memories || [];
+      // Backend returns the data structure wrapped in {success, data}
+      if (result.data) {
+        return {
+          success: true,
+          data: result.data,
+          memories: result.data.memories, // Legacy support
+        };
+      }
+      
+      // Fallback: Try to get memories from different possible locations
+      const memories = result.memories || [];
       
       if (memories.length >= 0) {
         return {
