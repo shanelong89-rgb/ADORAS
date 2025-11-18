@@ -645,6 +645,51 @@ class AdorasAPIClient {
   }
 
   /**
+   * Export all memories for a connection as JSON
+   * Returns downloadable data
+   */
+  async exportConnectionMemories(
+    connectionId: string
+  ): Promise<{ success: boolean; memoriesCount?: number; data?: any; error?: string }> {
+    return this.request<{ success: boolean; memoriesCount?: number; data?: any; error?: string }>(
+      `/connections/${connectionId}/memories/export`,
+      {
+        method: 'GET',
+      }
+    );
+  }
+
+  /**
+   * Delete ALL memories for a connection (Keeper only)
+   * CRITICAL: This is a destructive operation that cannot be undone
+   * Requires confirmation phrase matching the Teller's name
+   */
+  async deleteAllConnectionMemories(
+    connectionId: string,
+    confirmationPhrase: string
+  ): Promise<{ 
+    success: boolean; 
+    deletedCount?: number; 
+    mediaFilesDeleted?: number;
+    message?: string;
+    error?: string;
+  }> {
+    return this.request<{ 
+      success: boolean; 
+      deletedCount?: number; 
+      mediaFilesDeleted?: number;
+      message?: string;
+      error?: string;
+    }>(
+      `/connections/${connectionId}/memories/all`,
+      {
+        method: 'DELETE',
+        body: JSON.stringify({ confirmationPhrase }),
+      }
+    );
+  }
+
+  /**
    * Mark messages as read for a connection
    */
   async markMessagesAsRead(
