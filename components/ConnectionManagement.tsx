@@ -158,8 +158,8 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
-          <div className="px-6 pt-6">
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <div className="px-4 sm:px-6 pt-6">
             <DialogHeader>
               <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
                 Manage Connections
@@ -185,15 +185,15 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
               </p>
             </div>
           ) : (
-            <ScrollArea className="flex-1 px-6">
+            <ScrollArea className="flex-1 px-4 sm:px-6">
               <div className="space-y-4 pb-4">
                 {connections.map((connection, index) => (
                   <div key={connection.id}>
                     {index > 0 && <Separator className="my-4" />}
                     
-                    <div className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                    <div className="flex flex-col sm:flex-row items-start gap-4 p-3 sm:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
                       {/* Avatar */}
-                      <Avatar className="w-16 h-16 ring-2 ring-primary/20">
+                      <Avatar className="w-16 h-16 ring-2 ring-primary/20 shrink-0">
                         <AvatarImage src={connection.partner.photo} />
                         <AvatarFallback className="bg-primary/10 text-primary text-lg">
                           {connection.partner.name[0]?.toUpperCase() || '?'}
@@ -234,7 +234,7 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                        <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full">
                           <DeleteConnectionData
                             connectionId={connection.id}
                             partnerName={connection.partner.name}
@@ -251,7 +251,7 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
                             variant="destructive"
                             size="sm"
                             onClick={() => handleDisconnectClick(connection)}
-                            className="h-9 text-xs"
+                            className="h-9 text-xs w-full sm:w-auto"
                           >
                             <UserX className="w-3 h-3 mr-1" />
                             Disconnect
@@ -265,7 +265,7 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
             </ScrollArea>
           )}
 
-          <div className="flex justify-end px-6 py-4 border-t mt-auto">
+          <div className="flex justify-end px-4 sm:px-6 py-4 border-t mt-auto">
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
