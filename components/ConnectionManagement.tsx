@@ -158,15 +158,17 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
-              Manage Connections
-            </DialogTitle>
-            <DialogDescription style={{ fontFamily: 'Inter' }}>
-              View and manage your family connections
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0">
+          <div className="px-6 pt-6">
+            <DialogHeader>
+              <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
+                Manage Connections
+              </DialogTitle>
+              <DialogDescription style={{ fontFamily: 'Inter' }}>
+                View and manage your family connections
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -183,13 +185,13 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
               </p>
             </div>
           ) : (
-            <ScrollArea className="flex-1 pr-4">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 px-6">
+              <div className="space-y-4 pb-4">
                 {connections.map((connection, index) => (
                   <div key={connection.id}>
                     {index > 0 && <Separator className="my-4" />}
                     
-                    <div className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                    <div className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                       {/* Avatar */}
                       <Avatar className="w-16 h-16 ring-2 ring-primary/20">
                         <AvatarImage src={connection.partner.photo} />
@@ -232,27 +234,24 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-wrap gap-2">
-                          {/* Only show Delete Connection Data for Keepers */}
-                          <div className="flex gap-2">
-                            <DeleteConnectionData
-                              connectionId={connection.id}
-                              partnerName={connection.partner.name}
-                              memoriesCount={connection.memoriesCount}
-                              onDeleted={() => {
-                                // Reload connections after deletion
-                                loadConnections();
-                                if (onConnectionsChanged) {
-                                  onConnectionsChanged();
-                                }
-                              }}
-                            />
-                          </div>
+                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                          <DeleteConnectionData
+                            connectionId={connection.id}
+                            partnerName={connection.partner.name}
+                            memoriesCount={connection.memoriesCount}
+                            onDeleted={() => {
+                              // Reload connections after deletion
+                              loadConnections();
+                              if (onConnectionsChanged) {
+                                onConnectionsChanged();
+                              }
+                            }}
+                          />
                           <Button
                             variant="destructive"
                             size="sm"
                             onClick={() => handleDisconnectClick(connection)}
-                            className="h-8 text-xs"
+                            className="h-9 text-xs"
                           >
                             <UserX className="w-3 h-3 mr-1" />
                             Disconnect
@@ -266,7 +265,7 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
             </ScrollArea>
           )}
 
-          <div className="flex justify-end pt-4 border-t">
+          <div className="flex justify-end px-6 py-4 border-t mt-auto">
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
