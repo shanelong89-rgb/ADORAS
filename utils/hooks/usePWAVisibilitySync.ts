@@ -100,5 +100,6 @@ export function usePWAVisibilitySync(params: UsePWAVisibilitySyncParams) {
     loadConnectionsFromAPI,
     loadMemoriesForConnection,
     setupRealtime,
+    fetchAndUpdateUnreadSummary, // Include in deps
   ]);
 }
