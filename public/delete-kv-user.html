@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete KV User Profile - Adoras</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #1a202c;
+      font-weight: 700;
+    }
+    
+    .subtitle {
+      color: #718096;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    
+    .warning {
+      background: #fef2f2;
+      border: 2px solid #dc2626;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .warning h3 {
+      color: #991b1b;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    
+    .warning p {
+      color: #7f1d1d;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .input-group {
+      margin-bottom: 20px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #4a5568;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    button {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
+    }
+    
+    button:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .result {
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .result.success {
+      background: #f0fdf4;
+      border: 2px solid #86efac;
+      color: #166534;
+    }
+    
+    .result.error {
+      background: #fef2f2;
+      border: 2px solid #fca5a5;
+      color: #991b1b;
+    }
+    
+    .result h3 {
+      font-size: 18px;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    
+    .data-section {
+      margin-top: 15px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .data-item {
+      padding: 8px;
+      background: #f9fafb;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #334155;
+    }
+    
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255,255,255,.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗑️ Delete KV User Profile</h1>
+    <p class="subtitle">Manually delete a user profile from the KV database (when auth is already deleted)</p>
+    
+    <div class="warning">
+      <h3>⚠️ DANGER ZONE</h3>
+      <p>
+        This will <strong>permanently delete</strong> the user profile from the KV database:<br>
+        • User profile record<br>
+        • All connections<br>
+        • All invitations<br>
+        • All memories<br>
+        <br>
+        <strong>Use this only when:</strong><br>
+        • The Supabase auth account is already deleted<br>
+        • The KV user profile still exists (orphaned)<br>
+        • You want to clean up the orphaned data
+      </p>
+    </div>
+    
+    <div class="input-group">
+      <label for="email">User Email to Delete</label>
+      <input 
+        type="email" 
+        id="email" 
+        placeholder="e.g., info@adapture.co"
+        value="info@adapture.co"
+      />
+    </div>
+    
+    <button onclick="deleteUser()" id="deleteBtn">
+      🗑️ Delete KV User Profile
+    </button>
+    
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const API_URL = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    
+    async function deleteUser() {
+      const email = document.getElementById('email').value.trim();
+      const resultDiv = document.getElementById('result');
+      const deleteBtn = document.getElementById('deleteBtn');
+      
+      if (!email) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = '<h3>⚠️ Error</h3><p>Please enter an email address</p>';
+        return;
+      }
+      
+      // Confirm deletion
+      if (!confirm(`Are you sure you want to delete the KV user profile for:\n\n${email}\n\nThis will delete:\n• User profile\n• All connections\n• All invitations\n• All memories\n\nThis cannot be undone!`)) {
+        return;
+      }
+      
+      // Show loading state
+      deleteBtn.disabled = true;
+      deleteBtn.innerHTML = '<span class="spinner"></span> Deleting...';
+      resultDiv.className = 'result';
+      resultDiv.innerHTML = '<p>Deleting user profile from KV database...</p>';
+      
+      try {
+        const response = await fetch(`${API_URL}/diagnostic/delete-kv-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to delete user');
+        }
+        
+        resultDiv.className = 'result success';
+        resultDiv.innerHTML = `
+          <h3>✅ User Profile Deleted</h3>
+          <p><strong>Successfully deleted KV user profile:</strong> ${email}</p>
+          
+          <div class="data-section">
+            <h4>Deleted Data</h4>
+            <div class="data-item">User ID: ${data.deletedData.userId}</div>
+            <div class="data-item">Connections: ${data.deletedData.connectionCount}</div>
+            <div class="data-item">Invitations: ${data.deletedData.invitationCount}</div>
+            <div class="data-item">Memories: ${data.deletedData.memoryCount}</div>
+          </div>
+          
+          <p style="margin-top: 15px; color: #059669;">
+            ✓ User profile deleted from KV<br>
+            ✓ All connections removed<br>
+            ✓ All invitations removed<br>
+            ✓ All memories removed<br>
+            ✓ Partner connection lists updated
+          </p>
+          
+          <p style="margin-top: 15px; padding: 15px; background: #e0f2fe; border-radius: 8px; color: #0c4a6e;">
+            <strong>Next Steps:</strong><br>
+            1. Shane should refresh "Manage Invitations"<br>
+            2. The "adapture" invitation should now be gone<br>
+            3. Shane can create a new invitation for Adapture<br>
+            4. Adapture can sign up with a new account
+          </p>
+        `;
+      } catch (error) {
+        resultDiv.className = 'result error';
+        resultDiv.innerHTML = `
+          <h3>❌ Error</h3>
+          <p>${error.message}</p>
+          <p style="margin-top: 10px; font-size: 12px; color: #6b7280;">
+            ${error.message.includes('No user found') 
+              ? 'The user profile does not exist in the KV database. It may have already been deleted.'
+              : 'Make sure the backend is deployed and accessible.'
+            }
+          </p>
+        `;
+      } finally {
+        deleteBtn.disabled = false;
+        deleteBtn.innerHTML = '🗑️ Delete KV User Profile';
+      }
+    }
+    
+    // Allow Enter key to submit
+    document.getElementById('email').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        deleteUser();
+      }
+    });
+  </script>
+</body>
+</html>
