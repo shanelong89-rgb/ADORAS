@@ -285,15 +285,16 @@ class RealtimeSyncManager {
           resolve();
         } else if (status === 'CHANNEL_ERROR') {
           clearTimeout(timeout);
-          console.error(`❌ [REALTIME-SUB] Subscription error for ${connectionId}`);
+          // Only log as warning - these are expected during PWA background/foreground transitions
+          console.warn(`⚠️ [REALTIME-SUB] Channel error for ${connectionId} (will auto-reconnect)`);
           reject(new Error(`Channel subscription failed for ${connectionId}`));
         } else if (status === 'TIMED_OUT') {
           clearTimeout(timeout);
-          console.error(`⏰ [REALTIME-SUB] Subscription timed out for ${connectionId}`);
+          console.warn(`⏰ [REALTIME-SUB] Subscription timed out for ${connectionId} (will retry)`);
           reject(new Error(`Channel subscription timed out for ${connectionId}`));
         } else if (status === 'CLOSED') {
           clearTimeout(timeout);
-          console.warn(`🔒 [REALTIME-SUB] Channel closed for ${connectionId}`);
+          console.warn(`🔒 [REALTIME-SUB] Channel closed for ${connectionId} (expected on disconnect)`);
           reject(new Error(`Channel closed for ${connectionId}`));
         }
         // Note: We don't handle other statuses to avoid premature resolution
@@ -376,11 +377,12 @@ class RealtimeSyncManager {
           resolve();
         } else if (status === 'CHANNEL_ERROR') {
           clearTimeout(timeout);
-          console.error(`❌ Presence subscription error for ${connectionId}`);
+          // Only log as warning - these are expected during PWA background/foreground transitions
+          console.warn(`⚠️ [PRESENCE] Channel error for ${connectionId} (will auto-reconnect)`);
           reject(new Error(`Presence subscription failed for ${connectionId}`));
         } else if (status === 'TIMED_OUT' || status === 'CLOSED') {
           clearTimeout(timeout);
-          console.warn(`⚠️ [PRESENCE] Channel ${status} for ${connectionId}`);
+          console.warn(`⚠️ [PRESENCE] Channel ${status} for ${connectionId} (expected on disconnect)`);
           reject(new Error(`Presence subscription ${status}`));
         }
       });
@@ -439,7 +441,8 @@ class RealtimeSyncManager {
           resolve();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           clearTimeout(timeout);
-          console.error(`❌ Connection changes subscription ${status}`);
+          // Only log as warning - these are expected during PWA background/foreground transitions
+          console.warn(`⚠️ [CONNECTIONS] Subscription ${status} (will auto-reconnect)`);
           reject(new Error(`Connection changes subscription ${status}`));
         }
       });
@@ -497,7 +500,8 @@ class RealtimeSyncManager {
           resolve();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           clearTimeout(timeout);
-          console.error(`❌ User-level channel subscription ${status}`);
+          // Only log as warning - these are expected during PWA background/foreground transitions
+          console.warn(`⚠️ [USER-UPDATES] Channel ${status} (will auto-reconnect)`);
           reject(new Error(`User-level channel subscription ${status}`));
         }
       });
