@@ -738,8 +738,6 @@ class AdorasAPIClient {
         }
       );
       
-      console.log('📦 Export result:', JSON.stringify(result, null, 2));
-      
       // Check if backend returned an error
       if (result && result.success === false) {
         return {
