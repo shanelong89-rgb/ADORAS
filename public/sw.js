@@ -1,8 +1,8 @@
 // Adoras Service Worker - PWA Support
-// Version 2.0.2 - Fixed iOS badge API (proper registration.setAppBadge + IndexedDB persistence)
+// Version 2.0.3 - FIXED iOS badge API syntax error
 
-const CACHE_NAME = 'adoras-v12';
-const RUNTIME_CACHE = 'adoras-runtime-v12';
+const CACHE_NAME = 'adoras-v13';
+const RUNTIME_CACHE = 'adoras-runtime-v13';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -290,7 +290,7 @@ self.addEventListener('push', (event) => {
             console.warn('[SW] ⚠️ Badge API failed (expected on iOS):', err.message);
           });
       } else {
-        console.log('[SW] ℹ️ Badge API not available (expected on iOS - relies on APNS)');\
+        console.log('[SW] ℹ️ Badge API not available (expected on iOS - relies on APNS)');
         console.log('[SW] ℹ️ iOS badge will be set by push notification payload sent to APNS');
       }
       
