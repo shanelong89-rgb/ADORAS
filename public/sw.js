@@ -202,15 +202,36 @@ self.addEventListener('push', (event) => {
     try {
       const data = event.data.json();
       
-      // CRITICAL: Extract badge count from data (iOS PWA badge support)
-      const badgeCount = typeof data.badge === 'number' ? data.badge : 
-                        (data.data?.badgeCount || 1);
+      // CRITICAL FIX: Handle both APNS format (iOS) and standard web push format
+      // iOS APNS sends: { aps: { alert: { title, body }, badge: N }, ... }
+      // Web Push sends: { title, body, badge: N, ... }
       
-      console.log('[SW] 📱 iOS Badge count from notification:', badgeCount, 'type:', typeof badgeCount);
+      const isApnsFormat = !!data.aps;
+      
+      let title, body, badgeCount;
+      
+      if (isApnsFormat) {
+        // iOS APNS format
+        title = data.aps?.alert?.title || data.title || 'Adoras';
+        body = data.aps?.alert?.body || data.body || 'New memory shared!';
+        badgeCount = typeof data.aps?.badge === 'number' ? data.aps.badge : 
+                    (typeof data.badge === 'number' ? data.badge : 
+                    (data.data?.badgeCount || 1));
+        console.log('[SW] 📱 iOS APNS format detected - badge from aps.badge:', badgeCount);
+      } else {
+        // Standard web push format
+        title = data.title || 'Adoras';
+        body = data.body || 'New memory shared!';
+        badgeCount = typeof data.badge === 'number' ? data.badge : 
+                    (data.data?.badgeCount || 1);
+        console.log('[SW] 📱 Standard web push format - badge count:', badgeCount);
+      }
+      
+      console.log('[SW] 📱 Badge count extracted:', badgeCount, 'type:', typeof badgeCount, 'isAPNS:', isApnsFormat);
       
       notificationData = {
-        title: data.title || 'Adoras',
-        body: data.body || 'New memory shared!',
+        title: title,
+        body: body,
         icon: data.icon || '/icon-192.png',
         badge: data.badgeIcon || '/icon-192.png', // Badge icon (string path for notification display)
         badgeCount: badgeCount, // Badge COUNT (number for iOS home screen icon)
@@ -246,8 +267,11 @@ self.addEventListener('push', (event) => {
         console.error('[SW] ❌ Failed to persist badge to IndexedDB:', error);
       }
       
-      // Try Badge API (works on Android, NOT on iOS standalone PWAs)
-      console.log('[SW] 📱 Attempting Badge API (badge count:', badgeCount, ')');
+      // NOTE: For iOS PWAs, the badge count is set by the APNS payload (aps.badge)
+      // which was handled by the backend when sending the notification
+      // The Badge API below only works on Android/Chrome
+      
+      console.log('[SW] 📱 Attempting Badge API (badge count:', badgeCount, ') - works on Android, not iOS');
       if (self.registration && typeof self.registration.setAppBadge === 'function') {
         self.registration.setAppBadge(badgeCount)
           .then(() => {
@@ -378,8 +402,17 @@ self.addEventListener('push', (event) => {
       console.log('[SW] 🔔 Showing notification with:', {
         title: notificationData.title,
         body: options.body,
+        badge: options.badge,
+        badgeCount: notificationData.badgeCount,
+        tag: options.tag,
         fullPayload: { title: notificationData.title, ...options }
       });
+      
+      console.log('[SW] ℹ️ iOS PWA Badge Info:');
+      console.log('[SW]   - Badge count in notificationData:', notificationData.badgeCount);
+      console.log('[SW]   - Badge icon in options:', options.badge);
+      console.log('[SW]   - iOS sets home screen badge via APNS aps.badge in push payload');
+      console.log('[SW]   - Service Worker cannot directly set iOS home screen badge');
       
       // Show notification (badge already set above, before showing notification)
       await self.registration.showNotification(notificationData.title, options);
