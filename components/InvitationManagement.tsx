@@ -136,7 +136,7 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-6">
         <DialogHeader>
           <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
             Manage Invitations
@@ -166,8 +166,8 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 pr-4">
-              <div className="space-y-6">
+            <ScrollArea className="flex-1">
+              <div className="space-y-6 pr-4">
                 {/* Pending Invitations */}
                 {pendingInvitations.length > 0 && (
                   <div>
@@ -238,16 +238,16 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
               </div>
             </ScrollArea>
 
-            <div className="flex justify-between items-center pt-4 border-t">
+            <div className="flex justify-between items-center pt-4 border-t gap-2 flex-wrap sm:flex-nowrap">
               <Button variant="outline" onClick={loadInvitations} disabled={isLoading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-shrink-0">
                 <Button variant="outline" onClick={onClose}>
                   Close
                 </Button>
-                <Button onClick={() => { onClose(); onCreateNew(); }} className="bg-primary hover:bg-primary/90">
+                <Button onClick={() => { onClose(); onCreateNew(); }} className="bg-primary hover:bg-primary/90 whitespace-nowrap">
                   <UserPlus className="w-4 h-4 mr-2" />
                   Create New
                 </Button>
