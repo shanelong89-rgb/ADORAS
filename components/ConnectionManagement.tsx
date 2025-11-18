@@ -158,10 +158,10 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-          <div className="px-4 sm:px-6 pt-6">
+        <DialogContent className="max-w-[calc(100vw-1rem)] sm:max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+          <div className="px-3 sm:px-6 pt-6 shrink-0">
             <DialogHeader>
-              <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
+              <DialogTitle className="text-base sm:text-lg" style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
                 Manage Connections
               </DialogTitle>
               <DialogDescription style={{ fontFamily: 'Inter' }}>
@@ -185,13 +185,14 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
               </p>
             </div>
           ) : (
-            <ScrollArea className="flex-1 px-4 sm:px-6">
-              <div className="space-y-4 pb-4">
+            <div className="flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="space-y-4 pb-4 px-3 sm:px-6">
                 {connections.map((connection, index) => (
-                  <div key={connection.id}>
+                  <div key={connection.id} className="overflow-x-hidden">
                     {index > 0 && <Separator className="my-4" />}
                     
-                    <div className="flex flex-col sm:flex-row items-start gap-4 p-3 sm:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                    <div className="flex flex-col items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors overflow-x-hidden">
                       {/* Avatar */}
                       <Avatar className="w-16 h-16 ring-2 ring-primary/20 shrink-0">
                         <AvatarImage src={connection.partner.photo} />
@@ -201,26 +202,26 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
                       </Avatar>
                       
                       {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div>
-                            <h3 className="font-semibold text-lg truncate" style={{ fontFamily: 'Archivo' }}>
+                      <div className="flex-1 min-w-0 w-full overflow-x-hidden">
+                        <div className="flex flex-col sm:flex-row items-start justify-between gap-2 mb-2">
+                          <div className="min-w-0 w-full">
+                            <h3 className="font-semibold text-base sm:text-lg truncate" style={{ fontFamily: 'Archivo' }}>
                               {connection.partner.name}
                             </h3>
                             {connection.partner.relationship && (
-                              <Badge variant="outline" className="mt-1">
+                              <Badge variant="outline" className="mt-1 text-xs">
                                 {connection.partner.relationship}
                               </Badge>
                             )}
                           </div>
                         </div>
 
-                        <p className="text-sm text-muted-foreground mb-3" style={{ fontFamily: 'Inter' }}>
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-3 truncate" style={{ fontFamily: 'Inter' }}>
                           {connection.partner.email}
                         </p>
 
                         {/* Stats */}
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-muted-foreground mb-3">
                           <div className="flex items-center gap-1">
                             <MessageCircle className="w-3 h-3" />
                             <span>{connection.memoriesCount} {connection.memoriesCount === 1 ? 'memory' : 'memories'}</span>
@@ -234,7 +235,7 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full overflow-x-hidden">
                           <DeleteConnectionData
                             connectionId={connection.id}
                             partnerName={connection.partner.name}
@@ -251,9 +252,9 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
                             variant="destructive"
                             size="sm"
                             onClick={() => handleDisconnectClick(connection)}
-                            className="h-9 text-xs w-full sm:w-auto"
+                            className="h-9 text-xs w-full sm:w-auto shrink-0"
                           >
-                            <UserX className="w-3 h-3 mr-1" />
+                            <UserX className="w-3 h-3 mr-1 shrink-0" />
                             Disconnect
                           </Button>
                         </div>
@@ -261,12 +262,13 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
                     </div>
                   </div>
                 ))}
-              </div>
-            </ScrollArea>
+                </div>
+              </ScrollArea>
+            </div>
           )}
 
-          <div className="flex justify-end px-4 sm:px-6 py-4 border-t mt-auto">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex justify-end px-3 sm:px-6 py-4 border-t mt-auto shrink-0">
+            <Button variant="outline" size="sm" onClick={onClose} className="h-9">
               Close
             </Button>
           </div>
