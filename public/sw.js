@@ -1,8 +1,8 @@
 // Adoras Service Worker - PWA Support
-// Version 2.0.3 - FIXED iOS badge API syntax error
+// Version 2.0.5 - CRITICAL FIX: Cleaned push handler for iOS + Force Update
 
-const CACHE_NAME = 'adoras-v13';
-const RUNTIME_CACHE = 'adoras-runtime-v13';
+const CACHE_NAME = 'adoras-v15';
+const RUNTIME_CACHE = 'adoras-runtime-v15';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -21,10 +21,8 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[SW] Precaching assets');
-        // Try to cache assets, but don't fail if some are missing
         return cache.addAll(PRECACHE_ASSETS).catch((error) => {
           console.warn('[SW] Some assets failed to cache, continuing anyway:', error);
-          // Continue with installation even if caching fails
           return Promise.resolve();
         });
       })
@@ -34,7 +32,6 @@ self.addEventListener('install', (event) => {
       })
       .catch((error) => {
         console.error('[SW] Install failed:', error);
-        // Still try to skip waiting
         return self.skipWaiting();
       })
   );
@@ -68,7 +65,6 @@ self.addEventListener('activate', (event) => {
       })
       .catch((error) => {
         console.error('[SW] Activation error:', error);
-        // Still try to claim clients
         return self.clients.claim();
       })
   );
@@ -100,7 +96,6 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          // Cache the new version
           const responseClone = response.clone();
           caches.open(RUNTIME_CACHE).then((cache) => {
             cache.put(request, responseClone);
@@ -108,7 +103,6 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // If network fails, try cache
           return caches.match(request)
             .then((response) => {
               return response || caches.match('/');
@@ -123,7 +117,6 @@ self.addEventListener('fetch', (event) => {
     caches.match(request)
       .then((cachedResponse) => {
         if (cachedResponse) {
-          // Return cached version and update in background
           fetch(request)
             .then((response) => {
               if (response && response.status === 200) {
@@ -139,15 +132,12 @@ self.addEventListener('fetch', (event) => {
           return cachedResponse;
         }
 
-        // Not in cache, fetch from network
         return fetch(request)
           .then((response) => {
-            // Don't cache if not a success
             if (!response || response.status !== 200 || response.type === 'error') {
               return response;
             }
 
-            // Cache the fetched resource
             const responseClone = response.clone();
             caches.open(RUNTIME_CACHE).then((cache) => {
               cache.put(request, responseClone);
@@ -157,7 +147,6 @@ self.addEventListener('fetch', (event) => {
           })
           .catch((error) => {
             console.error('[SW] Fetch failed:', error);
-            // Could return a custom offline page here
             throw error;
           });
       })
@@ -183,259 +172,92 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Handle push notifications - iMessage & Duolingo Style
+// CRITICAL: Handle push notifications - iOS Compatible
 self.addEventListener('push', (event) => {
   console.log('[SW] Push notification received');
   
-  let notificationData = {
-    title: 'Adoras',
-    body: 'New memory shared!',
-    icon: '/icon-192.png',
-    badge: '/icon-192.png',
-    badgeCount: 1, // CRITICAL: Badge count for iOS
-    data: {},
-    type: 'message', // message, prompt, milestone
-  };
-
-  // Parse push data if available
+  let title = 'Adoras';
+  let body = 'New message!';
+  let badgeCount = 1;
+  let notificationData = {};
+  
+  // Parse push data
   if (event.data) {
     try {
       const data = event.data.json();
+      console.log('[SW] Push data:', data);
       
-      // CRITICAL FIX: Handle both APNS format (iOS) and standard web push format
-      // iOS APNS sends: { aps: { alert: { title, body }, badge: N }, ... }
-      // Web Push sends: { title, body, badge: N, ... }
-      
-      const isApnsFormat = !!data.aps;
-      
-      let title, body, badgeCount;
-      
-      if (isApnsFormat) {
-        // iOS APNS format
-        title = data.aps?.alert?.title || data.title || 'Adoras';
-        body = data.aps?.alert?.body || data.body || 'New memory shared!';
-        badgeCount = typeof data.aps?.badge === 'number' ? data.aps.badge : 
-                    (typeof data.badge === 'number' ? data.badge : 
-                    (data.data?.badgeCount || 1));
-        console.log('[SW] 📱 iOS APNS format detected - badge from aps.badge:', badgeCount);
+      // CRITICAL: Handle APNS format (iOS) vs standard web push
+      if (data.aps) {
+        // iOS APNS format: { aps: { alert: { title, body }, badge: N } }
+        title = data.aps.alert?.title || data.title || 'Adoras';
+        body = data.aps.alert?.body || data.body || 'New message!';
+        badgeCount = typeof data.aps.badge === 'number' ? data.aps.badge : 1;
+        notificationData = data.data || data;
+        console.log('[SW] iOS APNS format - title:', title, 'badge:', badgeCount);
       } else {
-        // Standard web push format
+        // Standard web push format: { title, body, badge }
         title = data.title || 'Adoras';
-        body = data.body || 'New memory shared!';
-        badgeCount = typeof data.badge === 'number' ? data.badge : 
-                    (data.data?.badgeCount || 1);
-        console.log('[SW] 📱 Standard web push format - badge count:', badgeCount);
+        body = data.body || 'New message!';
+        badgeCount = typeof data.badge === 'number' ? data.badge : 1;
+        notificationData = data.data || data;
+        console.log('[SW] Web push format - title:', title, 'badge:', badgeCount);
       }
       
-      console.log('[SW] 📱 Badge count extracted:', badgeCount, 'type:', typeof badgeCount, 'isAPNS:', isApnsFormat);
-      
-      notificationData = {
-        title: title,
-        body: body,
-        icon: data.icon || '/icon-192.png',
-        badge: data.badgeIcon || '/icon-192.png', // Badge icon (string path for notification display)
-        badgeCount: badgeCount, // Badge COUNT (number for iOS home screen icon)
-        data: data.data || {},
-        tag: data.tag || 'adoras-notification',
-        type: data.type || 'message',
-        requireInteraction: data.requireInteraction || false,
-        image: data.image,
-        silent: data.silent || false,
-      };
-      
-      // CRITICAL: Set app badge for iOS PWA (when app is closed/backgrounded)
-      // ⚠️ IMPORTANT: iOS PWAs do NOT support Badge API in Service Workers!
-      // iOS badges can ONLY be set through APNS push notification payload
-      // We persist to IndexedDB so the app can restore on foreground
+      // Persist badge to IndexedDB for app restoration
       try {
-        // Store badge in IndexedDB for app to restore when it opens
         const dbRequest = indexedDB.open('adoras-badge-store', 1);
-        dbRequest.onsuccess = (event) => {
-          const db = event.target.result;
+        dbRequest.onsuccess = (e) => {
+          const db = e.target.result;
           const transaction = db.transaction(['badges'], 'readwrite');
           const store = transaction.objectStore('badges');
           store.put(badgeCount, 'totalBadgeCount');
-          console.log('[SW] 💾 Persisted badge count to IndexedDB:', badgeCount);
+          console.log('[SW] Badge persisted to IndexedDB:', badgeCount);
         };
-        dbRequest.onupgradeneeded = (event) => {
-          const db = event.target.result;
+        dbRequest.onupgradeneeded = (e) => {
+          const db = e.target.result;
           if (!db.objectStoreNames.contains('badges')) {
             db.createObjectStore('badges');
           }
         };
       } catch (error) {
-        console.error('[SW] ❌ Failed to persist badge to IndexedDB:', error);
-      }
-      
-      // NOTE: For iOS PWAs, the badge count is set by the APNS payload (aps.badge)
-      // which was handled by the backend when sending the notification
-      // The Badge API below only works on Android/Chrome
-      
-      console.log('[SW] 📱 Attempting Badge API (badge count:', badgeCount, ') - works on Android, not iOS');
-      if (self.registration && typeof self.registration.setAppBadge === 'function') {
-        self.registration.setAppBadge(badgeCount)
-          .then(() => {
-            console.log('[SW] ✅ Badge set via registration.setAppBadge:', badgeCount);
-          })
-          .catch((err) => {
-            console.warn('[SW] ⚠️ Badge API failed (expected on iOS):', err.message);
-            console.log('[SW] ℹ️ iOS PWAs: Badge must be set by APNS push payload, not Badge API');
-          });
-      } else if (typeof self.setAppBadge === 'function') {
-        self.setAppBadge(badgeCount)
-          .then(() => {
-            console.log('[SW] ✅ Badge set via self.setAppBadge:', badgeCount);
-          })
-          .catch((err) => {
-            console.warn('[SW] ⚠️ Badge API failed (expected on iOS):', err.message);
-          });
-      } else {
-        console.log('[SW] ℹ️ Badge API not available (expected on iOS - relies on APNS)');
-        console.log('[SW] ℹ️ iOS badge will be set by push notification payload sent to APNS');
+        console.error('[SW] IndexedDB error:', error);
       }
       
     } catch (error) {
       console.error('[SW] Error parsing push data:', error);
-      notificationData.body = event.data.text();
+      body = event.data.text ? event.data.text() : 'New message!';
     }
   }
-
-  // Determine notification style based on type
-  let options = {};
   
-  if (notificationData.type === 'prompt') {
-    // Duolingo-style gamified daily prompt
-    options = {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      badge: notificationData.badge,
-      vibrate: [100, 50, 100, 50, 100, 50, 200], // Fun vibration pattern
-      tag: 'daily-prompt',
-      requireInteraction: true, // Make it persistent like Duolingo
-      data: notificationData.data,
-      image: notificationData.image,
-      silent: false,
-      actions: [
-        {
-          action: 'answer',
-          title: '✍️ Answer Now',
-          icon: '/icon-192.png',
-        },
-        {
-          action: 'remind',
-          title: '🔔 Remind Later',
-        },
-      ],
-      // Gamification elements
-      renotify: true,
-      timestamp: Date.now(),
-    };
-  } else if (notificationData.type === 'message' || notificationData.type === 'memory') {
-    // iMessage-style notification for new messages/memories
-    options = {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      badge: notificationData.badge,
-      vibrate: [50, 100, 50], // Short, subtle vibration like iMessage
-      tag: notificationData.tag || 'adoras-message',
-      requireInteraction: false,
-      data: notificationData.data,
-      image: notificationData.image,
-      silent: notificationData.silent,
-      actions: [
-        {
-          action: 'open',
-          title: 'Open',
-          icon: '/icon-192.png',
-        },
-        {
-          action: 'reply',
-          title: 'Reply',
-        },
-      ],
-      timestamp: Date.now(),
-    };
-  } else if (notificationData.type === 'milestone') {
-    // Celebration style for milestones
-    options = {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      badge: notificationData.badge,
-      vibrate: [100, 50, 100, 50, 100, 50, 200, 50, 200],
-      tag: 'milestone',
-      requireInteraction: true,
-      data: notificationData.data,
-      image: notificationData.image,
-      actions: [
-        {
-          action: 'celebrate',
-          title: '🎉 View',
-        },
-      ],
-    };
-  } else {
-    // Default notification
-    options = {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      badge: notificationData.badge,
-      vibrate: [200, 100, 200],
-      tag: notificationData.tag || 'adoras-notification',
-      requireInteraction: notificationData.requireInteraction || false,
-      data: notificationData.data,
-      actions: [
-        {
-          action: 'open',
-          title: 'Open App',
-        },
-        {
-          action: 'close',
-          title: 'Dismiss',
-        },
-      ],
-    };
-  }
-
+  // Show notification
+  const options = {
+    body: body,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: 'adoras-message',
+    data: notificationData,
+    requireInteraction: false,
+    vibrate: [50, 100, 50],
+    timestamp: Date.now()
+  };
+  
+  console.log('[SW] Showing notification - title:', title, 'body:', body, 'badge:', badgeCount);
+  
   event.waitUntil(
-    (async () => {
-      // DEBUG: Log exactly what we're sending to iOS
-      console.log('[SW] 🔔 Showing notification with:', {
-        title: notificationData.title,
-        body: options.body,
-        badge: options.badge,
-        badgeCount: notificationData.badgeCount,
-        tag: options.tag,
-        fullPayload: { title: notificationData.title, ...options }
-      });
-      
-      console.log('[SW] ℹ️ iOS PWA Badge Info:');
-      console.log('[SW]   - Badge count in notificationData:', notificationData.badgeCount);
-      console.log('[SW]   - Badge icon in options:', options.badge);
-      console.log('[SW]   - iOS sets home screen badge via APNS aps.badge in push payload');
-      console.log('[SW]   - Service Worker cannot directly set iOS home screen badge');
-      
-      // Show notification (badge already set above, before showing notification)
-      await self.registration.showNotification(notificationData.title, options);
-      
-      // iOS-specific: Try to vibrate even if API not available in options
-      if (navigator.vibrate && options.vibrate) {
-        navigator.vibrate(options.vibrate);
-      }
-    })()
+    self.registration.showNotification(title, options)
   );
 });
 
-// Handle notification clicks - Enhanced with action handling
+// Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked:', event.action);
   
   event.notification.close();
   
-  // Clear badge on iOS when notification is clicked
-  if ('clearAppBadge' in navigator) {
-    navigator.clearAppBadge().catch(() => {
-      // Silently fail if not supported
-    });
+  // Clear badge when notification is clicked
+  if (typeof navigator.clearAppBadge === 'function') {
+    navigator.clearAppBadge().catch(() => {});
   }
 
   // Handle action buttons
@@ -443,28 +265,10 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  if (event.action === 'remind') {
-    // Reschedule notification for 2 hours later
-    event.waitUntil(
-      self.registration.showNotification('⏰ Daily Prompt Reminder', {
-        body: 'Don\'t forget to share your memory today!',
-        icon: '/icon-192.png',
-        tag: 'daily-prompt-reminder',
-        timestamp: Date.now() + 2 * 60 * 60 * 1000,
-        actions: [
-          { action: 'answer', title: '✍️ Answer Now' },
-        ],
-      })
-    );
-    return;
-  }
-
   if (event.action === 'reply') {
-    // Open app directly to chat tab
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true })
         .then((clientList) => {
-          // Focus existing window if available
           for (const client of clientList) {
             if (client.url.includes(self.location.origin)) {
               client.postMessage({
@@ -475,7 +279,6 @@ self.addEventListener('notificationclick', (event) => {
             }
           }
           
-          // Otherwise, open new window to chat
           if (clients.openWindow) {
             return clients.openWindow('/?tab=chat');
           }
@@ -484,41 +287,16 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  if (event.action === 'answer' || event.action === 'celebrate') {
-    // Open app to prompts tab
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then((clientList) => {
-          for (const client of clientList) {
-            if (client.url.includes(self.location.origin)) {
-              client.postMessage({
-                type: 'NAVIGATE_TO_PROMPTS',
-                data: event.notification.data,
-              });
-              return client.focus();
-            }
-          }
-          
-          if (clients.openWindow) {
-            return clients.openWindow('/?tab=prompts');
-          }
-        })
-    );
-    return;
-  }
-
-  // Default: Open app (or focus if already open)
+  // Default: Open app
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Focus existing window if available
         for (const client of clientList) {
           if (client.url.includes(self.location.origin)) {
             return client.focus();
           }
         }
         
-        // Otherwise, open new window
         if (clients.openWindow) {
           return clients.openWindow('/');
         }
@@ -526,4 +304,4 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-console.log('[SW] Service worker loaded');
+console.log('[SW] Service worker loaded - v2.0.4');
