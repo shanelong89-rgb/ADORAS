@@ -1436,6 +1436,20 @@ export function AppContent() {
         console.log(
           `🧹 Cleared badge for ${update.connectionId} (user marked messages as read)`,
         );
+      } else if (update.type === "user-deleted") {
+        // A connected user has deleted their account
+        console.log(`🗑️ Connected user deleted their account:`, update.data);
+        
+        // Show a toast notification
+        toast.info(
+          `${update.data.deletedUserName} has deleted their account. Your connection has been removed.`,
+          {
+            duration: 8000,
+          }
+        );
+        
+        // Reload connections to reflect the deletion
+        loadConnections();
       }
     });
 
