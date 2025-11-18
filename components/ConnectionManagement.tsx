@@ -14,6 +14,7 @@ import { UserX, Users, Calendar, MessageCircle, Image as ImageIcon, Video, Mic, 
 import { toast } from 'sonner';
 import { apiClient } from '../utils/api/client';
 import { DisconnectConfirmDialog } from './DisconnectConfirmDialog';
+import { DeleteConnectionData } from './DeleteConnectionData';
 import { format, isValid, parseISO } from 'date-fns';
 
 interface Connection {
@@ -231,7 +232,22 @@ export function ConnectionManagement({ isOpen, onClose, onConnectionsChanged }: 
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
+                          {/* Only show Delete Connection Data for Keepers */}
+                          <div className="flex gap-2">
+                            <DeleteConnectionData
+                              connectionId={connection.id}
+                              partnerName={connection.partner.name}
+                              memoriesCount={connection.memoriesCount}
+                              onDeleted={() => {
+                                // Reload connections after deletion
+                                loadConnections();
+                                if (onConnectionsChanged) {
+                                  onConnectionsChanged();
+                                }
+                              }}
+                            />
+                          </div>
                           <Button
                             variant="destructive"
                             size="sm"
