@@ -700,7 +700,7 @@ export function Dashboard({
                   {/* Compressed content - no scrolling, fits on screen */}
                   <div className="flex-1 px-4 sm:px-6 space-y-3 sm:space-y-4">
                     {/* User Account Section */}
-                    <div className="pt-3 sm:pt-4 pb-3 sm:pb-4 border-b" style={{ borderColor: 'rgba(54, 69, 59, 0.3)' }}>
+                    <div className="pb-3 sm:pb-4 border-b" style={{ borderColor: 'rgba(54, 69, 59, 0.3)' }}>
                       <button
                         onClick={() => {
                           setShowAccountSettings(true);
