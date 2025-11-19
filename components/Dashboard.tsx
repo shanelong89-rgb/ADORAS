@@ -690,7 +690,7 @@ export function Dashboard({
                 </SheetTrigger>
                 <SheetContent className="bg-[#36453B] flex flex-col border-l-0 pt-0">
                   {/* Compressed Header */}
-                  <SheetHeader className="flex-shrink-0 px-4 sm:px-6 mb-3 sm:mb-4" style={{ marginTop: 'max(1rem, calc(env(safe-area-inset-top) + 0.5rem))' }}>
+                  <SheetHeader className="flex-shrink-0 px-4 sm:px-6 pb-3 sm:pb-4" style={{ marginTop: 'max(1rem, calc(env(safe-area-inset-top) + 0.5rem))' }}>
                     <SheetTitle className="text-white text-base sm:text-lg" style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>Menu</SheetTitle>
                     <SheetDescription className="text-[#ECF0E2] text-xs sm:text-sm">
                       Settings & connected users
@@ -700,7 +700,7 @@ export function Dashboard({
                   {/* Compressed content - no scrolling, fits on screen */}
                   <div className="flex-1 px-4 sm:px-6 space-y-3 sm:space-y-4">
                     {/* User Account Section */}
-                    <div className="pb-2 sm:pb-3 border-b" style={{ borderColor: 'rgba(54, 69, 59, 0.3)' }}>
+                    <div className="pt-3 sm:pt-4 pb-3 sm:pb-4 border-b" style={{ borderColor: 'rgba(54, 69, 59, 0.3)' }}>
                       <button
                         onClick={() => {
                           setShowAccountSettings(true);
