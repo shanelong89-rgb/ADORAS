@@ -645,10 +645,10 @@
             connections.forEach(conn => {
               html += `
                 <div class="data-item">
-                  <strong>User:</strong> ${conn.userName} (${conn.userType})<br>
-                  <strong>Connected To:</strong> ${conn.connectedUserName} (${conn.connectedUserType})<br>
-                  <strong>User ID:</strong> <code>${conn.userId}</code><br>
-                  <strong>Connected ID:</strong> <code>${conn.connectedUserId}</code>
+                  <strong>Keeper:</strong> ${conn.keeperName} (${conn.keeperType})<br>
+                  <strong>Teller:</strong> ${conn.tellerName} (${conn.tellerType})<br>
+                  <strong>Connection ID:</strong> <code>${conn.connectionId}</code><br>
+                  <strong>Created:</strong> ${new Date(conn.createdAt).toLocaleString()}
                 </div>
               `;
             });
@@ -730,7 +730,7 @@
             connections.forEach(conn => {
               html += `
                 <div class="data-item">
-                  <strong>${conn.userName}</strong> ↔ <strong>${conn.connectedUserName}</strong>
+                  <strong>${conn.keeperName}</strong> ↔ <strong>${conn.tellerName}</strong>
                 </div>
               `;
             });
