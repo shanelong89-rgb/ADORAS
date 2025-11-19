@@ -536,6 +536,16 @@ class AdorasAPIClient {
   }
 
   /**
+   * Test SMS sending (diagnostic)
+   */
+  async testSMS(phoneNumber: string, message?: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    return this.request<{ success: boolean; messageId?: string; error?: string }>('/test/sms', {
+      method: 'POST',
+      body: JSON.stringify({ phoneNumber, message }),
+    }, false); // Optional auth - endpoint accepts both authenticated and unauthenticated requests
+  }
+
+  /**
    * Get user's connection requests (sent and received)
    */
   async getConnectionRequests(): Promise<{ success: boolean; sentRequests?: any[]; receivedRequests?: any[]; error?: string }> {
