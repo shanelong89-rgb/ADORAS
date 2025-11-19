@@ -168,7 +168,7 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
 
       const signinData = await signinResponse.json();
 
-      if (!signinData.success || !signinData.session?.access_token) {
+      if (!signinData.success || !signinData.accessToken) {
         console.error('Sign in after signup failed:', signinData.error);
         setError('Account created but sign in failed. Please try signing in manually.');
         return;
@@ -181,7 +181,7 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${signinData.session.access_token}`,
+            'Authorization': `Bearer ${signinData.accessToken}`,
           },
           body: JSON.stringify({
             code: inviteCode,
