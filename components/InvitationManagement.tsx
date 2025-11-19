@@ -29,6 +29,29 @@ interface Invitation {
   smsError?: string; // Track SMS errors
 }
 
+interface ConnectionRequest {
+  id: string;
+  requesterId: string;
+  recipientId: string;
+  requesterName: string;
+  requesterEmail: string;
+  recipientName: string;
+  recipientEmail: string;
+  requesterPhoto?: string;
+  recipientPhoto?: string;
+  requesterRelationship?: string;
+  recipientRelationship?: string;
+  status: 'pending' | 'accepted' | 'declined';
+  message?: string;
+  createdAt: string;
+  respondedAt?: string;
+}
+
+// Combined type for display
+type InvitationOrRequest = 
+  | { type: 'invitation'; data: Invitation }
+  | { type: 'request'; data: ConnectionRequest };
+
 interface InvitationManagementProps {
   isOpen: boolean;
   onClose: () => void;
@@ -37,33 +60,39 @@ interface InvitationManagementProps {
 
 export function InvitationManagement({ isOpen, onClose, onCreateNew }: InvitationManagementProps) {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [sentRequests, setSentRequests] = useState<ConnectionRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Load invitations
+  // Load invitations and sent connection requests
   useEffect(() => {
     if (isOpen) {
-      loadInvitations();
+      loadAll();
     }
   }, [isOpen]);
 
-  const loadInvitations = async () => {
+  const loadAll = async () => {
     setIsLoading(true);
     try {
-      const response = await apiClient.getInvitations();
+      // Load both invitations and connection requests in parallel
+      const [invitationsResponse, requestsResponse] = await Promise.all([
+        apiClient.getInvitations(),
+        apiClient.getConnectionRequests()
+      ]);
       
-      if (response.success && response.invitations) {
-        // Sort by most recent first
-        const sorted = response.invitations.sort((a: Invitation, b: Invitation) => 
-          new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime()
-        );
-        setInvitations(sorted);
+      if (invitationsResponse.success && invitationsResponse.invitations) {
+        setInvitations(invitationsResponse.invitations);
       } else {
-        console.error('Failed to load invitations:', response.error);
-        toast.error('Failed to load invitations');
+        console.error('Failed to load invitations:', invitationsResponse.error);
+      }
+
+      if (requestsResponse.success && requestsResponse.sentRequests) {
+        setSentRequests(requestsResponse.sentRequests);
+      } else {
+        console.error('Failed to load connection requests:', requestsResponse.error);
       }
     } catch (error) {
-      console.error('Error loading invitations:', error);
+      console.error('Error loading data:', error);
       toast.error('Network error. Please try again.');
     } finally {
       setIsLoading(false);
@@ -132,9 +161,21 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
     return new Date(expiresAt) < new Date();
   };
 
+  // Filter invitations
   const pendingInvitations = invitations.filter(inv => inv.status === 'sent' && !isExpired(inv.expiresAt));
   const acceptedInvitations = invitations.filter(inv => inv.status === 'accepted');
   const expiredInvitations = invitations.filter(inv => inv.status === 'expired' || (inv.status === 'sent' && isExpired(inv.expiresAt)));
+
+  // Filter connection requests
+  const pendingRequests = sentRequests.filter(req => req.status === 'pending');
+  const acceptedRequests = sentRequests.filter(req => req.status === 'accepted');
+  const declinedRequests = sentRequests.filter(req => req.status === 'declined');
+
+  // Combine for counts
+  const totalPending = pendingInvitations.length + pendingRequests.length;
+  const totalAccepted = acceptedInvitations.length + acceptedRequests.length;
+  const totalExpiredOrDeclined = expiredInvitations.length + declinedRequests.length;
+  const hasAnyData = invitations.length > 0 || sentRequests.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -152,7 +193,7 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : invitations.length === 0 ? (
+        ) : !hasAnyData ? (
           <div className="flex flex-col items-center justify-center py-12 px-4">
             <Mail className="w-16 h-16 text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-semibold mb-2" style={{ fontFamily: 'Archivo' }}>
@@ -170,16 +211,17 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
           <>
             <ScrollArea className="flex-1">
               <div className="space-y-6 pr-4">
-                {/* Pending Invitations */}
-                {pendingInvitations.length > 0 && (
+                {/* Pending Section (Invitations + Requests) */}
+                {totalPending > 0 && (
                   <div>
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3" style={{ fontFamily: 'Inter' }}>
-                      Pending ({pendingInvitations.length})
+                      Pending ({totalPending})
                     </h3>
                     <div className="space-y-3">
+                      {/* Pending SMS Invitations */}
                       {pendingInvitations.map((invitation) => (
                         <InvitationCard
-                          key={invitation.id}
+                          key={`inv-${invitation.id}`}
                           invitation={invitation}
                           onCopy={copyToClipboard}
                           onDelete={handleDeleteInvitation}
@@ -188,21 +230,30 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
                           getStatusColor={getStatusColor}
                         />
                       ))}
+                      {/* Pending Connection Requests (Existing Users) */}
+                      {pendingRequests.map((request) => (
+                        <ConnectionRequestCard
+                          key={`req-${request.id}`}
+                          request={request}
+                          onCopy={copyToClipboard}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}
 
-                {/* Accepted Invitations */}
-                {acceptedInvitations.length > 0 && (
+                {/* Accepted Section (Invitations + Requests) */}
+                {totalAccepted > 0 && (
                   <div>
-                    {pendingInvitations.length > 0 && <Separator className="my-4" />}
+                    {totalPending > 0 && <Separator className="my-4" />}
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3" style={{ fontFamily: 'Inter' }}>
-                      Accepted ({acceptedInvitations.length})
+                      Accepted ({totalAccepted})
                     </h3>
                     <div className="space-y-3">
+                      {/* Accepted SMS Invitations */}
                       {acceptedInvitations.map((invitation) => (
                         <InvitationCard
-                          key={invitation.id}
+                          key={`inv-${invitation.id}`}
                           invitation={invitation}
                           onCopy={copyToClipboard}
                           onDelete={handleDeleteInvitation}
@@ -211,27 +262,44 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
                           getStatusColor={getStatusColor}
                         />
                       ))}
+                      {/* Accepted Connection Requests */}
+                      {acceptedRequests.map((request) => (
+                        <ConnectionRequestCard
+                          key={`req-${request.id}`}
+                          request={request}
+                          onCopy={copyToClipboard}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}
 
-                {/* Expired Invitations */}
-                {expiredInvitations.length > 0 && (
+                {/* Expired/Declined Section */}
+                {totalExpiredOrDeclined > 0 && (
                   <div>
-                    {(pendingInvitations.length > 0 || acceptedInvitations.length > 0) && <Separator className="my-4" />}
+                    {(totalPending > 0 || totalAccepted > 0) && <Separator className="my-4" />}
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3" style={{ fontFamily: 'Inter' }}>
-                      Expired ({expiredInvitations.length})
+                      Expired/Declined ({totalExpiredOrDeclined})
                     </h3>
                     <div className="space-y-3">
+                      {/* Expired SMS Invitations */}
                       {expiredInvitations.map((invitation) => (
                         <InvitationCard
-                          key={invitation.id}
+                          key={`inv-${invitation.id}`}
                           invitation={invitation}
                           onCopy={copyToClipboard}
                           onDelete={handleDeleteInvitation}
                           isDeleting={deletingId === invitation.id}
                           getStatusIcon={getStatusIcon}
                           getStatusColor={getStatusColor}
+                        />
+                      ))}
+                      {/* Declined Connection Requests */}
+                      {declinedRequests.map((request) => (
+                        <ConnectionRequestCard
+                          key={`req-${request.id}`}
+                          request={request}
+                          onCopy={copyToClipboard}
                         />
                       ))}
                     </div>
@@ -241,7 +309,7 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
             </ScrollArea>
 
             <div className="flex justify-between items-center pt-4 border-t gap-2 flex-wrap sm:flex-nowrap">
-              <Button variant="outline" onClick={loadInvitations} disabled={isLoading}>
+              <Button variant="outline" onClick={loadAll} disabled={isLoading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
@@ -361,6 +429,103 @@ function InvitationCard({ invitation, onCopy, onDelete, isDeleting, getStatusIco
         {invitation.status === 'sent' && (
           <div>
             <span className="font-medium">Expires:</span> {format(new Date(invitation.expiresAt), 'MMM d, yyyy')}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface ConnectionRequestCardProps {
+  request: ConnectionRequest;
+  onCopy: (text: string, label: string) => void;
+}
+
+function ConnectionRequestCard({ request, onCopy }: ConnectionRequestCardProps) {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="w-4 h-4" />;
+      case 'accepted':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'declined':
+        return <XCircle className="w-4 h-4" />;
+      default:
+        return <Clock className="w-4 h-4" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-blue-500/10 text-blue-700 border-blue-200';
+      case 'accepted':
+        return 'bg-green-500/10 text-green-700 border-green-200';
+      case 'declined':
+        return 'bg-gray-500/10 text-gray-700 border-gray-200';
+      default:
+        return 'bg-gray-500/10 text-gray-700 border-gray-200';
+    }
+  };
+  
+  return (
+    <div className="border rounded-lg p-4 bg-card hover:bg-accent/5 transition-colors">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-semibold" style={{ fontFamily: 'Archivo' }}>
+              {request.recipientName || 'Unknown User'}
+            </h4>
+            <Badge variant="outline" className={`flex items-center gap-1 ${getStatusColor(request.status)}`}>
+              {getStatusIcon(request.status)}
+              <span className="capitalize">{request.status}</span>
+            </Badge>
+            <Badge variant="secondary" className="text-xs">
+              <Mail className="w-3 h-3 mr-1" />
+              Existing User
+            </Badge>
+          </div>
+          {request.recipientRelationship && (
+            <p className="text-sm text-muted-foreground" style={{ fontFamily: 'Inter' }}>
+              {request.recipientRelationship}
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2 mb-3">
+        {/* Email */}
+        <div className="flex items-center justify-between p-2 bg-muted/50 rounded border">
+          <div className="flex items-center gap-2">
+            <Mail className="w-3 h-3 text-muted-foreground" />
+            <span className="text-sm" style={{ fontFamily: 'Inter' }}>
+              {request.recipientEmail}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onCopy(request.recipientEmail, 'Email')}
+            className="h-7 px-2"
+          >
+            <Copy className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Timestamps */}
+      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground" style={{ fontFamily: 'Inter' }}>
+        <div>
+          <span className="font-medium">Sent:</span> {format(new Date(request.createdAt), 'MMM d, yyyy')}
+        </div>
+        {request.status === 'accepted' && request.respondedAt && (
+          <div>
+            <span className="font-medium">Accepted:</span> {format(new Date(request.respondedAt), 'MMM d, yyyy')}
+          </div>
+        )}
+        {request.status === 'declined' && request.respondedAt && (
+          <div>
+            <span className="font-medium">Declined:</span> {format(new Date(request.respondedAt), 'MMM d, yyyy')}
           </div>
         )}
       </div>
