@@ -5,7 +5,7 @@ import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription } from './ui/alert';
 import { Loader2, Mail, Lock, UserCheck, ArrowRight } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { SmartAvatar } from './SmartAvatar';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
 
 interface InvitationData {
@@ -13,6 +13,8 @@ interface InvitationData {
   keeper: {
     name: string;
     photo?: string;
+    avatarZoom?: number;
+    avatarRotation?: number;
   };
   invitation: {
     tellerName?: string;
@@ -20,6 +22,8 @@ interface InvitationData {
     tellerRelationship?: string;
     tellerBio?: string;
     tellerBirthday?: string;
+    tellerAvatarZoom?: number;
+    tellerAvatarRotation?: number;
   };
 }
 
@@ -69,6 +73,8 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
         keeper: {
           name: data.keeper?.name || 'Someone',
           photo: data.keeper?.photo,
+          avatarZoom: data.keeper?.avatarZoom,
+          avatarRotation: data.keeper?.avatarRotation,
         },
         invitation: {
           tellerName: data.invitation?.tellerName,
@@ -76,6 +82,8 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
           tellerRelationship: data.invitation?.tellerRelationship,
           tellerBio: data.invitation?.tellerBio,
           tellerBirthday: data.invitation?.tellerBirthday,
+          tellerAvatarZoom: data.invitation?.tellerAvatarZoom,
+          tellerAvatarRotation: data.invitation?.tellerAvatarRotation,
         },
       });
     } catch (error) {
@@ -217,12 +225,15 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
         <CardHeader className="text-center space-y-4 pb-2">
           {/* Keeper Avatar */}
           <div className="flex justify-center">
-            <Avatar className="h-20 w-20 border-4 border-[#C1C1A5]">
-              <AvatarImage src={invitationData.keeper.photo} alt={invitationData.keeper.name} />
-              <AvatarFallback className="bg-[#ECF0E2] text-[#36453B]" style={{ fontFamily: 'Archivo' }}>
-                {invitationData.keeper.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
+            <SmartAvatar
+              className="h-20 w-20 border-4 border-[#C1C1A5]"
+              src={invitationData.keeper.photo}
+              alt={invitationData.keeper.name}
+              zoom={invitationData.keeper.avatarZoom || 1}
+              rotation={invitationData.keeper.avatarRotation || 0}
+              fallback={invitationData.keeper.name.charAt(0)}
+              fallbackClassName="bg-[#ECF0E2] text-[#36453B]"
+            />
           </div>
 
           <div>
@@ -240,12 +251,15 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
           {invitationData.invitation.tellerName && (
             <div className="bg-[#ECF0E2] rounded-lg p-4 border border-[#C1C1A5]/50">
               <div className="flex items-start gap-3">
-                <Avatar className="h-12 w-12 mt-1">
-                  <AvatarImage src={invitationData.invitation.tellerPhoto} alt={invitationData.invitation.tellerName} />
-                  <AvatarFallback className="bg-[#C1C1A5] text-[#36453B]" style={{ fontFamily: 'Archivo' }}>
-                    {invitationData.invitation.tellerName.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
+                <SmartAvatar
+                  className="h-12 w-12 mt-1"
+                  src={invitationData.invitation.tellerPhoto}
+                  alt={invitationData.invitation.tellerName}
+                  zoom={invitationData.invitation.tellerAvatarZoom || 1}
+                  rotation={invitationData.invitation.tellerAvatarRotation || 0}
+                  fallback={invitationData.invitation.tellerName.charAt(0)}
+                  fallbackClassName="bg-[#C1C1A5] text-[#36453B]"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-[#36453B]" style={{ fontFamily: 'Archivo' }}>
