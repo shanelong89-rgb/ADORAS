@@ -1,20 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Switch } from './ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Calendar } from './ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Alert, AlertDescription } from './ui/alert';
-import { UserProfile } from '../App';
-import { ArrowLeft, Shield, Eye, Calendar as CalendarIcon, Upload, X, Loader2, AlertCircle, Send, Copy, Check, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { AvatarCropper } from './AvatarCropper';
+import { SimpleAvatarCropper } from './SimpleAvatarCropper';
 
 interface KeeperOnboardingProps {
   onComplete: (profile: UserProfile, invitationCode?: string) => void;
@@ -704,14 +690,14 @@ export function KeeperOnboarding({ onComplete, onBack, isLoading = false, error 
       </Card>
       
       {/* Avatar Cropper Dialogs */}
-      <AvatarCropper
+      <SimpleAvatarCropper
         key={`keeper-${tempKeeperImage}`}
         imageUrl={tempKeeperImage}
         isOpen={showKeeperCropper}
         onCropComplete={handleKeeperCropComplete}
         onCancel={handleKeeperCropCancel}
       />
-      <AvatarCropper
+      <SimpleAvatarCropper
         key={`storyteller-${tempStorytellerImage}`}
         imageUrl={tempStorytellerImage}
         isOpen={showStorytellerCropper}
