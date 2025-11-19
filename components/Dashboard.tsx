@@ -706,23 +706,23 @@ export function Dashboard({
                           setShowAccountSettings(true);
                           setIsMenuOpen(false);
                         }}
-                        className="w-full flex items-center space-x-2 sm:space-x-3 p-2 sm:p-2.5 rounded-lg hover:bg-white/10 transition-colors"
+                        className="w-full flex items-center space-x-3 sm:space-x-4 p-2.5 sm:p-3 rounded-lg hover:bg-white/10 transition-colors"
                       >
-                        <Avatar className="w-10 h-10 sm:w-12 sm:h-12 ring-2 ring-white/20">
+                        <Avatar className="w-14 h-14 sm:w-16 sm:h-16 ring-2 ring-white/20">
                           <AvatarImage src={userProfile.photo} />
-                          <AvatarFallback className="bg-[#F1F1F1] text-[#36453B] text-sm" style={{ fontFamily: 'Archivo' }}>
+                          <AvatarFallback className="bg-[#F1F1F1] text-[#36453B] text-lg sm:text-xl" style={{ fontFamily: 'Archivo' }}>
                             {userProfile.name[0]}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 text-left min-w-0">
-                          <p className="font-medium text-white text-sm sm:text-base truncate" style={{ fontFamily: 'Archivo' }}>
+                          <p className="font-medium text-white text-base sm:text-lg truncate" style={{ fontFamily: 'Archivo' }}>
                             {userProfile.name}
                           </p>
-                          <p className="text-xs sm:text-sm text-[#ECF0E2] truncate" style={{ fontFamily: 'Inter' }}>
+                          <p className="text-sm sm:text-base text-[#ECF0E2] truncate" style={{ fontFamily: 'Inter' }}>
                             {userProfile.relationship}
                           </p>
-                          <p className="text-[10px] sm:text-xs text-[#ECF0E2]/70 flex items-center gap-1 mt-0.5" style={{ fontFamily: 'Inter' }}>
-                            <User className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          <p className="text-xs sm:text-sm text-[#ECF0E2]/70 flex items-center gap-1 mt-1" style={{ fontFamily: 'Inter' }}>
+                            <User className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                             View Settings
                           </p>
                         </div>
