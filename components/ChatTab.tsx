@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { SmartAvatar } from './SmartAvatar';
 import { Badge } from './ui/badge';
 import { Memory, UserProfile, UserType } from '../App';
 import { Send, Camera, Mic, Paperclip, Play, Pause, Smile, Plus, Languages, Video, BookOpen, MessageSquarePlus, X, Volume2, FileText, Quote, File, ScanText, Eye, EyeOff, UserPlus, MessageCircle } from 'lucide-react';
@@ -1543,10 +1543,14 @@ export function ChatTab({
     return (
       <div key={memory.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-3 animate-fade-in`}>
         <div className={`flex space-x-3 ${isOwnMessage ? 'flex-row-reverse space-x-reverse' : ''} max-w-[85%]`}>
-          <Avatar className={`w-8 h-8 ring-2 ring-border flex-shrink-0 mt-0.5 ${isOwnMessage ? 'mr-0.5' : 'ml-0.5'}`}>
-            <AvatarImage src={senderProfile.photo} />
-            <AvatarFallback className="text-xs bg-primary/10 text-primary">{senderProfile.name[0]}</AvatarFallback>
-          </Avatar>
+          <SmartAvatar 
+            className={`w-8 h-8 ring-2 ring-border flex-shrink-0 mt-0.5 ${isOwnMessage ? 'mr-0.5' : 'ml-0.5'}`}
+            src={senderProfile.photo}
+            zoom={senderProfile.avatarZoom || 1}
+            rotation={senderProfile.avatarRotation || 0}
+            fallback={senderProfile.name[0]}
+            fallbackClassName="text-xs bg-primary/10 text-primary"
+          />
           <div className={`space-y-2 ${isOwnMessage ? 'items-end' : 'items-start'} flex flex-col min-w-0 flex-1`}>
             <div className={`px-3 py-2.5 rounded-2xl overflow-hidden ${
               isOwnMessage 
