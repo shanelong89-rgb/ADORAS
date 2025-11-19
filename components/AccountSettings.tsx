@@ -175,10 +175,10 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
                   type="button"
                   variant="outline"
                   onClick={() => avatarInputRef.current?.click()}
-                  className="w-full"
+                  className="w-full justify-center relative"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  {photo ? 'Change Photo' : 'Upload Photo'}
+                  <Upload className="w-4 h-4 absolute left-3" />
+                  <span>{photo ? 'Change Photo' : 'Upload Photo'}</span>
                 </Button>
                 {photo && (
                   <Button
