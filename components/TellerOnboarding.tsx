@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Alert, AlertDescription } from './ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { UserProfile, AppLanguage } from '../App';
-import { ArrowLeft, Heart, Camera, MessageCircle, Mic, Globe, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Heart, Camera, MessageCircle, Mic, Globe, Loader2, AlertCircle, Upload, X } from 'lucide-react';
 import { apiClient } from '../utils/api/client';
+import { SimpleAvatarCropper } from './SimpleAvatarCropper';
+import { toast } from 'sonner';
 
 interface TellerOnboardingProps {
   onComplete: (profile: UserProfile & { invitationCode: string }) => void;
@@ -22,11 +25,59 @@ export function TellerOnboarding({ onComplete, onBack, isLoading = false, error 
   const [profile, setProfile] = useState<Partial<UserProfile>>({
     name: '',
     relationship: 'Teller',
-    bio: ''
+    bio: '',
+    photo: undefined
   });
   const [keeperName, setKeeperName] = useState<string>('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
+  
+  // Avatar upload state
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [showCropper, setShowCropper] = useState(false);
+  const [tempImage, setTempImage] = useState<string>('');
+
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be less than 5MB');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTempImage(reader.result as string);
+        setShowCropper(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleCropComplete = (croppedImageUrl: string) => {
+    setProfile(prev => ({ ...prev, photo: croppedImageUrl }));
+    setShowCropper(false);
+    setTempImage('');
+    toast.success('Avatar uploaded successfully!');
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = '';
+    }
+  };
+  
+  const handleCropCancel = () => {
+    setShowCropper(false);
+    setTempImage('');
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setProfile(prev => ({ ...prev, photo: undefined }));
+    if (avatarInputRef.current) {
+      avatarInputRef.current.value = '';
+    }
+  };
 
   const handleNext = () => {
     if (currentStep < 3) {
@@ -215,6 +266,33 @@ export function TellerOnboarding({ onComplete, onBack, isLoading = false, error 
                     Choose the language for the app interface
                   </p>
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="avatar">Avatar (Optional)</Label>
+                  <div className="flex items-center">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={profile.photo} />
+                      <AvatarFallback className="bg-gray-500 text-white">A</AvatarFallback>
+                    </Avatar>
+                    <Button
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="ml-2"
+                      disabled={isLoading || isVerifying}
+                    >
+                      <Upload className="w-4 h-4" />
+                      Upload
+                    </Button>
+                    {profile.photo && (
+                      <Button
+                        onClick={handleRemoveAvatar}
+                        className="ml-2"
+                        disabled={isLoading || isVerifying}
+                      >
+                        <X className="w-4 h-4" />
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -335,6 +413,23 @@ export function TellerOnboarding({ onComplete, onBack, isLoading = false, error 
           </Button>
         )}
       </Card>
+
+      {showCropper && (
+        <SimpleAvatarCropper
+          imageUrl={tempImage}
+          open={showCropper}
+          onSave={(imageUrl) => handleCropComplete(imageUrl)}
+          onCancel={handleCropCancel}
+        />
+      )}
+      
+      <input
+        type="file"
+        ref={avatarInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarUpload}
+      />
     </div>
   );
 }
