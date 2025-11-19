@@ -601,3 +601,46 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
 [data-slot="dialog-overlay"]:has(~ [data-avatar-cropper="true"]) {
   touch-action: none !important;
 }
+
+/* iOS-specific slider improvements for avatar cropper */
+[data-avatar-cropper="true"] input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  outline: none;
+  touch-action: pan-x !important;
+}
+
+[data-avatar-cropper="true"] input[type="range"]::-webkit-slider-track {
+  width: 100%;
+  height: 8px;
+  background: rgb(229, 231, 235);
+  border-radius: 9999px;
+}
+
+[data-avatar-cropper="true"] input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: rgb(54, 69, 59);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: none;
+}
+
+[data-avatar-cropper="true"] input[type="range"]:active::-webkit-slider-thumb {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Prevent iOS body scroll when avatar cropper is open */
+body:has([data-avatar-cropper="true"]) {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+}
