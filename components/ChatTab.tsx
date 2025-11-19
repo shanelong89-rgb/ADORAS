@@ -2160,13 +2160,13 @@ export function ChatTab({
         style={{ 
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
-          paddingBottom: `calc(${inputBoxHeight}px + env(safe-area-inset-bottom, 0px))`,
+          paddingBottom: `calc(${inputBoxHeight}px + env(safe-area-inset-bottom, 0px) + 24px)`,
           flex: '1 1 0',
           minHeight: 0
         }}
       >
         <div 
-          className={`space-y-4 max-w-full px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`}
+          className={`space-y-4 max-w-full px-3 pb-8 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`}
           style={{ 
             overflow: 'visible'
           }}
