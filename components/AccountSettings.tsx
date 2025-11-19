@@ -12,7 +12,8 @@ import { toast } from 'sonner';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
-import { AvatarCropper } from './AvatarCropper';
+import { SimpleAvatarCropper, CropSettings } from './SimpleAvatarCropper';
+import { SmartAvatar } from './SmartAvatar';
 import { PWAInstallButton } from './PWAInstallPrompt';
 
 interface AccountSettingsProps {
@@ -32,6 +33,8 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [photo, setPhoto] = useState(userProfile.photo);
+  const [avatarZoom, setAvatarZoom] = useState(userProfile.avatarZoom || 1);
+  const [avatarRotation, setAvatarRotation] = useState(userProfile.avatarRotation || 0);
   const [showQRCode, setShowQRCode] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [showCropper, setShowCropper] = useState(false);
@@ -55,8 +58,10 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
     }
   };
   
-  const handleCropComplete = (croppedImageUrl: string) => {
-    setPhoto(croppedImageUrl);
+  const handleCropComplete = (imageUrl: string, settings: CropSettings) => {
+    setPhoto(imageUrl);
+    setAvatarZoom(settings.zoom);
+    setAvatarRotation(settings.rotation);
     setShowCropper(false);
     setTempImageUrl('');
     toast.success('Photo updated!');
@@ -77,8 +82,17 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
 
   const handleRemoveAvatar = () => {
     setPhoto(undefined);
+    setAvatarZoom(1);
+    setAvatarRotation(0);
     if (avatarInputRef.current) {
       avatarInputRef.current.value = '';
+    }
+  };
+
+  const handleAdjustPhoto = () => {
+    if (photo) {
+      setTempImageUrl(photo);
+      setShowCropper(true);
     }
   };
 
@@ -89,7 +103,9 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
       phoneNumber,
       birthday,
       photo,
-      appLanguage
+      appLanguage,
+      avatarZoom,
+      avatarRotation
     });
     toast.success('Profile updated successfully!');
   };
@@ -129,12 +145,17 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
             </h3>
             <div className="flex items-center gap-6">
               <div className="relative">
-                <Avatar className="w-24 h-24 ring-2 ring-primary/20">
-                  <AvatarImage src={photo} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                    {name ? name[0].toUpperCase() : <Upload className="w-8 h-8" />}
-                  </AvatarFallback>
-                </Avatar>
+                <SmartAvatar
+                  src={photo}
+                  zoom={avatarZoom}
+                  rotation={avatarRotation}
+                  className="w-24 h-24 ring-2 ring-primary/20"
+                  fallback={
+                    <span className="bg-primary/10 text-primary text-2xl">
+                      {name ? name[0].toUpperCase() : <Upload className="w-8 h-8" />}
+                    </span>
+                  }
+                />
                 {photo && (
                   <button
                     onClick={handleRemoveAvatar}
@@ -161,6 +182,16 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
                   <Upload className="w-4 h-4 mr-2" />
                   {photo ? 'Change Photo' : 'Upload Photo'}
                 </Button>
+                {photo && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAdjustPhoto}
+                    className="w-full"
+                  >
+                    Adjust Photo
+                  </Button>
+                )}
                 <p className="text-xs text-muted-foreground">
                   JPG, PNG or GIF (max 5MB)
                 </p>
@@ -323,12 +354,13 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
       </DialogContent>
       
       {/* Avatar Cropper Dialog */}
-      <AvatarCropper
-        key={tempImageUrl} // Force remount when new image is selected
+      <SimpleAvatarCropper
         imageUrl={tempImageUrl}
-        isOpen={showCropper}
-        onCropComplete={handleCropComplete}
+        open={showCropper}
+        onSave={handleCropComplete}
         onCancel={handleCropCancel}
+        initialZoom={avatarZoom}
+        initialRotation={avatarRotation}
       />
     </Dialog>
   );
