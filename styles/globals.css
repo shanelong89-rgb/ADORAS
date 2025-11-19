@@ -123,7 +123,7 @@
     /* Prevent pull-to-refresh but allow vertical scrolling */
     overscroll-behavior-x: none;
     overscroll-behavior-y: auto;
-    /* Disable pinch-zoom to prevent asymmetric scaling */
+    /* Disable pinch-zoom to prevent asymmetric scaling on most of the page */
     touch-action: pan-y;
   }
   body {
@@ -585,4 +585,19 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
   [data-slot="dialog-content"] * {
     max-width: 100% !important;
   }
+}
+
+/* Avatar Cropper - Enable pinch-to-zoom and rotation gestures */
+[data-avatar-cropper="true"] {
+  touch-action: none !important;
+}
+
+[data-avatar-cropper="true"] * {
+  touch-action: none !important;
+}
+
+/* Override global touch-action for avatar cropper overlay and portal */
+[data-slot="dialog-portal"]:has([data-avatar-cropper="true"]),
+[data-slot="dialog-overlay"]:has(~ [data-avatar-cropper="true"]) {
+  touch-action: none !important;
 }
