@@ -642,7 +642,7 @@ export function Dashboard({
           }}
         >
           {/* Modern Header */}
-          <div className="bg-card/80 backdrop-blur-md sm:border-b sm:border-border/20" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="bg-card/80 backdrop-blur-md border-b border-border/20" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between px-5 sm:px-8 md:px-10 lg:px-12 xl:px-16 py-4 sm:py-5 max-w-4xl mx-auto">
             <div className="flex items-center space-x-3 sm:space-x-5 min-w-0 flex-1">
               <div className="relative flex-shrink-0">
@@ -1121,12 +1121,12 @@ export function Dashboard({
             className="flex-1 flex flex-col overflow-hidden dashboard-content"
             style={{ 
               minHeight: 0,
-              paddingTop: 'max(180px, calc(env(safe-area-inset-top, 0px) + 90px))' // Web browsers: 180px, iOS PWA: safe-area + 90px
+              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)' // Mobile: flush with tabs
             }}
           >
             {activeTab === 'prompts' && (
-              <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
-              <div className="pt-4 px-4 sm:pt-6 sm:px-6">
+              <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-8">
               <PromptsTab 
                 userType={userType}
                 partnerName={partnerProfile?.name}
@@ -1157,7 +1157,7 @@ export function Dashboard({
           )}
           
           {activeTab === 'media' && (
-            <div className="flex-1 flex flex-col overflow-hidden px-4 sm:px-6 pt-4 sm:pt-6" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
+            <div className="flex-1 flex flex-col overflow-hidden px-4 sm:px-6 pt-4 sm:pt-6">
               <MediaLibraryTab 
                 memories={validatedMemories}
                 userType={userType}
