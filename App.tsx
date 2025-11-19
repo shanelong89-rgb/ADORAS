@@ -26,6 +26,8 @@ export interface UserProfile {
   relationship: string;
   bio: string;
   photo?: string;
+  avatarZoom?: number;
+  avatarRotation?: number;
   inviteCode?: string;
   email?: string;
   birthday?: Date;
