@@ -1,6 +1,32 @@
+import React, { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SimpleAvatarCropper } from './SimpleAvatarCropper';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Card } from './ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
+import { Alert, AlertDescription } from './ui/alert';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Calendar } from './ui/calendar';
+import { Switch } from './ui/switch';
+import { 
+  Upload, 
+  X, 
+  Copy, 
+  Check, 
+  MessageSquare, 
+  Send, 
+  ArrowLeft, 
+  Loader2, 
+  AlertCircle,
+  CalendarIcon,
+  Shield,
+  Eye
+} from 'lucide-react';
 
 interface KeeperOnboardingProps {
   onComplete: (profile: UserProfile, invitationCode?: string) => void;
@@ -69,8 +95,13 @@ export function KeeperOnboarding({ onComplete, onBack, isLoading = false, error 
     }
   };
   
-  const handleKeeperCropComplete = (croppedImageUrl: string) => {
-    setProfile(prev => ({ ...prev, photo: croppedImageUrl }));
+  const handleKeeperCropComplete = (croppedImageUrl: string, settings: { zoom: number; rotation: number }) => {
+    setProfile(prev => ({ 
+      ...prev, 
+      photo: croppedImageUrl,
+      avatarZoom: settings.zoom,
+      avatarRotation: settings.rotation
+    }));
     setShowKeeperCropper(false);
     setTempKeeperImage('');
     toast.success('Avatar uploaded successfully!');
@@ -104,8 +135,13 @@ export function KeeperOnboarding({ onComplete, onBack, isLoading = false, error 
     }
   };
   
-  const handleStorytellerCropComplete = (croppedImageUrl: string) => {
-    setStorytellerInfo(prev => ({ ...prev, photo: croppedImageUrl }));
+  const handleStorytellerCropComplete = (croppedImageUrl: string, settings: { zoom: number; rotation: number }) => {
+    setStorytellerInfo(prev => ({ 
+      ...prev, 
+      photo: croppedImageUrl,
+      avatarZoom: settings.zoom,
+      avatarRotation: settings.rotation
+    }));
     setShowStorytellerCropper(false);
     setTempStorytellerImage('');
     toast.success('Avatar uploaded successfully!');
@@ -693,15 +729,15 @@ export function KeeperOnboarding({ onComplete, onBack, isLoading = false, error 
       <SimpleAvatarCropper
         key={`keeper-${tempKeeperImage}`}
         imageUrl={tempKeeperImage}
-        isOpen={showKeeperCropper}
-        onCropComplete={handleKeeperCropComplete}
+        open={showKeeperCropper}
+        onSave={handleKeeperCropComplete}
         onCancel={handleKeeperCropCancel}
       />
       <SimpleAvatarCropper
         key={`storyteller-${tempStorytellerImage}`}
         imageUrl={tempStorytellerImage}
-        isOpen={showStorytellerCropper}
-        onCropComplete={handleStorytellerCropComplete}
+        open={showStorytellerCropper}
+        onSave={handleStorytellerCropComplete}
         onCancel={handleStorytellerCropCancel}
       />
     </div>
