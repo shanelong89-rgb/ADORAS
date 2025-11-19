@@ -20,6 +20,7 @@ import { UserTypeSelection } from "./UserTypeSelection";
 import { KeeperOnboarding } from "./KeeperOnboarding";
 import { TellerOnboarding } from "./TellerOnboarding";
 import { Dashboard } from "./Dashboard";
+import { InvitationSignup } from "./InvitationSignup";
 import { useAuth } from "../utils/api/AuthContext";
 import { apiClient } from "../utils/api/client";
 import {
@@ -163,6 +164,9 @@ export function AppContent() {
   const [hasInitializedAuth, setHasInitializedAuth] =
     useState(false);
 
+  // Invitation flow detection
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+
   // Phase 1d: Connection loading state
   const [isLoadingConnections, setIsLoadingConnections] =
     useState(false);
@@ -205,6 +209,18 @@ export function AppContent() {
   const [unreadCounts, setUnreadCounts] = useState<
     Record<string, number>
   >({});
+
+  /**
+   * Detect invitation code from URL parameter on mount
+   */
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('invite');
+    if (code && !isAuthenticated) {
+      console.log('📧 Invitation code detected in URL:', code);
+      setInviteCode(code);
+    }
+  }, [isAuthenticated]);
 
   /**
    * iOS PWA Badge API: Update home screen icon badge with total unread count
@@ -3885,6 +3901,20 @@ export function AppContent() {
         );
     }
   };
+
+  // Show invitation signup if invite code is present and user is not authenticated
+  if (inviteCode && !isAuthenticated) {
+    return (
+      <InvitationSignup
+        inviteCode={inviteCode}
+        onSignupComplete={() => {
+          // Clear invite code and reload to trigger auth
+          setInviteCode(null);
+          window.location.href = '/';
+        }}
+      />
+    );
+  }
 
   return (
     <>
