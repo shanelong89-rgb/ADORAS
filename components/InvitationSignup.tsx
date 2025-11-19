@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Alert, AlertDescription } from './ui/alert';
 import { Loader2, Mail, Lock, UserCheck, ArrowRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { projectId, publicAnonKey } from '../utils/supabase/info';
 
 interface InvitationData {
   code: string;
@@ -45,12 +46,12 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
     try {
       setIsLoading(true);
       const response = await fetch(
-        `https://whole-works-409347.supabase.co/functions/v1/make-server-deded1eb/invitations/verify`,
+        `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/invitations/verify`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indob2xlLXdvcmtzLTQwOTM0NyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzMwNDY2Njc3LCJleHAiOjIwNDYwNDI2Nzd9.qG1FU5b3FfHH4tIkV5yBDCxsIOHx9iVfMXJ9jqYF_2I`,
+            'Authorization': `Bearer ${publicAnonKey}`,
           },
           body: JSON.stringify({ code: inviteCode }),
         }
@@ -114,12 +115,12 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
     try {
       // Step 1: Create teller account with pre-filled data
       const signupResponse = await fetch(
-        'https://whole-works-409347.supabase.co/functions/v1/make-server-deded1eb/auth/signup',
+        `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/auth/signup`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indob2xlLXdvcmtzLTQwOTM0NyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzMwNDY2Njc3LCJleHAiOjIwNDYwNDI2Nzd9.qG1FU5b3FfHH4tIkV5yBDCxsIOHx9iVfMXJ9jqYF_2I`,
+            'Authorization': `Bearer ${publicAnonKey}`,
           },
           body: JSON.stringify({
             email,
@@ -143,7 +144,7 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
 
       // Step 2: Accept the invitation automatically
       const acceptResponse = await fetch(
-        'https://whole-works-409347.supabase.co/functions/v1/make-server-deded1eb/invitations/accept',
+        `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/invitations/accept`,
         {
           method: 'POST',
           headers: {
