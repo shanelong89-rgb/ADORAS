@@ -1,9 +1,11 @@
-"use client";
-
 import * as React from "react";
 import * as AvatarPrimitive from "@radix-ui/react-avatar@1.1.3";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-import { cn } from "./utils";
+function cn(...inputs: any[]) {
+  return twMerge(clsx(inputs));
+}
 
 const Avatar = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Root>,
@@ -11,7 +13,6 @@ const Avatar = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AvatarPrimitive.Root
     ref={ref}
-    data-slot="avatar"
     className={cn(
       "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
       className
@@ -28,7 +29,6 @@ const AvatarImage = React.forwardRef<
   <AvatarPrimitive.Image
     ref={ref}
     alt={alt}
-    data-slot="avatar-image"
     className={cn(
       "aspect-square h-full w-full object-cover",
       className
@@ -44,7 +44,6 @@ const AvatarFallback = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AvatarPrimitive.Fallback
     ref={ref}
-    data-slot="avatar-fallback"
     className={cn(
       "flex h-full w-full items-center justify-center rounded-full bg-muted",
       className
