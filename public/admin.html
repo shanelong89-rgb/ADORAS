@@ -291,6 +291,20 @@
   </div>
 
   <div class="container">
+    <!-- Server Status -->
+    <div class="card" style="margin-bottom: 24px;">
+      <div class="card-header">
+        <h2>📡 Server Status</h2>
+        <p>Check if backend is accessible</p>
+      </div>
+      <div class="card-content">
+        <button class="btn-primary" onclick="checkServerHealth()">
+          Check Server Connection
+        </button>
+        <div id="serverHealthResult" class="result"></div>
+      </div>
+    </div>
+
     <!-- Delete User -->
     <div class="grid">
       <div class="card">
@@ -414,6 +428,38 @@
       resultEl.className = `result ${type}`;
       resultEl.innerHTML = message;
       resultEl.style.display = 'block';
+    }
+
+    // Check Server Health
+    async function checkServerHealth() {
+      try {
+        const startTime = Date.now();
+        const response = await fetch(`${API_BASE}/admin/health`, {
+          method: 'GET',
+          headers: AUTH_HEADERS
+        });
+
+        const data = await response.json();
+        const responseTime = Date.now() - startTime;
+
+        if (data.success) {
+          showResult('serverHealthResult', `
+            ✅ <strong>Server is up and running!</strong><br>
+            <div class="data-list">
+              <div class="data-item">
+                <strong>Response Time:</strong> <span>${responseTime} ms</span>
+              </div>
+              <div class="data-item">
+                <strong>Server Message:</strong> <span>${data.message}</span>
+              </div>
+            </div>
+          `, 'success');
+        } else {
+          showResult('serverHealthResult', `❌ <strong>Error:</strong> ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('serverHealthResult', `❌ <strong>Cannot reach server:</strong> ${error.message}<br><br>Make sure the Supabase Edge Function is deployed and running.`, 'error');
+      }
     }
 
     // Delete User
