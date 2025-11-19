@@ -2160,7 +2160,7 @@ export function ChatTab({
         style={{ 
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
-          paddingBottom: `max(${inputBoxHeight + 60}px, calc(${inputBoxHeight}px + 60px + env(safe-area-inset-bottom, 0px)))`,
+          paddingBottom: `calc(${inputBoxHeight + 40}px + env(safe-area-inset-bottom, 0px))`,
           flex: '1 1 0',
           minHeight: 0
         }}
