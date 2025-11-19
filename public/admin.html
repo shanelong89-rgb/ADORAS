@@ -392,8 +392,342 @@
     const SUPABASE_PROJECT_ID = 'cyaaksjydpegofrldxbo';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
     
-    const API_BASE = () => `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/make-server-deded1eb`;
-    const AUTH_HEADER = () => ({ 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` });
+    const API_BASE = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/make-server-deded1eb`;
+    const AUTH_HEADERS = { 
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json'
+    };
+
+    // Helper functions
+    function showLoading(buttonElement) {
+      buttonElement.disabled = true;
+      buttonElement.innerHTML = '<span class="spinner"></span> Processing...';
+    }
+
+    function hideLoading(buttonElement, originalText) {
+      buttonElement.disabled = false;
+      buttonElement.innerHTML = originalText;
+    }
+
+    function showResult(elementId, message, type = 'info') {
+      const resultEl = document.getElementById(elementId);
+      resultEl.className = `result ${type}`;
+      resultEl.innerHTML = message;
+      resultEl.style.display = 'block';
+    }
+
+    // Delete User
+    async function deleteUser() {
+      const email = document.getElementById('deleteEmail').value.trim();
+      if (!email) {
+        showResult('deleteResult', '❌ Please enter an email address', 'error');
+        return;
+      }
+
+      if (!confirm(`⚠️ Are you sure you want to delete ${email}? This cannot be undone!`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/cleanup-user`, {
+          method: 'POST',
+          headers: AUTH_HEADERS,
+          body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showResult('deleteResult', `
+            ✅ <strong>User deleted successfully!</strong><br>
+            <div class="data-list">
+              <div class="data-item">
+                <strong>User ID:</strong> <span>${data.userId}</span>
+              </div>
+              <div class="data-item">
+                <strong>Items Deleted:</strong>
+                <ul style="margin-top: 8px; margin-left: 20px;">
+                  <li>User profile</li>
+                  <li>Connections: ${data.deletedConnections || 0}</li>
+                  <li>Memories: ${data.deletedMemories || 0}</li>
+                  <li>Invitations: ${data.deletedInvitations || 0}</li>
+                </ul>
+              </div>
+            </div>
+          `, 'success');
+        } else {
+          showResult('deleteResult', `❌ <strong>Error:</strong> ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('deleteResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Check Profile
+    async function checkProfile() {
+      const email = document.getElementById('profileEmail').value.trim();
+      if (!email) {
+        showResult('profileResult', '❌ Please enter an email address', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/check-profile`, {
+          method: 'POST',
+          headers: AUTH_HEADERS,
+          body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.profile) {
+          const profile = data.profile;
+          showResult('profileResult', `
+            <strong>✅ Profile Found</strong>
+            <div class="data-list">
+              <div class="data-item"><strong>ID:</strong> <span>${profile.id}</span></div>
+              <div class="data-item"><strong>Name:</strong> <span>${profile.name}</span></div>
+              <div class="data-item"><strong>Email:</strong> <span>${profile.email}</span></div>
+              <div class="data-item"><strong>Type:</strong> <span class="badge badge-info">${profile.type}</span></div>
+              <div class="data-item"><strong>Relationship:</strong> <span>${profile.relationship || 'N/A'}</span></div>
+              <div class="data-item"><strong>Bio:</strong> <span>${profile.bio || 'N/A'}</span></div>
+              <div class="data-item"><strong>Phone:</strong> <span>${profile.phoneNumber || 'N/A'}</span></div>
+              <div class="data-item"><strong>Created:</strong> <span>${new Date(profile.createdAt).toLocaleString()}</span></div>
+            </div>
+          `, 'info');
+        } else {
+          showResult('profileResult', `❌ ${data.error || 'Profile not found'}`, 'error');
+        }
+      } catch (error) {
+        showResult('profileResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Check Invitations
+    async function checkInvitations() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/check-invitations`, {
+          method: 'GET',
+          headers: AUTH_HEADERS
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          const invitations = data.invitations || [];
+          let html = `<strong>📨 Total Invitations: ${invitations.length}</strong>`;
+          
+          if (invitations.length > 0) {
+            html += '<div class="data-list">';
+            invitations.forEach(inv => {
+              html += `
+                <div class="data-item">
+                  <strong>Code:</strong> <code>${inv.code}</code><br>
+                  <strong>From:</strong> ${inv.keeperName} (${inv.keeperId})<br>
+                  <strong>To:</strong> ${inv.tellerName || 'Not specified'}<br>
+                  <strong>Status:</strong> <span class="badge badge-${inv.status === 'pending' ? 'warning' : 'success'}">${inv.status}</span><br>
+                  <strong>Created:</strong> ${new Date(inv.createdAt).toLocaleString()}
+                </div>
+              `;
+            });
+            html += '</div>';
+          }
+          
+          showResult('diagnosticResult', html, 'info');
+        } else {
+          showResult('diagnosticResult', `❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('diagnosticResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Check Users
+    async function checkUsers() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/check-users`, {
+          method: 'GET',
+          headers: AUTH_HEADERS
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          const users = data.users || [];
+          let html = `<strong>👥 Total Users: ${users.length}</strong>`;
+          
+          if (users.length > 0) {
+            html += '<div class="data-list">';
+            users.forEach(user => {
+              html += `
+                <div class="data-item">
+                  <strong>${user.name}</strong> <span class="badge badge-info">${user.type}</span><br>
+                  <strong>Email:</strong> ${user.email}<br>
+                  <strong>ID:</strong> <code>${user.id}</code><br>
+                  <strong>Created:</strong> ${new Date(user.createdAt).toLocaleString()}
+                </div>
+              `;
+            });
+            html += '</div>';
+          }
+          
+          showResult('diagnosticResult', html, 'info');
+        } else {
+          showResult('diagnosticResult', `❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('diagnosticResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Check Connections
+    async function checkConnections() {
+      try {
+        const response = await fetch(`${API_BASE}/admin/check-connections`, {
+          method: 'GET',
+          headers: AUTH_HEADERS
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          const connections = data.connections || [];
+          let html = `<strong>🔗 Total Connection Pairs: ${connections.length}</strong>`;
+          
+          if (connections.length > 0) {
+            html += '<div class="data-list">';
+            connections.forEach(conn => {
+              html += `
+                <div class="data-item">
+                  <strong>User:</strong> ${conn.userName} (${conn.userType})<br>
+                  <strong>Connected To:</strong> ${conn.connectedUserName} (${conn.connectedUserType})<br>
+                  <strong>User ID:</strong> <code>${conn.userId}</code><br>
+                  <strong>Connected ID:</strong> <code>${conn.connectedUserId}</code>
+                </div>
+              `;
+            });
+            html += '</div>';
+          }
+          
+          showResult('diagnosticResult', html, 'info');
+        } else {
+          showResult('diagnosticResult', `❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('diagnosticResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Check All
+    async function checkAll() {
+      try {
+        showResult('diagnosticResult', '<span class="spinner"></span> Loading all data...', 'info');
+        
+        const [invRes, userRes, connRes] = await Promise.all([
+          fetch(`${API_BASE}/admin/check-invitations`, { headers: AUTH_HEADERS }),
+          fetch(`${API_BASE}/admin/check-users`, { headers: AUTH_HEADERS }),
+          fetch(`${API_BASE}/admin/check-connections`, { headers: AUTH_HEADERS })
+        ]);
+
+        const [invData, userData, connData] = await Promise.all([
+          invRes.json(),
+          userRes.json(),
+          connRes.json()
+        ]);
+
+        let html = '<strong>📊 Complete Database Overview</strong><br><br>';
+
+        // Users
+        if (userData.success) {
+          const users = userData.users || [];
+          html += `<strong>👥 Users: ${users.length}</strong>`;
+          if (users.length > 0) {
+            html += '<div class="data-list">';
+            users.forEach(user => {
+              html += `
+                <div class="data-item">
+                  <strong>${user.name}</strong> <span class="badge badge-info">${user.type}</span><br>
+                  <strong>Email:</strong> ${user.email}<br>
+                  <strong>ID:</strong> <code>${user.id}</code>
+                </div>
+              `;
+            });
+            html += '</div>';
+          }
+        }
+
+        // Invitations
+        if (invData.success) {
+          const invitations = invData.invitations || [];
+          html += `<br><strong>📨 Invitations: ${invitations.length}</strong>`;
+          if (invitations.length > 0) {
+            html += '<div class="data-list">';
+            invitations.forEach(inv => {
+              html += `
+                <div class="data-item">
+                  <strong>Code:</strong> <code>${inv.code}</code><br>
+                  <strong>From:</strong> ${inv.keeperName}<br>
+                  <strong>Status:</strong> <span class="badge badge-${inv.status === 'pending' ? 'warning' : 'success'}">${inv.status}</span>
+                </div>
+              `;
+            });
+            html += '</div>';
+          }
+        }
+
+        // Connections
+        if (connData.success) {
+          const connections = connData.connections || [];
+          html += `<br><strong>🔗 Connections: ${connections.length}</strong>`;
+          if (connections.length > 0) {
+            html += '<div class="data-list">';
+            connections.forEach(conn => {
+              html += `
+                <div class="data-item">
+                  <strong>${conn.userName}</strong> ↔ <strong>${conn.connectedUserName}</strong>
+                </div>
+              `;
+            });
+            html += '</div>';
+          }
+        }
+
+        showResult('diagnosticResult', html, 'info');
+      } catch (error) {
+        showResult('diagnosticResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Clean Up Orphans
+    async function cleanupOrphans() {
+      if (!confirm('This will delete invitations that belong to users who no longer exist. Continue?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/cleanup-orphans`, {
+          method: 'POST',
+          headers: AUTH_HEADERS
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showResult('cleanupResult', `
+            ✅ <strong>Cleanup complete!</strong><br>
+            <div class="data-list">
+              <div class="data-item">
+                <strong>Orphaned invitations deleted:</strong> ${data.deletedCount}
+              </div>
+            </div>
+          `, 'success');
+        } else {
+          showResult('cleanupResult', `❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('cleanupResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
   </script>
 </body>
 </html>
