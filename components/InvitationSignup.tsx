@@ -150,14 +150,38 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
         return;
       }
 
-      // Step 2: Accept the invitation automatically
+      // Step 2: Sign in to get access token
+      const signinResponse = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/auth/signin`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${publicAnonKey}`,
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
+
+      const signinData = await signinResponse.json();
+
+      if (!signinData.success || !signinData.session?.access_token) {
+        console.error('Sign in after signup failed:', signinData.error);
+        setError('Account created but sign in failed. Please try signing in manually.');
+        return;
+      }
+
+      // Step 3: Accept the invitation automatically
       const acceptResponse = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/invitations/accept`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${signupData.session.access_token}`,
+            'Authorization': `Bearer ${signinData.session.access_token}`,
           },
           body: JSON.stringify({
             code: inviteCode,
@@ -172,7 +196,7 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
         // Still proceed - they can manually connect later
       }
 
-      // Step 3: Complete - trigger auth refresh
+      // Step 4: Complete - trigger auth refresh
       onSignupComplete();
       
     } catch (error) {
