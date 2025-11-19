@@ -54,8 +54,13 @@ export function TellerOnboarding({ onComplete, onBack, isLoading = false, error 
     }
   };
   
-  const handleCropComplete = (croppedImageUrl: string) => {
-    setProfile(prev => ({ ...prev, photo: croppedImageUrl }));
+  const handleCropComplete = (croppedImageUrl: string, settings: { zoom: number; rotation: number }) => {
+    setProfile(prev => ({ 
+      ...prev, 
+      photo: croppedImageUrl,
+      avatarZoom: settings.zoom,
+      avatarRotation: settings.rotation
+    }));
     setShowCropper(false);
     setTempImage('');
     toast.success('Avatar uploaded successfully!');
@@ -418,7 +423,7 @@ export function TellerOnboarding({ onComplete, onBack, isLoading = false, error 
         <SimpleAvatarCropper
           imageUrl={tempImage}
           open={showCropper}
-          onSave={(imageUrl) => handleCropComplete(imageUrl)}
+          onSave={(imageUrl, settings) => handleCropComplete(imageUrl, settings)}
           onCancel={handleCropCancel}
         />
       )}
