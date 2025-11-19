@@ -1121,11 +1121,11 @@ export function Dashboard({
             className="flex-1 flex flex-col overflow-hidden dashboard-content"
             style={{ 
               minHeight: 0,
-              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)' // Mobile: flush with tabs
+              paddingTop: 'max(160px, calc(env(safe-area-inset-top, 0px) + 90px))' // Web browsers: 160px, iOS PWA: safe-area + 90px
             }}
           >
             {activeTab === 'prompts' && (
-              <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', paddingBottom: 'max(140px, calc(20px + env(safe-area-inset-bottom, 0px)))' }}>
+              <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
               <div className="pt-4 px-4 sm:pt-6 sm:px-6">
               <PromptsTab 
                 userType={userType}
@@ -1157,7 +1157,7 @@ export function Dashboard({
           )}
           
           {activeTab === 'media' && (
-            <div className="flex-1 flex flex-col overflow-hidden px-4 sm:px-6 pt-4 sm:pt-6" style={{ paddingBottom: 'max(140px, calc(20px + env(safe-area-inset-bottom, 0px)))' }}>
+            <div className="flex-1 flex flex-col overflow-hidden px-4 sm:px-6 pt-4 sm:pt-6" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
               <MediaLibraryTab 
                 memories={validatedMemories}
                 userType={userType}
