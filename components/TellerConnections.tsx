@@ -152,34 +152,42 @@ export function TellerConnections({
       if (response.success && response.connections) {
         // Map the backend format to our component format
         // Backend returns: { connection: Connection, partner: UserProfile }[]
-        const mappedConnections = await Promise.all(
-          response.connections.map(async (conn: any) => {
-            // Get memories count for this connection
-            let memoriesCount = 0;
-            try {
-              const memoriesResponse = await apiClient.getMemories(conn.connection.id);
-              if (memoriesResponse.success && memoriesResponse.memories) {
-                memoriesCount = memoriesResponse.memories.length;
-              }
-            } catch (error) {
-              console.error('Error loading memories count:', error);
-            }
-
-            return {
-              id: conn.connection.id,
-              partner: {
-                id: conn.partner?.id || '',
-                name: conn.partner?.name || 'Unknown',
-                email: conn.partner?.email || '',
-                photo: conn.partner?.photo,
-                relationship: conn.partner?.relationship,
-              },
-              memoriesCount,
-              createdAt: conn.connection.createdAt,
-              acceptedAt: conn.connection.acceptedAt,
-            };
-          })
+        
+        // Fetch all memories counts in parallel for better performance
+        const memoriesPromises = response.connections.map((conn: any) =>
+          apiClient.getMemories(conn.connection.id)
+            .then(memoriesResponse => ({
+              connectionId: conn.connection.id,
+              count: memoriesResponse.success && memoriesResponse.memories 
+                ? memoriesResponse.memories.length 
+                : 0
+            }))
+            .catch(error => {
+              console.error('Error loading memories count for connection:', conn.connection.id, error);
+              return { connectionId: conn.connection.id, count: 0 };
+            })
         );
+
+        // Wait for all memories counts to load
+        const memoriesCounts = await Promise.all(memoriesPromises);
+        const memoriesMap = new Map(
+          memoriesCounts.map(m => [m.connectionId, m.count])
+        );
+
+        const mappedConnections = response.connections.map((conn: any) => ({
+          id: conn.connection.id,
+          partner: {
+            id: conn.partner?.id || '',
+            name: conn.partner?.name || 'Unknown',
+            email: conn.partner?.email || '',
+            photo: conn.partner?.photo,
+            relationship: conn.partner?.relationship,
+          },
+          memoriesCount: memoriesMap.get(conn.connection.id) || 0,
+          createdAt: conn.connection.createdAt,
+          acceptedAt: conn.connection.acceptedAt,
+        }));
+        
         setConnections(mappedConnections);
       } else {
         console.error('Failed to load connections:', response.error);
