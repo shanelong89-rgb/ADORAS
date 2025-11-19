@@ -120,7 +120,11 @@ export function SimpleAvatarCropper({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent className="max-w-sm" style={{ touchAction: 'none' }}>
+      <DialogContent 
+        className="max-w-sm" 
+        style={{ touchAction: 'none' }}
+        data-avatar-cropper="true"
+      >
         <DialogHeader>
           <DialogTitle style={{ fontFamily: 'Archivo' }}>Adjust Profile Photo</DialogTitle>
         </DialogHeader>
