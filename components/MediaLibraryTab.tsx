@@ -1303,7 +1303,7 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
       </div>
 
       {/* Scrollable View Content */}
-      <div className="flex-1 overflow-y-auto overscroll-contain pt-4 pb-32" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+      <div className="flex-1 overflow-y-auto overscroll-contain pt-4" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y', paddingBottom: 'max(140px, calc(20px + env(safe-area-inset-bottom, 0px)))' }}>
         {viewMode === 'calendar' ? (
           renderCalendarView()
         ) : (
