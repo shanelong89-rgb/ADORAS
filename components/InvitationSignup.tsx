@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from './ui/alert';
 import { Loader2, Mail, Lock, UserCheck, ArrowRight } from 'lucide-react';
 import { SmartAvatar } from './SmartAvatar';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
+import { apiClient } from '../utils/api/client';
 
 interface InvitationData {
   code: string;
@@ -29,7 +30,7 @@ interface InvitationData {
 
 interface InvitationSignupProps {
   inviteCode: string;
-  onSignupComplete: () => void;
+  onSignupComplete: (accessToken: string) => void;
 }
 
 export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSignupProps) {
@@ -197,7 +198,7 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
       }
 
       // Step 4: Complete - trigger auth refresh
-      onSignupComplete();
+      onSignupComplete(signinData.accessToken);
       
     } catch (error) {
       console.error('Signup error:', error);
