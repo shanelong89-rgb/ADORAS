@@ -19,6 +19,7 @@ import { PresenceIndicator, PresenceDot, ConnectionStatus } from './PresenceIndi
 import { SafariInstallBanner } from './SafariInstallBanner';
 import { UserProfile, Memory, UserType, Storyteller, LegacyKeeper, DisplayLanguage } from '../App';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { SmartAvatar } from './SmartAvatar';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
@@ -708,12 +709,14 @@ export function Dashboard({
                         }}
                         className="w-full flex items-center space-x-3 sm:space-x-4 p-2.5 sm:p-3 rounded-lg hover:bg-white/10 transition-colors"
                       >
-                        <Avatar className="w-14 h-14 sm:w-16 sm:h-16 ring-2 ring-white/20">
-                          <AvatarImage src={userProfile.photo} />
-                          <AvatarFallback className="bg-[#F1F1F1] text-[#36453B] text-lg sm:text-xl" style={{ fontFamily: 'Archivo' }}>
-                            {userProfile.name[0]}
-                          </AvatarFallback>
-                        </Avatar>
+                        <SmartAvatar
+                          src={userProfile.photo}
+                          zoom={userProfile.avatarZoom || 1}
+                          rotation={userProfile.avatarRotation || 0}
+                          className="w-14 h-14 sm:w-16 sm:h-16 ring-2 ring-white/20"
+                          fallback={userProfile.name[0]}
+                          fallbackClassName="bg-[#F1F1F1] text-[#36453B] text-lg sm:text-xl"
+                        />
                         <div className="flex-1 text-left min-w-0">
                           <p className="font-medium text-white text-base sm:text-lg truncate" style={{ fontFamily: 'Archivo' }}>
                             {userProfile.name}
