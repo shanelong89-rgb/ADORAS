@@ -177,10 +177,10 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FFF8F0', fontFamily: 'Inter' }}>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#F5F9E9', fontFamily: 'Inter' }}>
         <Card className="w-full max-w-md">
           <CardContent className="flex items-center justify-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </CardContent>
         </Card>
       </div>
@@ -189,16 +189,16 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
 
   if (error && !invitationData) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FFF8F0', fontFamily: 'Inter' }}>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#F5F9E9', fontFamily: 'Inter' }}>
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle style={{ fontFamily: 'Inter' }}>Invalid Invitation</CardTitle>
+            <CardTitle style={{ fontFamily: 'Archivo' }}>Invalid Invitation</CardTitle>
             <CardDescription style={{ fontFamily: 'Inter' }}>{error}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button 
               onClick={() => window.location.href = '/'} 
-              className="w-full"
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
               style={{ fontFamily: 'Inter' }}
             >
               Go to Home
@@ -212,25 +212,25 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
   if (!invitationData) return null;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FFF8F0', fontFamily: 'Inter' }}>
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#F5F9E9', fontFamily: 'Inter' }}>
       <Card className="w-full max-w-lg">
         <CardHeader className="text-center space-y-4 pb-2">
           {/* Keeper Avatar */}
           <div className="flex justify-center">
-            <Avatar className="h-20 w-20 border-4 border-amber-100">
+            <Avatar className="h-20 w-20 border-4 border-[#C1C1A5]">
               <AvatarImage src={invitationData.keeper.photo} alt={invitationData.keeper.name} />
-              <AvatarFallback className="bg-amber-200 text-amber-800" style={{ fontFamily: 'Inter' }}>
+              <AvatarFallback className="bg-[#ECF0E2] text-[#36453B]" style={{ fontFamily: 'Archivo' }}>
                 {invitationData.keeper.name.charAt(0)}
               </AvatarFallback>
             </Avatar>
           </div>
 
           <div>
-            <CardTitle className="text-2xl mb-2" style={{ fontFamily: 'Inter' }}>
+            <CardTitle className="text-2xl mb-2" style={{ fontFamily: 'Archivo' }}>
               You're Invited! 🎉
             </CardTitle>
             <CardDescription className="text-base" style={{ fontFamily: 'Inter' }}>
-              <span className="font-semibold text-amber-700">{invitationData.keeper.name}</span> invited you to join Adoras
+              <span className="font-semibold text-[#36453B]">{invitationData.keeper.name}</span> invited you to join Adoras
             </CardDescription>
           </div>
         </CardHeader>
@@ -238,34 +238,34 @@ export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSig
         <CardContent className="space-y-6">
           {/* Pre-filled profile preview */}
           {invitationData.invitation.tellerName && (
-            <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+            <div className="bg-[#ECF0E2] rounded-lg p-4 border border-[#C1C1A5]/50">
               <div className="flex items-start gap-3">
                 <Avatar className="h-12 w-12 mt-1">
                   <AvatarImage src={invitationData.invitation.tellerPhoto} alt={invitationData.invitation.tellerName} />
-                  <AvatarFallback className="bg-amber-200 text-amber-800" style={{ fontFamily: 'Inter' }}>
+                  <AvatarFallback className="bg-[#C1C1A5] text-[#36453B]" style={{ fontFamily: 'Archivo' }}>
                     {invitationData.invitation.tellerName.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-amber-900" style={{ fontFamily: 'Inter' }}>
+                    <p className="font-semibold text-[#36453B]" style={{ fontFamily: 'Archivo' }}>
                       {invitationData.invitation.tellerName}
                     </p>
-                    <UserCheck className="h-4 w-4 text-amber-600" />
+                    <UserCheck className="h-4 w-4 text-[#36453B]" />
                   </div>
                   {invitationData.invitation.tellerRelationship && (
-                    <p className="text-sm text-amber-700" style={{ fontFamily: 'Inter' }}>
+                    <p className="text-sm text-[#596569]" style={{ fontFamily: 'Inter' }}>
                       {invitationData.invitation.tellerRelationship}
                     </p>
                   )}
                   {invitationData.invitation.tellerBio && (
-                    <p className="text-sm text-amber-600 mt-1" style={{ fontFamily: 'Inter' }}>
+                    <p className="text-sm text-[#596569] mt-1" style={{ fontFamily: 'Inter' }}>
                       {invitationData.invitation.tellerBio}
                     </p>
                   )}
                 </div>
               </div>
-              <p className="text-xs text-amber-600 mt-3 flex items-center gap-1" style={{ fontFamily: 'Inter' }}>
+              <p className="text-xs text-[#596569] mt-3 flex items-center gap-1" style={{ fontFamily: 'Inter' }}>
                 <ArrowRight className="h-3 w-3" />
                 Your profile has been pre-filled. Just add your email and password!
               </p>
