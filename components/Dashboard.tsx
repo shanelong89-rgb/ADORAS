@@ -646,12 +646,14 @@ export function Dashboard({
           <div className="flex items-center justify-between px-5 sm:px-8 md:px-10 lg:px-12 xl:px-16 py-4 sm:py-5 max-w-4xl mx-auto">
             <div className="flex items-center space-x-3 sm:space-x-5 min-w-0 flex-1">
               <div className="relative flex-shrink-0">
-                <Avatar className="w-12 h-12 sm:w-16 sm:h-16 ring-2 sm:ring-3 ring-primary/15 shadow-md">
-                  <AvatarImage src={partnerProfile?.photo} />
-                  <AvatarFallback className="bg-primary/10 text-primary text-base sm:text-lg font-medium" style={{ fontFamily: 'Archivo' }}>
-                    {partnerProfile?.name?.[0] || '?'}
-                  </AvatarFallback>
-                </Avatar>
+                <SmartAvatar
+                  src={partnerProfile?.photo}
+                  zoom={partnerProfile?.avatarZoom || 1}
+                  rotation={partnerProfile?.avatarRotation || 0}
+                  className="w-12 h-12 sm:w-16 sm:h-16 ring-2 sm:ring-3 ring-primary/15 shadow-md"
+                  fallback={partnerProfile?.name?.[0] || '?'}
+                  fallbackClassName="bg-primary/10 text-primary text-base sm:text-lg font-medium"
+                />
                 {isConnected && (
                   <div className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-4 h-4 sm:w-5 sm:h-5 bg-[#6EDB3F] rounded-full border-2 sm:border-3 border-white shadow-sm"></div>
                 )}
@@ -768,12 +770,14 @@ export function Dashboard({
                               }`}
                             >
                               <div className="relative">
-                                <Avatar className="w-9 h-9 sm:w-10 sm:h-10">
-                                  <AvatarImage src={storyteller.photo} />
-                                  <AvatarFallback className="bg-[#F1F1F1] text-[#36453B] text-sm" style={{ fontFamily: 'Archivo' }}>
-                                    {storyteller.name[0]}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <SmartAvatar
+                                  src={storyteller.photo}
+                                  zoom={storyteller.avatarZoom || 1}
+                                  rotation={storyteller.avatarRotation || 0}
+                                  className="w-9 h-9 sm:w-10 sm:h-10"
+                                  fallback={storyteller.name[0]}
+                                  fallbackClassName="bg-[#F1F1F1] text-[#36453B] text-sm"
+                                />
                                 {storyteller.isConnected && (
                                   <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 bg-[#6EDB3F] rounded-full border-2 border-[#36453B]"></div>
                                 )}
@@ -844,12 +848,14 @@ export function Dashboard({
                               }`}
                             >
                               <div className="relative">
-                                <Avatar className="w-9 h-9 sm:w-10 sm:h-10">
-                                  <AvatarImage src={legacyKeeper.photo} />
-                                  <AvatarFallback className="bg-[#F1F1F1] text-[#36453B] text-sm" style={{ fontFamily: 'Archivo' }}>
-                                    {legacyKeeper.name[0]}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <SmartAvatar
+                                  src={legacyKeeper.photo}
+                                  zoom={legacyKeeper.avatarZoom || 1}
+                                  rotation={legacyKeeper.avatarRotation || 0}
+                                  className="w-9 h-9 sm:w-10 sm:h-10"
+                                  fallback={legacyKeeper.name[0]}
+                                  fallbackClassName="bg-[#F1F1F1] text-[#36453B] text-sm"
+                                />
                                 {legacyKeeper.isConnected && (
                                   <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 bg-[#6EDB3F] rounded-full border-2 border-[#36453B]"></div>
                                 )}
