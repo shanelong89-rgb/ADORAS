@@ -12,6 +12,8 @@ import { ZoomIn, ZoomOut, RotateCw } from "lucide-react";
 export interface CropSettings {
   zoom: number;
   rotation: number;
+  offsetX: number;
+  offsetY: number;
 }
 
 interface SimpleAvatarCropperProps {
@@ -21,6 +23,8 @@ interface SimpleAvatarCropperProps {
   open: boolean;
   initialZoom?: number;
   initialRotation?: number;
+  initialOffsetX?: number;
+  initialOffsetY?: number;
 }
 
 export function SimpleAvatarCropper({
@@ -30,9 +34,13 @@ export function SimpleAvatarCropper({
   open,
   initialZoom = 1.2,
   initialRotation = 0,
+  initialOffsetX = 0,
+  initialOffsetY = 0,
 }: SimpleAvatarCropperProps) {
   const [zoom, setZoom] = useState(initialZoom);
   const [rotation, setRotation] = useState(initialRotation);
+  const [offsetX, setOffsetX] = useState(initialOffsetX);
+  const [offsetY, setOffsetY] = useState(initialOffsetY);
   const imageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isGesturing, setIsGesturing] = useState(false);
@@ -42,15 +50,20 @@ export function SimpleAvatarCropper({
     if (open) {
       setZoom(initialZoom);
       setRotation(initialRotation);
+      setOffsetX(initialOffsetX);
+      setOffsetY(initialOffsetY);
       setIsGesturing(false);
     }
-  }, [open, imageUrl, initialZoom, initialRotation]);
+  }, [open, imageUrl, initialZoom, initialRotation, initialOffsetX, initialOffsetY]);
   
   // Touch gesture support
   const touchState = useRef({
     lastDistance: 0,
     lastAngle: 0,
     initialZoom: 1.2,
+    lastX: 0,
+    lastY: 0,
+    isDragging: false,
   });
 
   const getDistance = (touches: TouchList) => {
@@ -94,6 +107,10 @@ export function SimpleAvatarCropper({
         touchState.current.lastDistance = getDistance(e.touches);
         touchState.current.lastAngle = getAngle(e.touches);
         touchState.current.initialZoom = zoom;
+      } else if (e.touches.length === 1) {
+        touchState.current.lastX = e.touches[0].clientX;
+        touchState.current.lastY = e.touches[0].clientY;
+        touchState.current.isDragging = true;
       }
     };
 
@@ -116,12 +133,25 @@ export function SimpleAvatarCropper({
         const angleDiff = angle - touchState.current.lastAngle;
         setRotation((r) => (r + angleDiff) % 360);
         touchState.current.lastAngle = angle;
+      } else if (e.touches.length === 1 && touchState.current.isDragging) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const dx = e.touches[0].clientX - touchState.current.lastX;
+        const dy = e.touches[0].clientY - touchState.current.lastY;
+        
+        setOffsetX((x) => x + dx);
+        setOffsetY((y) => y + dy);
+        
+        touchState.current.lastX = e.touches[0].clientX;
+        touchState.current.lastY = e.touches[0].clientY;
       }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
       if (e.touches.length < 2) {
         setIsGesturing(false);
+        touchState.current.isDragging = false;
       }
     };
 
@@ -142,7 +172,7 @@ export function SimpleAvatarCropper({
   }, [open, zoom]); // Added zoom to dependency array for iOS
 
   const handleSave = () => {
-    onSave(imageUrl, { zoom, rotation });
+    onSave(imageUrl, { zoom, rotation, offsetX, offsetY });
   };
 
   return (
@@ -160,7 +190,7 @@ export function SimpleAvatarCropper({
           {/* Gesture hint */}
           {!isGesturing && (
             <p className="text-sm text-muted-foreground text-center px-4" style={{ fontFamily: 'Inter' }}>
-              Use two fingers to pinch and zoom, or rotate
+              Drag to move • Pinch to zoom • Two fingers to rotate
             </p>
           )}
           
@@ -176,7 +206,7 @@ export function SimpleAvatarCropper({
               ref={imageRef}
               className="absolute inset-0"
               style={{
-                transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                transform: `translate(${offsetX}px, ${offsetY}px) scale(${zoom}) rotate(${rotation}deg)`,
                 transformOrigin: 'center center',
                 touchAction: "none",
                 willChange: "transform",
