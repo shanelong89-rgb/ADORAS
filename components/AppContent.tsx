@@ -122,6 +122,7 @@ export function AppContent() {
     isLoading,
     isAuthenticated,
     accessToken,
+    refreshUser,
   } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<
     | "welcome"
@@ -3907,10 +3908,24 @@ export function AppContent() {
     return (
       <InvitationSignup
         inviteCode={inviteCode}
-        onSignupComplete={() => {
-          // Clear invite code and reload to trigger auth
+        onSignupComplete={async (accessToken: string) => {
+          console.log('🎉 Invitation signup complete! Setting up auth...');
+          
+          // Set the access token in apiClient (remember user by default)
+          apiClient.setAccessToken(accessToken, true);
+          
+          // Refresh user data from AuthContext
+          await refreshUser();
+          
+          // Clear invite code from URL without full page reload
           setInviteCode(null);
-          window.location.href = '/';
+          
+          // Remove invite parameter from URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete('invite');
+          window.history.replaceState({}, '', url.toString());
+          
+          console.log('✅ Auth setup complete, user should see dashboard now');
         }}
       />
     );
