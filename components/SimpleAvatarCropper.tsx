@@ -50,6 +50,7 @@ export function SimpleAvatarCropper({
   const touchState = useRef({
     lastDistance: 0,
     lastAngle: 0,
+    initialZoom: 1.2,
   });
 
   const getDistance = (touches: TouchList) => {
@@ -64,28 +65,50 @@ export function SimpleAvatarCropper({
     return Math.atan2(dy, dx) * (180 / Math.PI);
   };
 
-  // Use native event listeners for better touch control
+  // Use native event listeners for better touch control - iOS PWA compatible
   useEffect(() => {
+    if (!open) return;
+    
+    // Prevent default zoom behavior on the whole document when dialog is open
+    const preventDefaultZoom = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+    
+    document.addEventListener('touchstart', preventDefaultZoom, { passive: false });
+    document.addEventListener('touchmove', preventDefaultZoom, { passive: false });
+
     const container = containerRef.current;
-    if (!container || !open) return;
+    if (!container) {
+      document.removeEventListener('touchstart', preventDefaultZoom);
+      document.removeEventListener('touchmove', preventDefaultZoom);
+      return;
+    }
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         e.preventDefault();
+        e.stopPropagation();
         setIsGesturing(true);
         touchState.current.lastDistance = getDistance(e.touches);
         touchState.current.lastAngle = getAngle(e.touches);
+        touchState.current.initialZoom = zoom;
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         e.preventDefault();
+        e.stopPropagation();
         
-        // Pinch to zoom
+        // Pinch to zoom - more sensitive scaling
         const distance = getDistance(e.touches);
         const scale = distance / touchState.current.lastDistance;
-        setZoom((z) => Math.min(3, Math.max(1, z * scale)));
+        
+        // Use a more immediate update for better responsiveness
+        const newZoom = Math.min(3, Math.max(1, zoom * scale));
+        setZoom(newZoom);
         touchState.current.lastDistance = distance;
 
         // Two-finger rotation
@@ -106,13 +129,17 @@ export function SimpleAvatarCropper({
     container.addEventListener('touchstart', handleTouchStart, { passive: false });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
     container.addEventListener('touchend', handleTouchEnd, { passive: false });
+    container.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
+      document.removeEventListener('touchstart', preventDefaultZoom);
+      document.removeEventListener('touchmove', preventDefaultZoom);
     };
-  }, [open]);
+  }, [open, zoom]); // Added zoom to dependency array for iOS
 
   const handleSave = () => {
     onSave(imageUrl, { zoom, rotation });
@@ -147,11 +174,12 @@ export function SimpleAvatarCropper({
           >
             <div
               ref={imageRef}
-              className="absolute inset-0 transition-transform duration-200"
+              className="absolute inset-0"
               style={{
                 transform: `scale(${zoom}) rotate(${rotation}deg)`,
                 transformOrigin: 'center center',
                 touchAction: "none",
+                willChange: "transform",
               }}
             >
               <img
@@ -177,11 +205,12 @@ export function SimpleAvatarCropper({
                 type="range"
                 min="1"
                 max="3"
-                step="0.05"
+                step="0.01"
                 value={zoom}
                 onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
-                style={{ touchAction: 'auto' }}
+                onInput={(e) => setZoom(parseFloat((e.target as HTMLInputElement).value))}
+                className="flex-1 h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary"
+                style={{ touchAction: 'pan-x', WebkitAppearance: 'none' }}
               />
               <ZoomIn className="w-5 h-5 text-muted-foreground" />
             </div>
