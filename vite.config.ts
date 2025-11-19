@@ -178,7 +178,6 @@ export default defineConfig({
     postcss: './postcss.config.js',
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.jsx', '.js', '.json'],
     alias: {
       '@': path.resolve(__dirname, './'),
       // Map motion/react to framer-motion for compatibility
