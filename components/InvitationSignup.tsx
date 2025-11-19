@@ -1,0 +1,362 @@
+import React, { useState, useEffect } from 'react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Alert, AlertDescription } from './ui/alert';
+import { Loader2, Mail, Lock, UserCheck, ArrowRight } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+
+interface InvitationData {
+  code: string;
+  keeper: {
+    name: string;
+    photo?: string;
+  };
+  invitation: {
+    tellerName?: string;
+    tellerPhoto?: string;
+    tellerRelationship?: string;
+    tellerBio?: string;
+    tellerBirthday?: string;
+  };
+}
+
+interface InvitationSignupProps {
+  inviteCode: string;
+  onSignupComplete: () => void;
+}
+
+export function InvitationSignup({ inviteCode, onSignupComplete }: InvitationSignupProps) {
+  const [invitationData, setInvitationData] = useState<InvitationData | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState('');
+
+  useEffect(() => {
+    fetchInvitationData();
+  }, [inviteCode]);
+
+  const fetchInvitationData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `https://whole-works-409347.supabase.co/functions/v1/make-server-deded1eb/invitations/verify`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indob2xlLXdvcmtzLTQwOTM0NyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzMwNDY2Njc3LCJleHAiOjIwNDYwNDI2Nzd9.qG1FU5b3FfHH4tIkV5yBDCxsIOHx9iVfMXJ9jqYF_2I`,
+          },
+          body: JSON.stringify({ code: inviteCode }),
+        }
+      );
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        setError(data.error || 'Invalid or expired invitation code');
+        return;
+      }
+
+      setInvitationData({
+        code: inviteCode,
+        keeper: {
+          name: data.keeper?.name || 'Someone',
+          photo: data.keeper?.photo,
+        },
+        invitation: {
+          tellerName: data.invitation?.tellerName,
+          tellerPhoto: data.invitation?.tellerPhoto,
+          tellerRelationship: data.invitation?.tellerRelationship,
+          tellerBio: data.invitation?.tellerBio,
+          tellerBirthday: data.invitation?.tellerBirthday,
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching invitation:', error);
+      setError('Failed to load invitation. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const validateForm = () => {
+    if (!email || !email.includes('@')) {
+      setValidationError('Please enter a valid email address');
+      return false;
+    }
+    if (password.length < 8) {
+      setValidationError('Password must be at least 8 characters');
+      return false;
+    }
+    if (password !== confirmPassword) {
+      setValidationError('Passwords do not match');
+      return false;
+    }
+    setValidationError('');
+    return true;
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    if (!invitationData) return;
+
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      // Step 1: Create teller account with pre-filled data
+      const signupResponse = await fetch(
+        'https://whole-works-409347.supabase.co/functions/v1/make-server-deded1eb/auth/signup',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indob2xlLXdvcmtzLTQwOTM0NyIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzMwNDY2Njc3LCJleHAiOjIwNDYwNDI2Nzd9.qG1FU5b3FfHH4tIkV5yBDCxsIOHx9iVfMXJ9jqYF_2I`,
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            type: 'teller',
+            name: invitationData.invitation.tellerName || 'Storyteller',
+            relationship: invitationData.invitation.tellerRelationship || '',
+            bio: invitationData.invitation.tellerBio || '',
+            photo: invitationData.invitation.tellerPhoto || '',
+            birthday: invitationData.invitation.tellerBirthday || '',
+          }),
+        }
+      );
+
+      const signupData = await signupResponse.json();
+
+      if (!signupData.success) {
+        setError(signupData.error || 'Failed to create account');
+        return;
+      }
+
+      // Step 2: Accept the invitation automatically
+      const acceptResponse = await fetch(
+        'https://whole-works-409347.supabase.co/functions/v1/make-server-deded1eb/invitations/accept',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${signupData.session.access_token}`,
+          },
+          body: JSON.stringify({
+            code: inviteCode,
+          }),
+        }
+      );
+
+      const acceptData = await acceptResponse.json();
+
+      if (!acceptData.success) {
+        console.error('Failed to accept invitation:', acceptData.error);
+        // Still proceed - they can manually connect later
+      }
+
+      // Step 3: Complete - trigger auth refresh
+      onSignupComplete();
+      
+    } catch (error) {
+      console.error('Signup error:', error);
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FFF8F0', fontFamily: 'Inter' }}>
+        <Card className="w-full max-w-md">
+          <CardContent className="flex items-center justify-center p-12">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-600" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error && !invitationData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FFF8F0', fontFamily: 'Inter' }}>
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle style={{ fontFamily: 'Inter' }}>Invalid Invitation</CardTitle>
+            <CardDescription style={{ fontFamily: 'Inter' }}>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => window.location.href = '/'} 
+              className="w-full"
+              style={{ fontFamily: 'Inter' }}
+            >
+              Go to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!invitationData) return null;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#FFF8F0', fontFamily: 'Inter' }}>
+      <Card className="w-full max-w-lg">
+        <CardHeader className="text-center space-y-4 pb-2">
+          {/* Keeper Avatar */}
+          <div className="flex justify-center">
+            <Avatar className="h-20 w-20 border-4 border-amber-100">
+              <AvatarImage src={invitationData.keeper.photo} alt={invitationData.keeper.name} />
+              <AvatarFallback className="bg-amber-200 text-amber-800" style={{ fontFamily: 'Inter' }}>
+                {invitationData.keeper.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+
+          <div>
+            <CardTitle className="text-2xl mb-2" style={{ fontFamily: 'Inter' }}>
+              You're Invited! 🎉
+            </CardTitle>
+            <CardDescription className="text-base" style={{ fontFamily: 'Inter' }}>
+              <span className="font-semibold text-amber-700">{invitationData.keeper.name}</span> invited you to join Adoras
+            </CardDescription>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* Pre-filled profile preview */}
+          {invitationData.invitation.tellerName && (
+            <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+              <div className="flex items-start gap-3">
+                <Avatar className="h-12 w-12 mt-1">
+                  <AvatarImage src={invitationData.invitation.tellerPhoto} alt={invitationData.invitation.tellerName} />
+                  <AvatarFallback className="bg-amber-200 text-amber-800" style={{ fontFamily: 'Inter' }}>
+                    {invitationData.invitation.tellerName.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-amber-900" style={{ fontFamily: 'Inter' }}>
+                      {invitationData.invitation.tellerName}
+                    </p>
+                    <UserCheck className="h-4 w-4 text-amber-600" />
+                  </div>
+                  {invitationData.invitation.tellerRelationship && (
+                    <p className="text-sm text-amber-700" style={{ fontFamily: 'Inter' }}>
+                      {invitationData.invitation.tellerRelationship}
+                    </p>
+                  )}
+                  {invitationData.invitation.tellerBio && (
+                    <p className="text-sm text-amber-600 mt-1" style={{ fontFamily: 'Inter' }}>
+                      {invitationData.invitation.tellerBio}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-amber-600 mt-3 flex items-center gap-1" style={{ fontFamily: 'Inter' }}>
+                <ArrowRight className="h-3 w-3" />
+                Your profile has been pre-filled. Just add your email and password!
+              </p>
+            </div>
+          )}
+
+          {/* Signup Form */}
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" style={{ fontFamily: 'Inter' }}>
+                <Mail className="inline h-4 w-4 mr-1" />
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting}
+                required
+                style={{ fontFamily: 'Inter' }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password" style={{ fontFamily: 'Inter' }}>
+                <Lock className="inline h-4 w-4 mr-1" />
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isSubmitting}
+                required
+                style={{ fontFamily: 'Inter' }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password" style={{ fontFamily: 'Inter' }}>
+                <Lock className="inline h-4 w-4 mr-1" />
+                Confirm Password
+              </Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                placeholder="Re-enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isSubmitting}
+                required
+                style={{ fontFamily: 'Inter' }}
+              />
+            </div>
+
+            {(validationError || error) && (
+              <Alert variant="destructive">
+                <AlertDescription style={{ fontFamily: 'Inter' }}>
+                  {validationError || error}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting}
+              style={{ fontFamily: 'Inter' }}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating your account...
+                </>
+              ) : (
+                <>
+                  Join Adoras & Connect
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          <p className="text-xs text-center text-muted-foreground" style={{ fontFamily: 'Inter' }}>
+            By signing up, you'll be automatically connected with {invitationData.keeper.name}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
