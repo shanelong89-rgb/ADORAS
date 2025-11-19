@@ -34,13 +34,30 @@ export function TwilioTestDialog({ isOpen, onClose }: TwilioTestDialogProps) {
       return;
     }
 
+    // Clean the phone number - remove all non-digits
     const cleanPhone = phoneNumber.replace(/\D/g, '');
     if (cleanPhone.length < 10) {
       toast.error('Please enter a valid phone number');
       return;
     }
 
-    const formattedPhone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+    // Format phone number - if it already starts with country code, use as-is
+    // Otherwise assume US (+1)
+    let formattedPhone: string;
+    if (phoneNumber.trim().startsWith('+')) {
+      // User already provided country code
+      formattedPhone = `+${cleanPhone}`;
+    } else if (cleanPhone.startsWith('1') && cleanPhone.length === 11) {
+      // US number starting with 1
+      formattedPhone = `+${cleanPhone}`;
+    } else if (cleanPhone.length === 10) {
+      // 10 digit number, assume US
+      formattedPhone = `+1${cleanPhone}`;
+    } else {
+      // International number without + prefix - use as entered
+      formattedPhone = `+${cleanPhone}`;
+    }
+    
     const message = testMessage.trim() || 'Test message from Adoras! Your Twilio SMS integration is working correctly. 🎉';
 
     setIsLoading(true);
@@ -157,14 +174,14 @@ export function TwilioTestDialog({ isOpen, onClose }: TwilioTestDialogProps) {
             <Input
               id="test-phone"
               type="tel"
-              placeholder="+1 (555) 123-4567"
+              placeholder="+852 6794 1695 or +1 (555) 123-4567"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               disabled={isLoading}
               style={{ fontFamily: 'Inter' }}
             />
             <p className="text-xs text-muted-foreground" style={{ fontFamily: 'Inter' }}>
-              Enter a phone number that can receive SMS messages
+              Include country code (e.g., +852 for Hong Kong, +1 for US)
             </p>
           </div>
 
