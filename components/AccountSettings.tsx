@@ -82,17 +82,8 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
 
   const handleRemoveAvatar = () => {
     setPhoto(undefined);
-    setAvatarZoom(1);
-    setAvatarRotation(0);
     if (avatarInputRef.current) {
       avatarInputRef.current.value = '';
-    }
-  };
-
-  const handleAdjustPhoto = () => {
-    if (photo) {
-      setTempImageUrl(photo);
-      setShowCropper(true);
     }
   };
 
@@ -145,17 +136,12 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
             </h3>
             <div className="flex items-center gap-6">
               <div className="relative">
-                <SmartAvatar
-                  src={photo}
-                  zoom={avatarZoom}
-                  rotation={avatarRotation}
-                  className="w-24 h-24 ring-2 ring-primary/20"
-                  fallback={
-                    <span className="bg-primary/10 text-primary text-2xl">
-                      {name ? name[0].toUpperCase() : <Upload className="w-8 h-8" />}
-                    </span>
-                  }
-                />
+                <Avatar className="w-24 h-24 ring-2 ring-primary/20">
+                  <AvatarImage src={photo} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                    {name ? name[0].toUpperCase() : <Upload className="w-8 h-8" />}
+                  </AvatarFallback>
+                </Avatar>
                 {photo && (
                   <button
                     onClick={handleRemoveAvatar}
@@ -182,16 +168,6 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
                   <Upload className="w-4 h-4 mr-2" />
                   {photo ? 'Change Photo' : 'Upload Photo'}
                 </Button>
-                {photo && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleAdjustPhoto}
-                    className="w-full"
-                  >
-                    Adjust Photo
-                  </Button>
-                )}
                 <p className="text-xs text-muted-foreground">
                   JPG, PNG or GIF (max 5MB)
                 </p>
