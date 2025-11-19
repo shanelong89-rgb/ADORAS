@@ -1126,7 +1126,7 @@ export function Dashboard({
           >
             {activeTab === 'prompts' && (
               <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-8">
+              <div className="pt-4 px-4 sm:pt-6 sm:px-6 pb-32">
               <PromptsTab 
                 userType={userType}
                 partnerName={partnerProfile?.name}
@@ -1157,7 +1157,7 @@ export function Dashboard({
           )}
           
           {activeTab === 'media' && (
-            <div className="flex-1 flex flex-col overflow-hidden px-4 sm:px-6 pt-4 sm:pt-6">
+            <div className="flex-1 flex flex-col overflow-hidden px-4 sm:px-6 pt-4 sm:pt-6 pb-32">
               <MediaLibraryTab 
                 memories={validatedMemories}
                 userType={userType}
