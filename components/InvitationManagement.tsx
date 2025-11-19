@@ -25,6 +25,8 @@ interface Invitation {
   sentAt: string;
   expiresAt: string;
   acceptedAt?: string;
+  smsSent?: boolean; // Track if SMS was successfully sent
+  smsError?: string; // Track SMS errors
 }
 
 interface InvitationManagementProps {
