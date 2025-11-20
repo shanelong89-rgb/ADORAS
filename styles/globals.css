@@ -653,6 +653,15 @@ body:has([data-avatar-cropper="true"]) {
   }
 }
 
+/* Allow dashboard-header to be sticky in PWA */
+@media (display-mode: standalone) {
+  .dashboard-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+}
+
 /* Desktop/Web browsers → extra padding to account for browser chrome */
 @media (min-width: 768px) and (display-mode: browser) {
   .pt-safe-top {
