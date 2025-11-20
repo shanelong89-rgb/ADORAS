@@ -1208,9 +1208,10 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
   };
 
   return (
-    <div className="flex flex-col h-full max-w-3xl mx-auto">
-      {/* Sticky Search and Filters - positioned below dashboard with gap */}
-      <div className="sticky top-[170px] sm:top-[120px] z-10 bg-[rgb(245,249,233)] flex-shrink-0 space-y-4 sm:space-y-5 pt-6 pb-4 -mt-6">
+    <div className="flex flex-col h-full">
+      {/* STICKY SEARCH + FILTER BAR - Stays glued at top of this container */}
+      <div className="sticky top-0 z-40 bg-[rgb(245,249,233)] border-b border-border/60 shadow-sm">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-3 space-y-4">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1300,10 +1301,12 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
           </span>
           <span className="whitespace-nowrap">{memories.length} total</span>
         </div>
+        </div>
       </div>
 
-      {/* Scrollable View Content */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 pt-4 pb-8" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+      {/* SCROLLABLE CONTENT ONLY - This is the only part that scrolls */}
+      <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-8">
         {viewMode === 'calendar' ? (
           renderCalendarView()
         ) : (
@@ -1431,6 +1434,7 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
             )}
           </>
         )}
+        </div>
       </div>
 
       {/* Day Detail Dialog */}
