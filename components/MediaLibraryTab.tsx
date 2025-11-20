@@ -1208,9 +1208,9 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
   };
 
   return (
-    <div className="flex flex-col h-full max-w-3xl mx-auto pt-safe-top">
-      {/* Fixed Search and Filters */}
-      <div className="flex-shrink-0 space-y-4 sm:space-y-5 pb-4">
+    <div className="flex flex-col h-full">
+      {/* Sticky Search and Filters */}
+      <div className="sticky top-0 z-10 bg-[rgb(245,249,233)] pt-safe-top px-4 sm:px-6 flex-shrink-0 space-y-4 sm:space-y-5 pb-4">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1303,7 +1303,7 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
       </div>
 
       {/* Scrollable View Content */}
-      <div className="flex-1 overflow-y-auto overscroll-contain pt-4 pb-8" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 sm:px-6 pt-4 pb-8" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
         {viewMode === 'calendar' ? (
           renderCalendarView()
         ) : (
