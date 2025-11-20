@@ -642,7 +642,7 @@ export function Dashboard({
           }}
         >
           {/* Modern Header */}
-          <div className="bg-card/80 backdrop-blur-md border-b border-border/20" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="bg-card/80 backdrop-blur-md sm:border-b sm:border-border/20" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center justify-between px-5 sm:px-8 md:px-10 lg:px-12 xl:px-16 py-4 sm:py-5 max-w-4xl mx-auto">
             <div className="flex items-center space-x-3 sm:space-x-5 min-w-0 flex-1">
               <div className="relative flex-shrink-0">
@@ -1118,10 +1118,9 @@ export function Dashboard({
           </div>
         ) : (
           <div 
-            className="flex-1 flex flex-col overflow-hidden dashboard-content"
+            className="flex-1 flex flex-col overflow-hidden dashboard-content pt-safe-top"
             style={{ 
-              minHeight: 0,
-              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)' // Mobile: flush with tabs
+              minHeight: 0
             }}
           >
             {activeTab === 'prompts' && (
