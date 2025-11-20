@@ -2155,7 +2155,7 @@ export function ChatTab({
 
       {/* Messages Area - Scrollable flex-1 container */}
       <div 
-        className="overflow-y-auto overscroll-contain"
+        className="overflow-y-auto overscroll-contain pt-safe-top"
         ref={scrollAreaRef}
         style={{ 
           touchAction: 'pan-y',
