@@ -1209,8 +1209,8 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
 
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto">
-      {/* Fixed Search and Filters */}
-      <div className="flex-shrink-0 space-y-4 sm:space-y-5 pb-4">
+      {/* Sticky Search and Filters - positioned below dashboard with gap */}
+      <div className="sticky top-[170px] sm:top-[120px] z-10 bg-[rgb(245,249,233)] flex-shrink-0 space-y-4 sm:space-y-5 pt-6 pb-4 -mt-6">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
