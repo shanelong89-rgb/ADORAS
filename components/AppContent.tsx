@@ -2360,22 +2360,67 @@ export function AppContent() {
         return;
       }
 
+      // ===== OPTIMISTIC UI: Show text messages instantly =====
+      let optimisticId: string | null = null;
+      const isTextMessage = memory.type === "text";
+      
+      if (isTextMessage) {
+        // Generate temporary ID for optimistic update
+        optimisticId = `optimistic-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+        
+        // Create optimistic memory
+        const optimisticMemory: Memory = {
+          id: optimisticId,
+          type: "text",
+          content: memory.content || "",
+          sender: memory.sender,
+          timestamp: new Date().toISOString(),
+          category: memory.category || "Chat",
+          tags: memory.tags || [],
+          readBy: [user!.id], // Sender has already "read" their own message
+        };
+        
+        // Add to state IMMEDIATELY (optimistic update)
+        if (userType === "keeper") {
+          setMemoriesByStoryteller((prev) => ({
+            ...prev,
+            [connectionId]: [
+              ...(prev[connectionId] || []),
+              optimisticMemory,
+            ],
+          }));
+        } else {
+          setMemoriesByLegacyKeeper((prev) => ({
+            ...prev,
+            [connectionId]: [
+              ...(prev[connectionId] || []),
+              optimisticMemory,
+            ],
+          }));
+        }
+        setMemories((prev) => [...prev, optimisticMemory]);
+        
+        console.log("⚡ Optimistic update: Message shown instantly with temp ID:", optimisticId);
+      }
+
       console.log("📡 Creating memory via API...");
 
-      // Show initial loading toast based on media type
-      const mediaTypeLabel =
-        memory.type === "photo"
-          ? "photo"
-          : memory.type === "video"
-            ? "video"
-            : memory.type === "voice"
-              ? "voice note"
-              : memory.type === "document"
-                ? "document"
-                : "message";
-      toast.loading(`Uploading ${mediaTypeLabel}...`, {
-        id: toastId,
-      });
+      // Only show toast for media uploads (they take time)
+      if (!isTextMessage) {
+        const mediaTypeLabel =
+          memory.type === "photo"
+            ? "photo"
+            : memory.type === "video"
+              ? "video"
+              : memory.type === "voice"
+                ? "voice note"
+                : memory.type === "document"
+                  ? "document"
+                  : "message";
+        toast.loading(`Uploading ${mediaTypeLabel}...`, {
+          id: toastId,
+        });
+      }
 
       // Phase 2d: Upload media files to Supabase Storage before creating memory
       let uploadedMediaUrl: string | undefined =
@@ -3086,27 +3131,47 @@ export function AppContent() {
           response.memory,
         );
 
-        // Update per-connection cache first (for Dashboard validation)
-        if (userType === "keeper") {
-          setMemoriesByStoryteller((prev) => ({
-            ...prev,
-            [connectionId]: [
-              ...(prev[connectionId] || []),
-              newMemory,
-            ],
-          }));
+        if (optimisticId) {
+          // Replace optimistic message with real one
+          console.log("🔄 Replacing optimistic message:", optimisticId, "→", newMemory.id);
+          
+          if (userType === "keeper") {
+            setMemoriesByStoryteller((prev) => ({
+              ...prev,
+              [connectionId]: (prev[connectionId] || []).map(m => 
+                m.id === optimisticId ? newMemory : m
+              ),
+            }));
+          } else {
+            setMemoriesByLegacyKeeper((prev) => ({
+              ...prev,
+              [connectionId]: (prev[connectionId] || []).map(m => 
+                m.id === optimisticId ? newMemory : m
+              ),
+            }));
+          }
+          setMemories((prev) => prev.map(m => m.id === optimisticId ? newMemory : m));
         } else {
-          setMemoriesByLegacyKeeper((prev) => ({
-            ...prev,
-            [connectionId]: [
-              ...(prev[connectionId] || []),
-              newMemory,
-            ],
-          }));
+          // No optimistic update (media message) - add normally
+          if (userType === "keeper") {
+            setMemoriesByStoryteller((prev) => ({
+              ...prev,
+              [connectionId]: [
+                ...(prev[connectionId] || []),
+                newMemory,
+              ],
+            }));
+          } else {
+            setMemoriesByLegacyKeeper((prev) => ({
+              ...prev,
+              [connectionId]: [
+                ...(prev[connectionId] || []),
+                newMemory,
+              ],
+            }));
+          }
+          setMemories((prev) => [...prev, newMemory]);
         }
-
-        // THEN update global state
-        setMemories((prev) => [...prev, newMemory]);
 
         // Phase 5: Broadcast memory creation to other clients
         if (realtimeConnected && user) {
@@ -3220,25 +3285,63 @@ export function AppContent() {
           })();
         }
 
-        // Show success toast
-        toast.success(`Memory added successfully!`, {
-          id: toastId,
-        });
+        // Show success toast only for media uploads (text is instant via optimistic update)
+        if (!isTextMessage) {
+          toast.success(`${mediaTypeLabel} uploaded successfully!`, {
+            id: toastId,
+          });
+        }
       } else {
         console.error(
           "❌ Failed to create memory:",
           response.error,
         );
+        
+        // Remove optimistic message on failure
+        if (optimisticId) {
+          console.log("❌ Removing optimistic message due to API error:", optimisticId);
+          if (userType === "keeper") {
+            setMemoriesByStoryteller((prev) => ({
+              ...prev,
+              [connectionId]: (prev[connectionId] || []).filter(m => m.id !== optimisticId),
+            }));
+          } else {
+            setMemoriesByLegacyKeeper((prev) => ({
+              ...prev,
+              [connectionId]: (prev[connectionId] || []).filter(m => m.id !== optimisticId),
+            }));
+          }
+          setMemories((prev) => prev.filter(m => m.id !== optimisticId));
+        }
+        
         // Show error toast
-        toast.error(`Failed to add memory: ${response.error}`, {
+        toast.error(`Failed to send message: ${response.error}`, {
           id: toastId,
         });
       }
     } catch (error) {
       console.error("❌ Failed to create memory:", error);
+      
+      // Remove optimistic message on error
+      if (optimisticId) {
+        console.log("❌ Removing optimistic message due to network error:", optimisticId);
+        if (userType === "keeper") {
+          setMemoriesByStoryteller((prev) => ({
+            ...prev,
+            [connectionId]: (prev[connectionId] || []).filter(m => m.id !== optimisticId),
+          }));
+        } else {
+          setMemoriesByLegacyKeeper((prev) => ({
+            ...prev,
+            [connectionId]: (prev[connectionId] || []).filter(m => m.id !== optimisticId),
+          }));
+        }
+        setMemories((prev) => prev.filter(m => m.id !== optimisticId));
+      }
+      
       // Show error toast
       toast.error(
-        `Failed to add memory: ${error instanceof Error ? error.message : "Network error. Please check your connection."}`,
+        `Failed to send message: ${error instanceof Error ? error.message : "Network error. Please check your connection."}`,
         { id: toastId },
       );
     }
