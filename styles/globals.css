@@ -702,7 +702,7 @@ body:has([data-avatar-cropper="true"]) {
 /* Desktop / browser tab → add a bit more breathing room */
 @media (min-width: 768px) and (display-mode: browser) {
   .pt-safe-dashboard {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 110px) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 180px) !important;
   }
 }
 
