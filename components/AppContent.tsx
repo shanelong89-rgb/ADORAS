@@ -2374,7 +2374,7 @@ export function AppContent() {
           type: "text",
           content: memory.content || "",
           sender: memory.sender,
-          timestamp: new Date().toISOString(),
+          timestamp: new Date(), // IMPORTANT: Must be Date object, not string
           category: memory.category || "Chat",
           tags: memory.tags || [],
           readBy: [user!.id], // Sender has already "read" their own message
