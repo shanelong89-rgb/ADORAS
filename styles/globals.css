@@ -644,3 +644,33 @@ body:has([data-avatar-cropper="true"]) {
   width: 100% !important;
   height: 100% !important;
 }
+
+/* Responsive Dashboard Padding - Mobile PWA vs Desktop Web */
+/* Mobile PWA (standalone) → minimal padding (only notch safe-area) */
+@media (display-mode: standalone) {
+  .pt-safe-top {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 140px) !important;
+  }
+}
+
+/* Desktop/Web browsers → extra padding to account for browser chrome */
+@media (min-width: 768px) and (display-mode: browser) {
+  .pt-safe-top {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 180px) !important;
+  }
+}
+
+/* Fallback for browsers that don't support display-mode */
+/* Mobile (small screens) → less padding */
+@media (max-width: 767px) {
+  .pt-safe-top {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 140px) !important;
+  }
+}
+
+/* Desktop/Tablet (large screens) → more padding */
+@media (min-width: 768px) {
+  .pt-safe-top {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 180px) !important;
+  }
+}
