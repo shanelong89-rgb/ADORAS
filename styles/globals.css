@@ -650,7 +650,7 @@ body:has([data-avatar-cropper="true"]) {
 /* Desktop/Web browsers → extra padding to account for browser chrome */
 @media (min-width: 768px) and (display-mode: browser) {
   .pt-safe-top {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 180px) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 150px) !important;
   }
 }
 
@@ -658,21 +658,21 @@ body:has([data-avatar-cropper="true"]) {
 /* Mobile (small screens) → less padding */
 @media (max-width: 767px) {
   .pt-safe-top {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 140px) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 110px) !important;
   }
 }
 
 /* Desktop/Tablet (large screens) → more padding */
 @media (min-width: 768px) {
   .pt-safe-top {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 180px) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 150px) !important;
   }
 }
 
-/* Mobile PWA (standalone) → minimal padding (only notch safe-area) - MUST BE LAST */
+/* Mobile PWA (standalone) → minimal padding (only header height) - MUST BE LAST */
 @media (display-mode: standalone) {
   .pt-safe-top {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 0px) !important;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 100px) !important;
   }
 }
 
