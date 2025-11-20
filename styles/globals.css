@@ -699,17 +699,17 @@ body:has([data-avatar-cropper="true"]) {
   }
 }
 
-/* Desktop / browser tab → add a bit more breathing room */
+/* Desktop / browser tab → NO extra padding, search bar is visible */
 @media (min-width: 768px) and (display-mode: browser) {
   .pt-safe-dashboard {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 180px) !important;
+    padding-top: 0px !important;
   }
 }
 
-/* Fallback for browsers that don't support display-mode */
+/* Fallback for browsers that don't support display-mode - desktop gets no padding */
 @media (min-width: 768px) {
   .pt-safe-dashboard {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 106px) !important;
+    padding-top: 0px !important;
   }
 }
 
