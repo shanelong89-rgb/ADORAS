@@ -1156,7 +1156,7 @@ export function Dashboard({
           )}
           
           {activeTab === 'media' && (
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden pt-safe-dashboard">
               <MediaLibraryTab 
                 memories={validatedMemories}
                 userType={userType}
