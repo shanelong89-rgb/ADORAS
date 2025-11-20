@@ -1124,8 +1124,8 @@ export function Dashboard({
             }}
           >
             {activeTab === 'prompts' && (
-              <div className="flex-1 overflow-y-auto overscroll-contain pt-safe-top" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-              <div className="px-4 sm:px-6 pb-8">
+              <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+              <div className="px-4 sm:px-6 pb-8 pt-0">
               <PromptsTab 
                 userType={userType}
                 partnerName={partnerProfile?.name}
