@@ -684,3 +684,43 @@ body:has([data-avatar-cropper="true"]) {
     z-index: 10;
   }
 }
+
+/* Dashboard content padding - prevents content from hiding under header */
+/* ONLY used for Media tab to fix double scroll issue */
+.pt-safe-dashboard {
+  padding-top: calc(env(safe-area-inset-top, 0px) + 94px);
+  overscroll-behavior-y: contain; /* Prevent double scroll */
+}
+
+/* Mobile PWA standalone → keep it tight, no extra gap */
+@media (display-mode: standalone) {
+  .pt-safe-dashboard {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 94px) !important;
+  }
+}
+
+/* Desktop / browser tab → add a bit more breathing room */
+@media (min-width: 768px) and (display-mode: browser) {
+  .pt-safe-dashboard {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 110px) !important;
+  }
+}
+
+/* Fallback for browsers that don't support display-mode */
+@media (min-width: 768px) {
+  .pt-safe-dashboard {
+    padding-top: calc(env(safe-area-inset-top, 0px) + 106px) !important;
+  }
+}
+
+/* Kill double scroll on mobile - prevent outer page scroll when inner content scrolls */
+.flex-1.overflow-y-auto {
+  overscroll-behavior-y: contain;
+}
+
+/* Extra insurance for iOS smooth scrolling */
+@supports (-webkit-overflow-scrolling: touch) {
+  .flex-1.overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
