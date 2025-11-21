@@ -101,24 +101,37 @@ export function TellerConnections({
 
   useEffect(() => {
     if (isOpen) {
+      // Always reload both when modal opens - don't rely on just pendingCount
       loadRequests();
       loadConnections();
-      // Auto-switch to requests tab if there are pending requests
-      if (pendingCount > 0) {
-        setActiveTab('requests');
-      }
     }
-  }, [isOpen, pendingCount]);
+  }, [isOpen]); // Remove pendingCount dependency - reload every time modal opens
 
   // Load Connection Requests
   const loadRequests = async () => {
     setIsLoadingRequests(true);
     try {
-      const response = await apiClient.getConnectionRequests();
+      // Load both requests and connections to filter out duplicates
+      const [requestsResponse, connectionsResponse] = await Promise.all([
+        apiClient.getConnectionRequests(),
+        apiClient.getConnections()
+      ]);
       
-      if (response.success && response.receivedRequests) {
+      if (requestsResponse.success && requestsResponse.receivedRequests) {
+        // Get list of partner IDs we're already connected to
+        const connectedUserIds = new Set(
+          connectionsResponse.success && connectionsResponse.connections
+            ? connectionsResponse.connections.map((conn: any) => conn.partner?.id).filter(Boolean)
+            : []
+        );
+        
+        // Filter out requests from users we're already connected to
+        const validRequests = requestsResponse.receivedRequests.filter((req: any) => 
+          !connectedUserIds.has(req.requesterId)
+        );
+        
         // Map the backend format to our component format
-        const mappedRequests = response.receivedRequests.map((req: any) => ({
+        const mappedRequests = validRequests.map((req: any) => ({
           id: req.id,
           sender: {
             id: req.requesterId,
@@ -130,9 +143,16 @@ export function TellerConnections({
           createdAt: req.createdAt,
           message: req.message,
         }));
+        
         setRequests(mappedRequests);
+        
+        // Log if we filtered any duplicates
+        const filteredCount = requestsResponse.receivedRequests.length - validRequests.length;
+        if (filteredCount > 0) {
+          console.log(`🧹 Filtered out ${filteredCount} duplicate request(s) from already connected users`);
+        }
       } else {
-        console.error('Failed to load requests:', response.error);
+        console.error('Failed to load requests:', requestsResponse.error);
         toast.error('Failed to load connection requests');
       }
     } catch (error) {
