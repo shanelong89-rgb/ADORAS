@@ -186,6 +186,7 @@ export default function App() {
             style={{ zIndex: 999999 }}
             toastOptions={{ 
               style: { fontFamily: 'Inter, sans-serif', zIndex: 999999 },
+              className: 'toast-above-dialog',
             }}
           />
         </div>
@@ -209,6 +210,7 @@ export default function App() {
             style={{ zIndex: 999999 }}
             toastOptions={{ 
               style: { fontFamily: 'Inter, sans-serif', zIndex: 999999 },
+              className: 'toast-above-dialog',
             }}
           />
         </div>
@@ -252,6 +254,7 @@ export default function App() {
           style={{ zIndex: 999999 }}
           toastOptions={{ 
             style: { fontFamily: 'Inter, sans-serif', zIndex: 999999 },
+            className: 'toast-above-dialog',
           }}
         />
       </div>
