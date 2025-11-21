@@ -161,130 +161,72 @@ export default function App() {
     };
   }, []);
 
-  // Show simple test if test mode is enabled
-  if (isSimpleTestMode) {
-    return (
-      <ErrorBoundary>
-        <SimpleLoginTest />
-      </ErrorBoundary>
-    );
-  }
-
-  // Show Chrome fix tool if chromefix mode is enabled
-  if (isChromeFixMode) {
-    return (
-      <ErrorBoundary>
-        <div className="fixed inset-0 overflow-y-auto" style={{
-          paddingTop: 'env(safe-area-inset-top, 0)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0)',
-          backgroundColor: 'rgb(245, 249, 233)'
-        }}>
-          <ChromeLoginFix />
-          <Toaster
-            position="top-center"
-            richColors
-            closeButton
-            theme="light"
-            duration={5000}
-            toastOptions={{
-              style: {
-                fontFamily: 'Inter, sans-serif',
-              },
-              classNames: {
-                toast: 'z-[2147483647] !important', // max z-index in existence
-              },
-            }}
-            // THIS IS THE REAL WINNER — forces Sonner portal to be the very last element in <body>
-            // Radix portals are appended earlier → Sonner wins every time
-            portalContainer={typeof document !== 'undefined' ? document.body : undefined}
-          />
-        </div>
-      </ErrorBoundary>
-    );
-  }
-
-  // Show diagnostic tool if diagnostic mode is enabled
-  if (isDiagnosticMode) {
-    return (
-      <ErrorBoundary>
-        <div className="fixed inset-0 overflow-y-auto" style={{
-          paddingTop: 'env(safe-area-inset-top, 0)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0)',
-          backgroundColor: 'rgb(245, 249, 233)'
-        }}>
-          <MobileAuthDiagnostic />
-          <Toaster
-            position="top-center"
-            richColors
-            closeButton
-            theme="light"
-            duration={5000}
-            toastOptions={{
-              style: {
-                fontFamily: 'Inter, sans-serif',
-              },
-              classNames: {
-                toast: 'z-[2147483647] !important', // max z-index in existence
-              },
-            }}
-            // THIS IS THE REAL WINNER — forces Sonner portal to be the very last element in <body>
-            // Radix portals are appended earlier → Sonner wins every time
-            portalContainer={typeof document !== 'undefined' ? document.body : undefined}
-          />
-        </div>
-      </ErrorBoundary>
-    );
-  }
-
+  // ✅ THE ONE TRUE TOASTER - Rendered first but portalContainer puts it last in DOM
   return (
-    <ErrorBoundary>
-      {/* Root container - Flexible height with safe area support */}
-      <div
-        className="w-full flex flex-col flex-1"
-        style={{
-          paddingTop: 'env(safe-area-inset-top, 0)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0)',
-          backgroundColor: 'rgb(245, 249, 233)'
+    <>
+      <Toaster
+        position="top-center"
+        richColors
+        closeButton
+        theme="light"
+        duration={5000}
+        toastOptions={{
+          style: {
+            fontFamily: 'Inter, sans-serif',
+          },
         }}
-      >
-        {/* Main content area - Flexible scroll container */}
-        <div
-          className="flex-1 overflow-y-auto overflow-x-hidden"
-          style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
-        >
-          <AuthProvider>
-            <AppContent style={{ overflow: 'visible' }} />
-          </AuthProvider>
-        </div>
-        {/* Overlay components - Fixed positioning to not affect layout height */}
-        <PWAMetaTags style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
-        <PWAUpdateNotification />
-        <DebugPanel isOpen={isOpen} onClose={() => setIsOpen(false)} style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
-        <ServerStatusBanner style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
-        <GroqAPIKeySetup
-          open={groqDialogOpen}
-          onOpenChange={setGroqDialogOpen}
-          style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }}
-        />
-        <Toaster
-          position="top-center"
-          richColors
-          closeButton
-          theme="light"
-          duration={5000}
-          toastOptions={{
-            style: {
-              fontFamily: 'Inter, sans-serif',
-            },
-            classNames: {
-              toast: 'z-[2147483647] !important', // max z-index in existence
-            },
-          }}
-          // THIS IS THE REAL WINNER — forces Sonner portal to be the very last element in <body>
-          // Radix portals are appended earlier → Sonner wins every time
-          portalContainer={typeof document !== 'undefined' ? document.body : undefined}
-        />
-      </div>
-    </ErrorBoundary>
+        portalContainer={typeof document !== 'undefined' ? document.body : undefined}
+      />
+      
+      <ErrorBoundary>
+        {isSimpleTestMode ? (
+          <SimpleLoginTest />
+        ) : isChromeFixMode ? (
+          <div className="fixed inset-0 overflow-y-auto" style={{
+            paddingTop: 'env(safe-area-inset-top, 0)',
+            paddingBottom: 'env(safe-area-inset-bottom, 0)',
+            backgroundColor: 'rgb(245, 249, 233)'
+          }}>
+            <ChromeLoginFix />
+          </div>
+        ) : isDiagnosticMode ? (
+          <div className="fixed inset-0 overflow-y-auto" style={{
+            paddingTop: 'env(safe-area-inset-top, 0)',
+            paddingBottom: 'env(safe-area-inset-bottom, 0)',
+            backgroundColor: 'rgb(245, 249, 233)'
+          }}>
+            <MobileAuthDiagnostic />
+          </div>
+        ) : (
+          <div
+            className="w-full flex flex-col flex-1"
+            style={{
+              paddingTop: 'env(safe-area-inset-top, 0)',
+              paddingBottom: 'env(safe-area-inset-bottom, 0)',
+              backgroundColor: 'rgb(245, 249, 233)'
+            }}
+          >
+            <div
+              className="flex-1 overflow-y-auto overflow-x-hidden"
+              style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
+            >
+              <AuthProvider>
+                <AppContent style={{ overflow: 'visible' }} />
+              </AuthProvider>
+            </div>
+            {/* Overlay components */}
+            <PWAMetaTags style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
+            <PWAUpdateNotification />
+            <DebugPanel isOpen={isOpen} onClose={() => setIsOpen(false)} style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
+            <ServerStatusBanner style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }} />
+            <GroqAPIKeySetup
+              open={groqDialogOpen}
+              onOpenChange={setGroqDialogOpen}
+              style={{ position: 'fixed', bottom: 0, width: '100%', zIndex: 9999 }}
+            />
+          </div>
+        )}
+      </ErrorBoundary>
+    </>
   );
 }
