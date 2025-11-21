@@ -306,6 +306,15 @@ self.addEventListener('notificationclick', (event) => {
       .then((clientList) => {
         for (const client of clientList) {
           if (client.url.includes(self.location.origin)) {
+            // Send message to app to handle prompt if this is a prompt notification
+            const notificationData = event.notification.data || {};
+            if (notificationData.promptQuestion) {
+              // This is a prompt - tell the app to show it
+              client.postMessage({
+                type: 'SHOW_PROMPT',
+                data: notificationData,
+              });
+            }
             return client.focus();
           }
         }
