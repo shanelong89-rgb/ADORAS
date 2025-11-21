@@ -128,7 +128,7 @@ export function AccountSettings({ isOpen, onClose, userProfile, onUpdateProfile 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[70vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl" style={{ fontFamily: 'Archivo' }}>Account Settings</DialogTitle>
           <DialogDescription>
