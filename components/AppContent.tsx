@@ -2823,14 +2823,11 @@ export function AppContent() {
                 id: toastId,
               });
 
-              // Detect language from voice note if available
-              const detectedLanguage = memory.voiceLanguage
-                ? getLanguageCode(memory.voiceLanguage)
-                : undefined;
-
+              // Don't pass language hint - let Groq Whisper auto-detect
+              // The browser's Speech Recognition is often wrong for non-English languages
               const aiResult = await autoTranscribeVoiceNote(
                 uploadResult.url,
-                detectedLanguage,
+                undefined, // Let Whisper auto-detect language
               );
 
               if (aiResult.aiGenerated && aiResult.transcript) {
