@@ -15,6 +15,7 @@ import { Toaster } from 'sonner';
 import { setupGlobalErrorHandlers } from './utils/errorLogger'; // Phase 3f
 import { initPerformanceMonitoring } from './utils/performanceMonitor'; // Phase 3f
 import { pwaInstaller } from './utils/pwaInstaller'; // PWA and Service Worker
+import { startKeepAlive, stopKeepAlive } from './utils/keep-alive'; // Keep server warm
 
 export type UserType = 'keeper' | 'teller' | null;
 export type AppLanguage = 'english' | 'spanish' | 'french' | 'chinese' | 'korean' | 'japanese';
@@ -149,9 +150,14 @@ export default function App() {
     }).catch((error) => {
       console.error('❌ Service worker registration error:', error);
     });
+
+    // Start keep-alive system to prevent cold starts
+    startKeepAlive();
+
     return () => {
       cleanupErrorHandlers();
       cleanupPerformanceMonitoring();
+      stopKeepAlive();
     };
   }, []);
 
