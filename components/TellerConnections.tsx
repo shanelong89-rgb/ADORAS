@@ -209,7 +209,14 @@ export function TellerConnections({
       
       if (response.success) {
         toast.success('Connection request accepted!');
+        // Remove from requests list immediately
         setRequests(prev => prev.filter(r => r.id !== requestId));
+        
+        // Reload connections to show the new accepted connection
+        await loadConnections();
+        
+        // Switch to Active tab to show the newly accepted connection
+        setActiveTab('connections');
         
         // Notify parent and reload
         if (onConnectionsChanged) {
@@ -349,10 +356,10 @@ export function TellerConnections({
                             </Avatar>
                             
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-lg" style={{ fontFamily: 'Archivo' }}>
+                              <h3 className="font-semibold text-lg break-words" style={{ fontFamily: 'Archivo' }}>
                                 {request.sender.name}
                               </h3>
-                              <p className="text-sm text-muted-foreground" style={{ fontFamily: 'Inter' }}>
+                              <p className="text-sm text-muted-foreground break-all" style={{ fontFamily: 'Inter' }}>
                                 {request.sender.email}
                               </p>
                               {request.sender.relationship && (
@@ -463,8 +470,8 @@ export function TellerConnections({
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-2">
-                              <div>
-                                <h3 className="font-semibold text-lg truncate" style={{ fontFamily: 'Archivo' }}>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-lg break-words" style={{ fontFamily: 'Archivo' }}>
                                   {connection.partner.name}
                                 </h3>
                                 {connection.partner.relationship && (
@@ -475,7 +482,7 @@ export function TellerConnections({
                               </div>
                             </div>
 
-                            <p className="text-sm text-muted-foreground mb-3" style={{ fontFamily: 'Inter' }}>
+                            <p className="text-sm text-muted-foreground mb-3 break-all" style={{ fontFamily: 'Inter' }}>
                               {connection.partner.email}
                             </p>
 
