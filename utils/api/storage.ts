@@ -70,11 +70,14 @@ export async function uploadFile({
     formData.append('connectionId', connectionId);
     formData.append('fileName', fileName);
 
-    // Upload via backend API
+    // CRITICAL FIX: Use publicAnonKey for uploads instead of user accessToken
+    // The backend authenticates uploads via the Authorization header using Supabase Auth
+    // but for file storage, we need to use the public anon key for RLS bypass
     const response = await fetch(`${API_BASE_URL}/upload`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${publicAnonKey}`,
+        'X-User-Access-Token': accessToken, // Pass user token separately for verification
       },
       body: formData,
     });
