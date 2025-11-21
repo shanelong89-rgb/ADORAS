@@ -2405,18 +2405,20 @@ export function AppContent() {
 
       console.log("📡 Creating memory via API...");
 
+      // Determine media type label for toasts
+      const mediaTypeLabel =
+        memory.type === "photo"
+          ? "photo"
+          : memory.type === "video"
+            ? "video"
+            : memory.type === "voice"
+              ? "voice note"
+              : memory.type === "document"
+                ? "document"
+                : "message";
+
       // Only show toast for media uploads (they take time)
       if (!isTextMessage) {
-        const mediaTypeLabel =
-          memory.type === "photo"
-            ? "photo"
-            : memory.type === "video"
-              ? "video"
-              : memory.type === "voice"
-                ? "voice note"
-                : memory.type === "document"
-                  ? "document"
-                  : "message";
         toast.loading(`Uploading ${mediaTypeLabel}...`, {
           id: toastId,
         });
