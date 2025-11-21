@@ -1208,9 +1208,9 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
   };
 
   return (
-    <div className="flex flex-col h-full pt-safe-dashboard">
+    <div className="flex flex-col h-full" style={{ paddingTop: '0px' }}>
       {/* STICKY SEARCH + FILTER BAR - Stays at top-0 of this container */}
-      {/* pt-safe-dashboard class adds padding-top on desktop to push content below Dashboard header */}
+      {/* Dashboard component handles the offset, this stays at 0 */}
       <div className="relative sticky z-40 bg-[rgb(245,249,233)] border-b border-border/60 shadow-sm" style={{ top: '0px' }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-3 space-y-4">
         <div className="flex items-center gap-2">
