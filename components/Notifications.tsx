@@ -17,7 +17,7 @@ export function Notifications({ isOpen, onClose, userId }: NotificationsProps) {
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[70vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Archivo' }}>
             <Bell className="w-5 h-5 text-primary" />
