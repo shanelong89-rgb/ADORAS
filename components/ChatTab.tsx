@@ -2114,11 +2114,11 @@ export function ChatTab({
           
           {/* Action Buttons - Only for Storytellers (Tellers) */}
           {userType === 'teller' && (
-            <div className="flex gap-2 justify-center pb-3 pt-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <div className="flex gap-2 justify-center pb-3 pt-2 px-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
               <Button
-                variant="secondary"
+                variant="outline"
                 size="lg"
-                className="flex-1 h-11 rounded-xl font-medium shadow-sm"
+                className="flex-1 h-11 rounded-xl font-medium shadow-sm bg-white hover:bg-primary/5 border-primary/20"
                 onClick={() => {
                   // Focus on the text input and scroll it into view (triggers mobile keyboard)
                   messageInputRef.current?.focus();
@@ -2130,9 +2130,9 @@ export function ChatTab({
               </Button>
               
               <Button
-                variant="secondary"
+                variant="outline"
                 size="lg"
-                className="flex-1 h-11 rounded-xl font-medium shadow-sm"
+                className="flex-1 h-11 rounded-xl font-medium shadow-sm bg-white hover:bg-primary/5 border-primary/20"
                 onClick={toggleRecording}
               >
                 <Mic className="w-5 h-5 mr-2" />
@@ -2140,9 +2140,9 @@ export function ChatTab({
               </Button>
               
               <Button
-                variant="secondary"
+                variant="outline"
                 size="lg"
-                className="flex-1 h-11 rounded-xl font-medium shadow-sm"
+                className="flex-1 h-11 rounded-xl font-medium shadow-sm bg-white hover:bg-primary/5 border-primary/20"
                 onClick={() => {
                   // Use imageInputRef which accepts both images and videos
                   imageInputRef.current?.click();
