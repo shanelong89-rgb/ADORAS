@@ -122,7 +122,7 @@ export function ConnectionRequests({ isOpen, onClose, onAccepted }: ConnectionRe
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-lg max-h-[70vh] flex flex-col">
         <DialogHeader>
           <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
             Connection Requests
