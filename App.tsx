@@ -183,9 +183,9 @@ export default function App() {
           <Toaster
             position="top-center"
             richColors
-            style={{ zIndex: 9999 }}
+            style={{ zIndex: 999999 }}
             toastOptions={{ 
-              style: { fontFamily: 'Inter, sans-serif' },
+              style: { fontFamily: 'Inter, sans-serif', zIndex: 999999 },
             }}
           />
         </div>
@@ -206,9 +206,9 @@ export default function App() {
           <Toaster
             position="top-center"
             richColors
-            style={{ zIndex: 9999 }}
+            style={{ zIndex: 999999 }}
             toastOptions={{ 
-              style: { fontFamily: 'Inter, sans-serif' },
+              style: { fontFamily: 'Inter, sans-serif', zIndex: 999999 },
             }}
           />
         </div>
@@ -249,9 +249,9 @@ export default function App() {
         <Toaster
           position="top-center"
           richColors
-          style={{ zIndex: 9999 }}
+          style={{ zIndex: 999999 }}
           toastOptions={{ 
-            style: { fontFamily: 'Inter, sans-serif' },
+            style: { fontFamily: 'Inter, sans-serif', zIndex: 999999 },
           }}
         />
       </div>
