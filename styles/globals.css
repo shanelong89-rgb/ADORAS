@@ -414,6 +414,12 @@ html {
   }
 }
 
+/* Ensure Dialog prompts appear above everything */
+[data-slot="dialog-overlay"],
+[data-slot="dialog-content"] {
+  z-index: 9999 !important;
+}
+
 /* Custom datetime-local input styling to match Adoras theme */
 input[type="datetime-local"] {
   color-scheme: light;
