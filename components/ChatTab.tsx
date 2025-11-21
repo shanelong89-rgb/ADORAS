@@ -19,6 +19,7 @@ import { SpeechTranscriber, TranscriptionResult, detectLanguageFromText, transla
 import { AudioRecorder } from '../utils/audioRecorder';
 import { AudioTranscriber } from '../utils/audioTranscriber';
 import { translateText } from '../utils/aiService';
+import { apiClient } from '../utils/api/client';
 import { convertVideoToMP4, needsConversion, getVideoPlayabilityInfo } from '../utils/videoConverter';
 import { extractVideoThumbnail } from '../utils/videoThumbnail';
 import { MediaFullscreenPreview } from './MediaFullscreenPreview';
