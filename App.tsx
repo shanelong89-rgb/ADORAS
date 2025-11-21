@@ -183,10 +183,9 @@ export default function App() {
           <Toaster
             position="top-center"
             richColors
-            style={{ zIndex: 999999 }}
             toastOptions={{ 
-              style: { fontFamily: 'Inter, sans-serif', zIndex: 999999 },
-              className: 'toast-above-dialog',
+              style: { fontFamily: 'Inter, sans-serif' },
+              classNames: { toast: 'z-[2147483647]' } // Max safe z-index - above everything
             }}
           />
         </div>
@@ -207,10 +206,9 @@ export default function App() {
           <Toaster
             position="top-center"
             richColors
-            style={{ zIndex: 999999 }}
             toastOptions={{ 
-              style: { fontFamily: 'Inter, sans-serif', zIndex: 999999 },
-              className: 'toast-above-dialog',
+              style: { fontFamily: 'Inter, sans-serif' },
+              classNames: { toast: 'z-[2147483647]' } // Max safe z-index - above everything
             }}
           />
         </div>
@@ -251,10 +249,9 @@ export default function App() {
         <Toaster
           position="top-center"
           richColors
-          style={{ zIndex: 999999 }}
           toastOptions={{ 
-            style: { fontFamily: 'Inter, sans-serif', zIndex: 999999 },
-            className: 'toast-above-dialog',
+            style: { fontFamily: 'Inter, sans-serif' },
+            classNames: { toast: 'z-[2147483647]' } // Max safe z-index - above everything
           }}
         />
       </div>
