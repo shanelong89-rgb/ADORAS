@@ -99,6 +99,7 @@ export function Dashboard({
   const [shouldScrollChatToBottom, setShouldScrollChatToBottom] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activePrompt, setActivePrompt] = useState<string | null>(null);
+  const [showPromptModal, setShowPromptModal] = useState(false); // Auto-open modal for new prompts
   const [showSettings, setShowSettings] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -454,7 +455,9 @@ export function Dashboard({
       // Auto-set activePrompt for tellers when they receive a prompt from keeper
       if (isPrompt && userType === 'teller') {
         setActivePrompt(newMemory.promptQuestion || '');
+        setShowPromptModal(true); // 🎯 AUTO-OPEN MODAL for tellers
         console.log('   ✅ Set active prompt for teller:', newMemory.promptQuestion);
+        console.log('   🔔 Opening prompt modal for teller to respond');
       }
       
       // Prepare notification content
@@ -1265,6 +1268,51 @@ export function Dashboard({
           }}
           pendingCount={pendingRequestsCount}
         />
+
+        {/* 🎯 Prompt Modal - Auto-opens when teller receives a new prompt from keeper */}
+        <Dialog open={showPromptModal} onOpenChange={setShowPromptModal}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
+                💡 New Memory Prompt
+              </DialogTitle>
+              <DialogDescription style={{ fontFamily: 'Inter' }}>
+                {partnerProfile?.name} wants to hear about:
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Prompt Question */}
+              <div className="p-4 bg-gradient-to-br from-[rgb(245,249,233)] to-[rgb(235,244,218)] border border-primary/20 rounded-lg">
+                <p className="text-base font-medium text-foreground" style={{ fontFamily: 'Inter' }}>
+                  {activePrompt}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-2">
+                <Button
+                  onClick={() => {
+                    setShowPromptModal(false);
+                    setActiveTab('chat');
+                    setShouldScrollChatToBottom(true);
+                    onActiveTabChange?.('chat');
+                  }}
+                  className="w-full"
+                >
+                  Answer Now
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPromptModal(false)}
+                  className="w-full"
+                >
+                  Answer Later
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* In-App Toast Notifications - Shows notifications even when on chat tab */}
         <InAppToastContainer
