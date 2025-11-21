@@ -10,6 +10,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { toast } from 'sonner';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
 import { extractPhotoMetadata, extractVideoMetadata, extractVideoCreationDate } from '../utils/exifExtractor';
@@ -1512,15 +1513,7 @@ export function ChatTab({
     }
   }, [shouldScrollToBottom, scrollToBottom, onScrollToBottomComplete]);
 
-  // 3. ACTIVE PROMPT: Scroll to TOP when prompt appears (to show banner)
-  useEffect(() => {
-    if (activePrompt && hasScrolledInitiallyRef.current && scrollAreaRef?.current) {
-      const timer = setTimeout(() => {
-        scrollAreaRef.current!.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [activePrompt]);
+  // 3. ACTIVE PROMPT: Removed scroll-to-top effect since prompt is now a floating dialog
 
   // 4. NEW MESSAGES: Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -2082,80 +2075,6 @@ export function ChatTab({
         </div>
       )}
 
-      {/* Active Prompt Helper */}
-      {activePrompt && (
-        <div ref={activePromptRef} className="bg-gradient-to-br from-[rgb(245,249,233)] to-[rgb(235,244,218)] border-b border-primary/20 p-4 shadow-sm animate-fade-in flex-shrink-0">
-          <div className="flex items-start justify-between space-x-3 mb-4">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <BookOpen className="w-5 h-5 text-primary" />
-                <h4 className="font-semibold text-primary" style={{ fontFamily: 'Archivo' }}>
-                  {userType === 'keeper' ? 'Prompt Sent' : 'Share Your Story'}
-                </h4>
-              </div>
-              <p className="text-sm font-medium mb-1" style={{ fontFamily: 'Inter' }}>
-                {activePrompt}
-              </p>
-              {userType === 'keeper' && (
-                <p className="text-xs text-muted-foreground" style={{ fontFamily: 'Inter' }}>
-                  Waiting for Storyteller's response... You can add your own thoughts below.
-                </p>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClearPrompt}
-              className="flex-shrink-0 h-8 w-8 hover:bg-primary/10"
-            >
-              <Plus className="w-4 h-4 rotate-45 text-muted-foreground" />
-            </Button>
-          </div>
-          
-          {/* Action Buttons - Only for Storytellers (Tellers) */}
-          {userType === 'teller' && (
-            <div className="flex gap-2 justify-center pb-3 pt-2 px-3 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-              <Button
-                variant="outline"
-                size="lg"
-                className="flex-1 h-11 rounded-xl font-medium shadow-sm bg-white hover:bg-primary/5 border-primary/20"
-                onClick={() => {
-                  // Focus on the text input and scroll it into view (triggers mobile keyboard)
-                  messageInputRef.current?.focus();
-                  messageInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }}
-              >
-                <Send className="w-5 h-5 mr-2" />
-                Type
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="lg"
-                className="flex-1 h-11 rounded-xl font-medium shadow-sm bg-white hover:bg-primary/5 border-primary/20"
-                onClick={toggleRecording}
-              >
-                <Mic className="w-5 h-5 mr-2" />
-                Voice Memo
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="lg"
-                className="flex-1 h-11 rounded-xl font-medium shadow-sm bg-white hover:bg-primary/5 border-primary/20"
-                onClick={() => {
-                  // Use imageInputRef which accepts both images and videos
-                  imageInputRef.current?.click();
-                }}
-              >
-                <Camera className="w-5 h-5 mr-2" />
-                Photo/Video
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Messages Area - Scrollable flex-1 container */}
       <div 
         className="overflow-y-auto overscroll-contain pt-safe-top"
@@ -2475,6 +2394,88 @@ export function ChatTab({
           onClose={() => setFullscreenMedia(null)}
         />
       )}
+
+      {/* Active Prompt Popup - Floats above everything */}
+      <Dialog open={!!activePrompt} onOpenChange={(open) => !open && onClearPrompt?.()}>
+        <DialogContent 
+          className="max-w-md mx-4 sm:mx-auto
+                     top-[20%] sm:top-[25%]
+                     -translate-y-0 sm:-translate-y-0"
+          style={{ zIndex: 9999 }}
+        >
+          <DialogHeader className="flex flex-row items-start justify-between space-x-3">
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                <DialogTitle style={{ fontFamily: 'Archivo', margin: 0 }}>
+                  {userType === 'keeper' ? 'Prompt Sent' : 'Share Your Story'}
+                </DialogTitle>
+              </div>
+              <p className="text-sm font-medium text-foreground" style={{ fontFamily: 'Inter' }}>
+                {activePrompt}
+              </p>
+              {userType === 'keeper' && (
+                <p className="text-xs text-muted-foreground mt-2" style={{ fontFamily: 'Inter' }}>
+                  Waiting for Storyteller's response... You can add your own thoughts below.
+                </p>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClearPrompt}
+              className="flex-shrink-0 h-8 w-8 hover:bg-primary/10 -mt-1"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </Button>
+          </DialogHeader>
+          
+          {/* Action Buttons - Only for Storytellers (Tellers) */}
+          {userType === 'teller' && (
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full h-11 rounded-xl font-medium shadow-sm bg-white hover:bg-primary/5 border-primary/20"
+                onClick={() => {
+                  onClearPrompt?.();
+                  messageInputRef.current?.focus();
+                  messageInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+              >
+                <Send className="w-5 h-5 mr-2" />
+                Type
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full h-11 rounded-xl font-medium shadow-sm bg-white hover:bg-primary/5 border-primary/20"
+                onClick={() => {
+                  onClearPrompt?.();
+                  toggleRecording();
+                }}
+              >
+                <Mic className="w-5 h-5 mr-2" />
+                Voice Memo
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full h-11 rounded-xl font-medium shadow-sm bg-white hover:bg-primary/5 border-primary/20"
+                onClick={() => {
+                  onClearPrompt?.();
+                  imageInputRef.current?.click();
+                }}
+              >
+                <Camera className="w-5 h-5 mr-2" />
+                Photo/Video
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
