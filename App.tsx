@@ -183,10 +183,20 @@ export default function App() {
           <Toaster
             position="top-center"
             richColors
-            toastOptions={{ 
-              style: { fontFamily: 'Inter, sans-serif' },
-              classNames: { toast: 'z-[2147483647]' } // Max safe z-index - above everything
+            closeButton
+            theme="light"
+            duration={5000}
+            toastOptions={{
+              style: {
+                fontFamily: 'Inter, sans-serif',
+              },
+              classNames: {
+                toast: 'z-[2147483647] !important', // max z-index in existence
+              },
             }}
+            // THIS IS THE REAL WINNER — forces Sonner portal to be the very last element in <body>
+            // Radix portals are appended earlier → Sonner wins every time
+            portalContainer={typeof document !== 'undefined' ? document.body : undefined}
           />
         </div>
       </ErrorBoundary>
@@ -206,10 +216,20 @@ export default function App() {
           <Toaster
             position="top-center"
             richColors
-            toastOptions={{ 
-              style: { fontFamily: 'Inter, sans-serif' },
-              classNames: { toast: 'z-[2147483647]' } // Max safe z-index - above everything
+            closeButton
+            theme="light"
+            duration={5000}
+            toastOptions={{
+              style: {
+                fontFamily: 'Inter, sans-serif',
+              },
+              classNames: {
+                toast: 'z-[2147483647] !important', // max z-index in existence
+              },
             }}
+            // THIS IS THE REAL WINNER — forces Sonner portal to be the very last element in <body>
+            // Radix portals are appended earlier → Sonner wins every time
+            portalContainer={typeof document !== 'undefined' ? document.body : undefined}
           />
         </div>
       </ErrorBoundary>
@@ -249,10 +269,20 @@ export default function App() {
         <Toaster
           position="top-center"
           richColors
-          toastOptions={{ 
-            style: { fontFamily: 'Inter, sans-serif' },
-            classNames: { toast: 'z-[2147483647]' } // Max safe z-index - above everything
+          closeButton
+          theme="light"
+          duration={5000}
+          toastOptions={{
+            style: {
+              fontFamily: 'Inter, sans-serif',
+            },
+            classNames: {
+              toast: 'z-[2147483647] !important', // max z-index in existence
+            },
           }}
+          // THIS IS THE REAL WINNER — forces Sonner portal to be the very last element in <body>
+          // Radix portals are appended earlier → Sonner wins every time
+          portalContainer={typeof document !== 'undefined' ? document.body : undefined}
         />
       </div>
     </ErrorBoundary>
