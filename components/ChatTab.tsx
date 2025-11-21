@@ -2114,39 +2114,42 @@ export function ChatTab({
           
           {/* Action Buttons - Only for Storytellers (Tellers) */}
           {userType === 'teller' && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="flex gap-2 justify-center pb-3 pt-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
               <Button
-                variant="outline"
-                className="flex flex-col items-center justify-center h-auto py-4 bg-white hover:bg-primary/5 border-primary/20 hover:border-primary/40 transition-all"
+                variant="secondary"
+                size="lg"
+                className="flex-1 h-11 rounded-xl font-medium shadow-sm"
                 onClick={() => {
                   // Focus on the text input and scroll it into view (triggers mobile keyboard)
                   messageInputRef.current?.focus();
                   messageInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }}
               >
-                <Send className="w-5 h-5 mb-2 text-primary" />
-                <span className="text-sm font-medium" style={{ fontFamily: 'Inter' }}>Type</span>
+                <Send className="w-5 h-5 mr-2" />
+                Type
               </Button>
               
               <Button
-                variant="outline"
-                className="flex flex-col items-center justify-center h-auto py-4 bg-white hover:bg-primary/5 border-primary/20 hover:border-primary/40 transition-all"
+                variant="secondary"
+                size="lg"
+                className="flex-1 h-11 rounded-xl font-medium shadow-sm"
                 onClick={toggleRecording}
               >
-                <Mic className="w-5 h-5 mb-2 text-primary" />
-                <span className="text-sm font-medium" style={{ fontFamily: 'Inter' }}>Voice Memo</span>
+                <Mic className="w-5 h-5 mr-2" />
+                Voice Memo
               </Button>
               
               <Button
-                variant="outline"
-                className="flex flex-col items-center justify-center h-auto py-4 bg-white hover:bg-primary/5 border-primary/20 hover:border-primary/40 transition-all"
+                variant="secondary"
+                size="lg"
+                className="flex-1 h-11 rounded-xl font-medium shadow-sm"
                 onClick={() => {
                   // Use imageInputRef which accepts both images and videos
                   imageInputRef.current?.click();
                 }}
               >
-                <Camera className="w-5 h-5 mb-2 text-primary" />
-                <span className="text-sm font-medium" style={{ fontFamily: 'Inter' }}>Photo/Video</span>
+                <Camera className="w-5 h-5 mr-2" />
+                Photo/Video
               </Button>
             </div>
           )}
