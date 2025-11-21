@@ -83,7 +83,7 @@ export function MediaFullscreenPreview({ type, url, title, onClose }: MediaFulls
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-4 right-4 z-[10000] bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10 backdrop-blur-sm"
+        className="absolute top-[90px] right-4 z-[10000] bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10 backdrop-blur-sm"
         onClick={onClose}
       >
         <X className="w-6 h-6" />
@@ -91,7 +91,7 @@ export function MediaFullscreenPreview({ type, url, title, onClose }: MediaFulls
 
       {/* Title */}
       {title && (
-        <div className="absolute top-4 left-4 z-[10000] bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-lg max-w-[calc(100vw-120px)]">
+        <div className="absolute top-[90px] left-4 z-[10000] bg-black/50 backdrop-blur-sm text-white px-4 py-2 rounded-lg max-w-[calc(100vw-120px)]">
           <p className="text-sm truncate">{title}</p>
         </div>
       )}
