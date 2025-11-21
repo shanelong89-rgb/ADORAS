@@ -1307,7 +1307,8 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
       </div>
 
       {/* SCROLLABLE CONTENT ONLY - This is the only part that scrolls */}
-      <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
+      {/* Add padding-top so memories don't hide under the sticky search bar */}
+      <div className="flex-1 overflow-y-auto overscroll-contain pt-2 md:pt-4" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
         <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-8">
         {viewMode === 'calendar' ? (
           renderCalendarView()
