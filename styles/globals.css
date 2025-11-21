@@ -414,19 +414,29 @@ html {
   }
 }
 
-/* Ensure Dialog prompts appear above everything */
-[data-slot="dialog-overlay"],
-[data-slot="dialog-content"] {
-  z-index: 9999 !important;
-}
-
-/* BUT: Allow toasts to pierce through by ensuring dialog overlay doesn't block them */
+/* Dialog & Toast Z-Index Management - PROPER SOLUTION */
+/* Dialog - Lower z-index tier */
 [data-slot="dialog-overlay"] {
-  pointer-events: none !important; /* Let toasts show through */
+  z-index: 9999 !important;
+  pointer-events: auto !important; /* Fixed: Allow overlay to work properly */
 }
 
 [data-slot="dialog-content"] {
-  pointer-events: auto !important; /* But keep dialog interactive */
+  z-index: 10000 !important; /* Slightly above overlay */
+  pointer-events: auto !important;
+}
+
+/* Sonner Toaster - MUST be higher than dialog (20000+ tier) */
+[data-sonner-toaster] {
+  z-index: 20000 !important; /* Much higher than dialog (10000) */
+  position: fixed !important;
+  top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+}
+
+/* Individual toasts */
+[data-sonner-toast],
+.sonner-toast {
+  z-index: 20001 !important;
 }
 
 /* Custom datetime-local input styling to match Adoras theme */
@@ -575,22 +585,6 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
     padding: 5px 10px;
     padding-right: 28px;
   }
-}
-
-/* Custom positioning for Sonner toasts to align with notification popup */
-[data-sonner-toaster] {
-  top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
-  z-index: 999999 !important; /* Ensure toasts appear above dialogs (z-9999) */
-}
-
-[data-sonner-toaster][data-y-position="top"] {
-  top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
-  z-index: 999999 !important; /* Ensure toasts appear above dialogs (z-9999) */
-}
-
-/* Individual toast styling */
-[data-sonner-toast] {
-  z-index: 999999 !important; /* Ensure individual toasts are also on top */
 }
 
 /* Force toasts above dialogs with maximum specificity */
