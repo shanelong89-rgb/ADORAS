@@ -774,3 +774,9 @@ body:has([data-avatar-cropper="true"]) {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* Sonner always wins the z-index war — no exceptions */
+.sonner-toast,
+[data-sonner-toast] {
+  z-index: 2147483647 !important;
+}
