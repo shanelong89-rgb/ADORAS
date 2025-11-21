@@ -760,16 +760,20 @@ export function ChatTab({
         }
       }
       
-      // DON'T stop the media stream - keep it alive to avoid iOS re-prompting for permission
-      // The stream will be reused on the next recording
+      // 🎤 iOS FIX: Stop the media stream to hide the red "recording" indicator
+      // Users will need to grant permission again, but the green checkmark will help them understand
+      if (mediaStreamRef.current) {
+        console.log('🛑 Stopping media stream to clear iOS recording indicator');
+        mediaStreamRef.current.getTracks().forEach(track => {
+          track.stop();
+          console.log('✅ Stopped track:', track.kind);
+        });
+        mediaStreamRef.current = null;
+      }
+      
       setTimeout(() => {
-        console.log('✅ Keeping media stream alive for future recordings (avoids iOS permission re-prompt)');
-        // Reset toggling flag after cleanup is complete
-        // Add a small delay to ensure the stream is fully released
-        setTimeout(() => {
-          isTogglingRef.current = false;
-          console.log('✅ Recording stopped and cleaned up');
-        }, 50);
+        isTogglingRef.current = false;
+        console.log('✅ Recording stopped and media stream released');
       }, 100);
       
     } else {
