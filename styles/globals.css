@@ -730,7 +730,7 @@ body:has([data-avatar-cropper="true"]) {
 /* Desktop / browser tab → Extra padding to account for fixed header */
 @media (min-width: 768px) and (display-mode: browser) {
   .pt-safe-dashboard {
-    padding-top: 94px !important;
+    padding-top: 180px !important;
   }
 }
 
