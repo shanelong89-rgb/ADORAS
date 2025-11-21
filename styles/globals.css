@@ -429,8 +429,31 @@ html {
 
 /* Sonner Toaster - Higher tier (20000) - Always wins */
 [data-sonner-toaster] {
-  z-index: 20000;
-  position: fixed;
+  z-index: 20000 !important;
+  position: fixed !important;
+  /* Center horizontally on all screen sizes */
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  /* Mobile PWA - account for safe area */
+  top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
+  /* Ensure full width on mobile */
+  width: 100% !important;
+  max-width: calc(100vw - 2rem) !important;
+  padding: 0 1rem !important;
+}
+
+/* Desktop - More top spacing */
+@media (min-width: 768px) {
+  [data-sonner-toaster] {
+    top: 2rem !important;
+    max-width: 400px !important;
+  }
+}
+
+/* Individual toast styling */
+[data-sonner-toast] {
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 /* Custom datetime-local input styling to match Adoras theme */
