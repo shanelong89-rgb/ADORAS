@@ -427,29 +427,26 @@ html {
   /* NOTE: Do NOT use transform here - it creates a new stacking context that breaks z-index */
 }
 
-/* Sonner Toaster - Keep it simple */
+/* Sonner Container - Only adjust z-index and safe area, let Sonner handle centering */
 [data-sonner-toaster] {
   z-index: 20000 !important;
-  position: fixed !important;
+  /* CRITICAL: ONLY override top position for safe area */
   top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
-  /* Let Sonner handle the rest - remove left/right/flex rules */
+  /* DO NOT add: left, right, transform, display, flex, etc. */
 }
 
-/* Desktop positioning */
+/* Desktop: More top spacing */
 @media (min-width: 768px) {
   [data-sonner-toaster] {
     top: 2rem !important;
   }
 }
 
-/* Individual toast - just constrain width */
-[data-sonner-toast] {
-  max-width: calc(100vw - 2rem) !important;
-}
-
-@media (min-width: 768px) {
+/* Mobile: Constrain toast width to viewport */
+@media (max-width: 640px) {
   [data-sonner-toast] {
-    max-width: 400px !important;
+    max-width: calc(100vw - 2rem) !important;
+    /* Let Sonner's built-in margin: 0 auto handle centering */
   }
 }
 
