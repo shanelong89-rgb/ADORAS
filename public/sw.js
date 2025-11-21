@@ -304,12 +304,43 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
+        const notificationData = event.notification.data || {};
+        
+        // If this is a prompt notification, store it for the app to pick up
+        // This handles timing issues where the app might not be ready to receive messages
+        if (notificationData.promptQuestion) {
+          console.log('[SW] Prompt notification clicked - storing for app to retrieve');
+          
+          // Store in IndexedDB for reliable cross-session persistence
+          const request = indexedDB.open('adoras-prompts', 1);
+          
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('pending-prompts')) {
+              db.createObjectStore('pending-prompts', { keyPath: 'id' });
+            }
+          };
+          
+          request.onsuccess = (event) => {
+            const db = event.target.result;
+            const transaction = db.transaction(['pending-prompts'], 'readwrite');
+            const store = transaction.objectStore('pending-prompts');
+            
+            // Store the prompt with timestamp
+            store.put({
+              id: 'latest-prompt',
+              ...notificationData,
+              timestamp: Date.now()
+            });
+            
+            console.log('[SW] Prompt stored in IndexedDB');
+          };
+        }
+        
         for (const client of clientList) {
           if (client.url.includes(self.location.origin)) {
-            // Send message to app to handle prompt if this is a prompt notification
-            const notificationData = event.notification.data || {};
+            // Send message to app (for immediate handling if app is ready)
             if (notificationData.promptQuestion) {
-              // This is a prompt - tell the app to show it
               client.postMessage({
                 type: 'SHOW_PROMPT',
                 data: notificationData,
