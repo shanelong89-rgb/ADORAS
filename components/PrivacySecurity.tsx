@@ -9,7 +9,7 @@ import { Badge } from './ui/badge';
 import { Shield, Lock, Eye, Users, Download, Trash2, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
 import { toast } from 'sonner';
-import { apiClient } from '../utils/api';
+import { apiClient } from '../utils/api/client';
 import { UserProfile } from '../App';
 
 interface PrivacySecurityProps {
@@ -168,7 +168,7 @@ export function PrivacySecurity({ isOpen, onClose, userProfile, onUpdateProfile,
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[550px] max-h-[70vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Archivo' }}>
               <Shield className="w-5 h-5 text-primary" />
