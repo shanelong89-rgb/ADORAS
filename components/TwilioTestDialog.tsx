@@ -26,6 +26,7 @@ export function TwilioTestDialog({ isOpen, onClose }: TwilioTestDialogProps) {
     success: boolean;
     message: string;
     details?: string;
+    troubleshooting?: string[];
   } | null>(null);
 
   const handleTestSMS = async () => {
@@ -78,6 +79,7 @@ export function TwilioTestDialog({ isOpen, onClose }: TwilioTestDialogProps) {
           success: false,
           message: 'SMS sending failed',
           details: result.error || 'Unknown error',
+          troubleshooting: result.troubleshooting,
         });
         toast.error('Failed to send test SMS');
       }
@@ -104,7 +106,7 @@ export function TwilioTestDialog({ isOpen, onClose }: TwilioTestDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
             Test Twilio SMS Integration
@@ -137,7 +139,7 @@ export function TwilioTestDialog({ isOpen, onClose }: TwilioTestDialogProps) {
 
           {/* Test Result */}
           {testResult && (
-            <div className={`p-4 rounded-lg border ${
+            <div className={`p-4 rounded-lg border ${ 
               testResult.success 
                 ? 'bg-green-50 border-green-200' 
                 : 'bg-red-50 border-red-200'
@@ -155,11 +157,26 @@ export function TwilioTestDialog({ isOpen, onClose }: TwilioTestDialogProps) {
                     {testResult.message}
                   </h4>
                   {testResult.details && (
-                    <p className={`text-xs ${
+                    <p className={`text-xs mb-2 ${
                       testResult.success ? 'text-green-700' : 'text-red-700'
                     }`} style={{ fontFamily: 'Inter' }}>
                       {testResult.details}
                     </p>
+                  )}
+                  {testResult.troubleshooting && testResult.troubleshooting.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-red-200">
+                      <p className="text-xs font-semibold text-red-900 mb-2" style={{ fontFamily: 'Archivo' }}>
+                        How to fix:
+                      </p>
+                      <ul className="text-xs text-red-700 space-y-1.5" style={{ fontFamily: 'Inter' }}>
+                        {testResult.troubleshooting.map((tip, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-red-500 mt-0.5">•</span>
+                            <span>{tip}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               </div>
@@ -182,6 +199,9 @@ export function TwilioTestDialog({ isOpen, onClose }: TwilioTestDialogProps) {
             />
             <p className="text-xs text-muted-foreground" style={{ fontFamily: 'Inter' }}>
               Include country code (e.g., +852 for Hong Kong, +1 for US)
+            </p>
+            <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200" style={{ fontFamily: 'Inter' }}>
+              💡 <strong>Troubleshooting tip:</strong> If international SMS fails, try a US number first (+1...) to verify Twilio is working.
             </p>
           </div>
 
