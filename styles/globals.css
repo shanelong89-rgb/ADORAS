@@ -727,17 +727,17 @@ body:has([data-avatar-cropper="true"]) {
   }
 }
 
-/* Desktop / browser tab → NO extra padding, search bar is visible */
+/* Desktop / browser tab → Extra padding to account for fixed header */
 @media (min-width: 768px) and (display-mode: browser) {
   .pt-safe-dashboard {
-    padding-top: 180px !important;
+    padding-top: 94px !important;
   }
 }
 
-/* Fallback for browsers that don't support display-mode - desktop gets no padding */
+/* Fallback for browsers that don't support display-mode - desktop gets same padding as browser mode */
 @media (min-width: 768px) {
   .pt-safe-dashboard {
-    padding-top: 0px !important;
+    padding-top: 94px !important;
   }
 }
 
