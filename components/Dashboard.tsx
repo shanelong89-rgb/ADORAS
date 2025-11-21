@@ -1274,7 +1274,7 @@ export function Dashboard({
           <DialogContent 
             className="max-w-md"
             style={{
-              top: `calc(50% + env(safe-area-inset-top, 0px) / 2 + 47px)`,
+              top: `calc(50% + env(safe-area-inset-top, 180px) / 2 + 47px)`,
             }}
           >
             <DialogHeader>
