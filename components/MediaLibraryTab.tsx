@@ -1210,10 +1210,7 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
   return (
     <div className="flex flex-col h-full">
       {/* STICKY SEARCH + FILTER BAR - Stays glued at top of this container */}
-      {/* On mobile: sticky top-0 (dashboard header shrinks to minimal size) */}
-      {/* On desktop web (browser): sticky top-[94px] to account for fixed Dashboard header */}
-      {/* On desktop PWA: sticky top-0 since no browser chrome */}
-      <div className="sticky top-0 md:[display-mode:browser]:top-[94px] z-40 bg-[rgb(245,249,233)] border-b border-border/60 shadow-sm">
+      <div className="sticky top-0 z-40 bg-[rgb(245,249,233)] border-b border-border/60 shadow-sm">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-4 pb-3 space-y-4">
         <div className="flex items-center gap-2">
           <div className="relative flex-1 min-w-0">
