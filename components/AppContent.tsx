@@ -3259,6 +3259,7 @@ export function AppContent() {
                     previewText,
                     mediaUrl: uploadedMediaUrl,
                     connectionId: activeConnectionId, // Pass connection ID so backend can calculate badge count
+                    promptQuestion: memory.promptQuestion, // For keeper prompts - triggers special UI
                   })
                     .then(() => {
                       console.log(
