@@ -427,35 +427,26 @@ html {
   /* NOTE: Do NOT use transform here - it creates a new stacking context that breaks z-index */
 }
 
-/* Sonner Toaster - Higher tier (20000) - Always wins */
+/* Sonner Toaster - Keep it simple */
 [data-sonner-toaster] {
   z-index: 20000 !important;
   position: fixed !important;
-  /* Center the toaster container */
-  left: 0 !important;
-  right: 0 !important;
   top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
-  /* Use flexbox to center toasts */
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  pointer-events: none !important; /* Let clicks pass through container */
+  /* Let Sonner handle the rest - remove left/right/flex rules */
 }
 
-/* Desktop - More top spacing */
+/* Desktop positioning */
 @media (min-width: 768px) {
   [data-sonner-toaster] {
     top: 2rem !important;
   }
 }
 
-/* Individual toast styling */
+/* Individual toast - just constrain width */
 [data-sonner-toast] {
-  pointer-events: auto !important; /* But toasts should catch clicks */
   max-width: calc(100vw - 2rem) !important;
 }
 
-/* Desktop - Narrower toasts */
 @media (min-width: 768px) {
   [data-sonner-toast] {
     max-width: 400px !important;
