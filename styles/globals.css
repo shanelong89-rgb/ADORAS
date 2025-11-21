@@ -571,10 +571,17 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
 /* Custom positioning for Sonner toasts to align with notification popup */
 [data-sonner-toaster] {
   top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+  z-index: 999999 !important; /* Ensure toasts appear above dialogs (z-9999) */
 }
 
 [data-sonner-toaster][data-y-position="top"] {
   top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+  z-index: 999999 !important; /* Ensure toasts appear above dialogs (z-9999) */
+}
+
+/* Individual toast styling */
+[data-sonner-toast] {
+  z-index: 999999 !important; /* Ensure individual toasts are also on top */
 }
 
 /* Force prevent horizontal overflow in dialogs - iOS PWA fix */
