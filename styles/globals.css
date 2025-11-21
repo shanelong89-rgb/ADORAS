@@ -414,46 +414,10 @@ html {
   }
 }
 
-/* Dialog & Toast Z-Index Management - CLEAN SOLUTION */
-/* Dialog - Lower tier */
-[data-slot="dialog-overlay"] {
-  z-index: 9999;
-  pointer-events: auto;
-}
-
+/* Ensure Dialog prompts appear above everything */
+[data-slot="dialog-overlay"],
 [data-slot="dialog-content"] {
-  z-index: 10000;
-  pointer-events: auto;
-}
-
-/* Sonner Container - ONLY adjust z-index and safe area */
-/* DO NOT add position, transform, display, or flex properties */
-[data-sonner-toaster] {
-  z-index: 20000 !important; /* Higher than dialog */
-  /* Only override top for safe area, let Sonner handle centering */
-  top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
-}
-
-/* Desktop: More top spacing */
-@media (min-width: 768px) {
-  [data-sonner-toaster] {
-    top: 2rem !important;
-  }
-}
-
-/* Mobile: Constrain width without breaking centering */
-@media (max-width: 640px) {
-  [data-sonner-toast] {
-    max-width: calc(100vw - 2rem) !important;
-    /* Sonner uses margin: 0 auto for centering - don't override it */
-  }
-}
-
-/* Desktop: Normal width */
-@media (min-width: 768px) {
-  [data-sonner-toast] {
-    max-width: 400px !important;
-  }
+  z-index: 9999 !important;
 }
 
 /* Custom datetime-local input styling to match Adoras theme */
@@ -604,6 +568,15 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
   }
 }
 
+/* Custom positioning for Sonner toasts to align with notification popup */
+[data-sonner-toaster] {
+  top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+}
+
+[data-sonner-toaster][data-y-position="top"] {
+  top: calc(env(safe-area-inset-top, 0px) + 0.75rem) !important;
+}
+
 /* Force prevent horizontal overflow in dialogs - iOS PWA fix */
 [data-slot="dialog-overlay"],
 [data-slot="dialog-content"],
@@ -617,11 +590,23 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
   overflow-x: hidden !important;
 }
 
+/* Force dialog to center vertically and horizontally */
+[data-slot="dialog-content"] {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
 /* Mobile-specific dialog fixes */
 @media (max-width: 640px) {
   [data-slot="dialog-content"] {
     max-width: calc(100vw - 1rem) !important;
     margin: 0 !important;
+    /* Ensure centering works on mobile */
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
   }
   
   /* Ensure all dialog children respect viewport width */
