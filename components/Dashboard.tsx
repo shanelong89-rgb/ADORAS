@@ -249,6 +249,39 @@ export function Dashboard({
     }
   }, [unreadMessageCount, activeTab]);
 
+  // 🎯 Listen for prompt notifications from service worker
+  useEffect(() => {
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      console.log('📬 Message from service worker:', event.data);
+      
+      if (event.data?.type === 'SHOW_PROMPT') {
+        const promptData = event.data.data;
+        console.log('💡 Prompt notification clicked:', promptData);
+        
+        // Set the active prompt
+        if (promptData.promptQuestion) {
+          setActivePrompt(promptData.promptQuestion);
+          
+          // Navigate to chat tab so user can respond
+          setActiveTab('chat');
+          
+          // Show a brief toast to guide the user
+          toast.success('💡 Tap "Share Your Story" to respond!', {
+            duration: 5000,
+          });
+        }
+      }
+    };
+    
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+      
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      };
+    }
+  }, []);
+
   // Track last mark-as-read time to prevent duplicates
   const lastMarkAsReadTime = React.useRef<Record<string, number>>({});
   const markAsReadCooldown = 1000; // 1 second cooldown to prevent duplicate calls
