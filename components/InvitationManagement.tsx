@@ -179,7 +179,7 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-6">
+      <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col p-6">
         <DialogHeader>
           <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
             Manage Invitations
