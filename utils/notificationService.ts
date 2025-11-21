@@ -565,6 +565,7 @@ export async function notifyNewMemory(params: {
   previewText?: string;
   mediaUrl?: string;
   connectionId?: string; // Connection ID to help backend calculate badge count
+  promptQuestion?: string; // For keeper prompts - triggers special UI handling
 }): Promise<boolean> {
   try {
     console.log('📱 notifyNewMemory called:', {
