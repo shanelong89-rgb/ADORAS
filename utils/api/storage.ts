@@ -70,14 +70,29 @@ export async function uploadFile({
     formData.append('connectionId', connectionId);
     formData.append('fileName', fileName);
 
-    // CRITICAL FIX: Use publicAnonKey for uploads instead of user accessToken
-    // The backend authenticates uploads via the Authorization header using Supabase Auth
-    // but for file storage, we need to use the public anon key for RLS bypass
+    // CRITICAL FIX: Get fresh token from Supabase session before upload
+    // This prevents 401 errors from expired tokens
+    let freshToken = accessToken;
+    try {
+      const { getSupabaseClient } = await import('../supabase/client');
+      const supabase = getSupabaseClient();
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (!error && session?.access_token) {
+        freshToken = session.access_token;
+        console.log('✅ Using fresh token from Supabase session');
+      } else {
+        console.log('⚠️ No Supabase session, using provided token');
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to get fresh token, using provided token:', error);
+    }
+
+    // Upload via backend API with fresh access token
     const response = await fetch(`${API_BASE_URL}/upload`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${publicAnonKey}`,
-        'X-User-Access-Token': accessToken, // Pass user token separately for verification
+        Authorization: `Bearer ${freshToken}`,
       },
       body: formData,
     });
