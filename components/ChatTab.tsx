@@ -692,6 +692,9 @@ export function ChatTab({
       return;
     }
     
+    // 🎤 iOS PWA FIX: Keep media stream alive between recordings to avoid permission re-prompt
+    // Instead of stopping/starting the stream each time, we reuse the same stream
+    
     // Prevent multiple simultaneous toggle attempts
     if (isTogglingRef.current) {
       console.log('⚠️ Already toggling recording, ignoring...');
@@ -746,16 +749,10 @@ export function ChatTab({
         }
       }
       
-      // Stop media stream tracks after a short delay to ensure onstop fires
+      // DON'T stop the media stream - keep it alive to avoid iOS re-prompting for permission
+      // The stream will be reused on the next recording
       setTimeout(() => {
-        if (mediaStreamRef.current) {
-          console.log('🛑 Stopping media stream tracks...');
-          mediaStreamRef.current.getTracks().forEach(track => {
-            console.log('Stopping track:', track.kind, track.label);
-            track.stop();
-          });
-          mediaStreamRef.current = null;
-        }
+        console.log('✅ Keeping media stream alive for future recordings (avoids iOS permission re-prompt)');
         // Reset toggling flag after cleanup is complete
         // Add a small delay to ensure the stream is fully released
         setTimeout(() => {
@@ -767,27 +764,31 @@ export function ChatTab({
     } else {
       // Start recording and transcription
       try {
-        // IMPORTANT: Clean up any existing streams first to avoid permission conflicts
-        if (mediaStreamRef.current) {
-          console.log('🧹 Cleaning up existing stream before new recording...');
-          mediaStreamRef.current.getTracks().forEach(track => track.stop());
-          mediaStreamRef.current = null;
+        console.log('🎤 Starting recording...');
+        
+        // Try to reuse existing stream if we already have one (avoids iOS prompt)
+        let stream = mediaStreamRef.current;
+        
+        // Check if stream exists and is still active
+        const hasActiveStream = stream && stream.active && stream.getTracks().some(t => t.readyState === 'live');
+        
+        if (!hasActiveStream) {
+          console.log('🎤 Requesting microphone access...');
+          
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+            } 
+          });
+          
+          console.log('✅ Microphone access granted');
+          mediaStreamRef.current = stream;
+          setMicPermissionStatus('granted');
+        } else {
+          console.log('✅ Reusing existing active microphone stream');
         }
-        
-        console.log('🎤 Requesting microphone access...');
-        
-        // Request microphone permission FIRST before starting speech recognition
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          } 
-        });
-        
-        console.log('✅ Microphone access granted');
-        mediaStreamRef.current = stream;
-        setMicPermissionStatus('granted');
         
         // NOW that we have permission, check if speech recognition is supported
         const speechSupported = SpeechTranscriber.isSupported();
@@ -1068,10 +1069,16 @@ export function ChatTab({
         setIsRecording(false);
         setIsTranscribing(false);
         
-        // Clean up all resources if there was an error
-        if (mediaStreamRef.current) {
+        // Clean up MediaRecorder but keep stream alive to avoid iOS re-prompting
+        // (unless it's a permission error)
+        const isPermissionError = error instanceof Error && 
+          (error.message.includes('permission') || error.message.includes('NotAllowedError'));
+        
+        if (mediaStreamRef.current && isPermissionError) {
+          // Only stop stream if permission was denied
           mediaStreamRef.current.getTracks().forEach(track => track.stop());
           mediaStreamRef.current = null;
+          setMicPermissionStatus('denied');
         }
         if (mediaRecorderRef.current) {
           try {
