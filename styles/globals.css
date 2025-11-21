@@ -415,7 +415,7 @@ html {
 }
 
 /* Dialog & Toast Z-Index Management - CLEAN SOLUTION */
-/* Dialog - Lower tier (10000) */
+/* Dialog - Lower tier */
 [data-slot="dialog-overlay"] {
   z-index: 9999;
   pointer-events: auto;
@@ -424,15 +424,14 @@ html {
 [data-slot="dialog-content"] {
   z-index: 10000;
   pointer-events: auto;
-  /* NOTE: Do NOT use transform here - it creates a new stacking context that breaks z-index */
 }
 
-/* Sonner Container - Only adjust z-index and safe area, let Sonner handle centering */
+/* Sonner Container - ONLY adjust z-index and safe area */
+/* DO NOT add position, transform, display, or flex properties */
 [data-sonner-toaster] {
-  z-index: 20000 !important;
-  /* CRITICAL: ONLY override top position for safe area */
+  z-index: 20000 !important; /* Higher than dialog */
+  /* Only override top for safe area, let Sonner handle centering */
   top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
-  /* DO NOT add: left, right, transform, display, flex, etc. */
 }
 
 /* Desktop: More top spacing */
@@ -442,11 +441,18 @@ html {
   }
 }
 
-/* Mobile: Constrain toast width to viewport */
+/* Mobile: Constrain width without breaking centering */
 @media (max-width: 640px) {
   [data-sonner-toast] {
     max-width: calc(100vw - 2rem) !important;
-    /* Let Sonner's built-in margin: 0 auto handle centering */
+    /* Sonner uses margin: 0 auto for centering - don't override it */
+  }
+}
+
+/* Desktop: Normal width */
+@media (min-width: 768px) {
+  [data-sonner-toast] {
+    max-width: 400px !important;
   }
 }
 
@@ -760,10 +766,4 @@ body:has([data-avatar-cropper="true"]) {
   .flex-1.overflow-y-auto {
     -webkit-overflow-scrolling: touch;
   }
-}
-
-/* Sonner always wins the z-index war — no exceptions */
-.sonner-toast,
-[data-sonner-toast] {
-  z-index: 2147483647 !important;
 }
