@@ -431,29 +431,35 @@ html {
 [data-sonner-toaster] {
   z-index: 20000 !important;
   position: fixed !important;
-  /* Center horizontally on all screen sizes */
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  /* Mobile PWA - account for safe area */
+  /* Center the toaster container */
+  left: 0 !important;
+  right: 0 !important;
   top: calc(env(safe-area-inset-top, 0px) + 16px) !important;
-  /* Ensure full width on mobile */
-  width: 100% !important;
-  max-width: calc(100vw - 2rem) !important;
-  padding: 0 1rem !important;
+  /* Use flexbox to center toasts */
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  pointer-events: none !important; /* Let clicks pass through container */
 }
 
 /* Desktop - More top spacing */
 @media (min-width: 768px) {
   [data-sonner-toaster] {
     top: 2rem !important;
-    max-width: 400px !important;
   }
 }
 
 /* Individual toast styling */
 [data-sonner-toast] {
-  width: 100% !important;
-  max-width: 100% !important;
+  pointer-events: auto !important; /* But toasts should catch clicks */
+  max-width: calc(100vw - 2rem) !important;
+}
+
+/* Desktop - Narrower toasts */
+@media (min-width: 768px) {
+  [data-sonner-toast] {
+    max-width: 400px !important;
+  }
 }
 
 /* Custom datetime-local input styling to match Adoras theme */
