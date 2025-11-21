@@ -53,12 +53,15 @@ export function StorageData({ isOpen, onClose, userId }: StorageDataProps) {
 
   const fetchStorageStats = async () => {
     if (!accessToken) {
+      console.error('❌ Storage stats fetch failed: No access token');
       toast.error('Please sign in to view storage stats');
       return;
     }
 
     try {
       setLoading(true);
+      console.log('📊 Fetching storage stats...');
+      
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/storage/stats`,
         {
@@ -69,7 +72,18 @@ export function StorageData({ isOpen, onClose, userId }: StorageDataProps) {
         }
       );
 
+      console.log('📊 Storage stats response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Storage stats fetch failed:', response.status, errorText);
+        toast.error(`Failed to load storage stats: ${response.status}`);
+        setLoading(false);
+        return;
+      }
+
       const data = await response.json();
+      console.log('📊 Storage stats data:', data);
 
       if (data.success) {
         setStorageStats({
@@ -81,12 +95,14 @@ export function StorageData({ isOpen, onClose, userId }: StorageDataProps) {
           storageLimit: data.storageLimit || 2,
           usagePercentage: data.usagePercentage || 0,
         });
+        console.log('✅ Storage stats loaded successfully');
       } else {
-        toast.error('Failed to load storage stats');
+        console.error('❌ Storage stats response error:', data.error);
+        toast.error(data.error || 'Failed to load storage stats');
       }
     } catch (error) {
-      console.error('Error fetching storage stats:', error);
-      toast.error('Failed to load storage stats');
+      console.error('❌ Error fetching storage stats:', error);
+      toast.error('Failed to load storage stats. Check console for details.');
     } finally {
       setLoading(false);
     }
@@ -110,7 +126,7 @@ export function StorageData({ isOpen, onClose, userId }: StorageDataProps) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[550px] max-h-[70vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pr-8">
             <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Archivo' }}>
               <Database className="w-5 h-5 text-primary" />
               Storage & Data
