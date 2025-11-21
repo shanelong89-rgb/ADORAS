@@ -282,6 +282,86 @@ export function Dashboard({
     }
   }, []);
 
+  // 🎯 Check for pending prompts on mount (handles timing issues + iOS badge taps)
+  useEffect(() => {
+    const checkForPendingPrompts = async () => {
+      try {
+        console.log('🔍 Checking for pending prompts...');
+        
+        // Open IndexedDB to check for stored prompts
+        const request = indexedDB.open('adoras-prompts', 1);
+        
+        request.onupgradeneeded = (event: any) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains('pending-prompts')) {
+            db.createObjectStore('pending-prompts', { keyPath: 'id' });
+          }
+        };
+        
+        request.onsuccess = (event: any) => {
+          const db = event.target.result;
+          
+          if (!db.objectStoreNames.contains('pending-prompts')) {
+            console.log('ℹ️ No pending-prompts store found');
+            return;
+          }
+          
+          const transaction = db.transaction(['pending-prompts'], 'readonly');
+          const store = transaction.objectStore('pending-prompts');
+          const getRequest = store.get('latest-prompt');
+          
+          getRequest.onsuccess = () => {
+            const promptData = getRequest.result;
+            
+            if (promptData && promptData.promptQuestion) {
+              console.log('✅ Found pending prompt:', promptData);
+              
+              // Check if this prompt is recent (within last 5 minutes)
+              const age = Date.now() - (promptData.timestamp || 0);
+              if (age < 5 * 60 * 1000) {
+                console.log('💡 Auto-showing pending prompt');
+                
+                // Set the active prompt
+                setActivePrompt(promptData.promptQuestion);
+                
+                // Navigate to chat tab
+                setActiveTab('chat');
+                
+                // Show toast
+                toast.success('💡 Tap "Share Your Story" to respond!', {
+                  duration: 5000,
+                });
+                
+                // Clear the pending prompt from storage
+                const clearTransaction = db.transaction(['pending-prompts'], 'readwrite');
+                const clearStore = clearTransaction.objectStore('pending-prompts');
+                clearStore.delete('latest-prompt');
+              } else {
+                console.log('ℹ️ Pending prompt is too old, ignoring');
+              }
+            } else {
+              console.log('ℹ️ No pending prompts found');
+            }
+          };
+          
+          getRequest.onerror = () => {
+            console.error('❌ Error reading pending prompt:', getRequest.error);
+          };
+        };
+        
+        request.onerror = () => {
+          console.error('❌ Error opening IndexedDB:', request.error);
+        };
+      } catch (error) {
+        console.error('❌ Error checking for pending prompts:', error);
+      }
+    };
+    
+    // Check for pending prompts after a short delay to ensure app is ready
+    const timer = setTimeout(checkForPendingPrompts, 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Track last mark-as-read time to prevent duplicates
   const lastMarkAsReadTime = React.useRef<Record<string, number>>({});
   const markAsReadCooldown = 1000; // 1 second cooldown to prevent duplicate calls
