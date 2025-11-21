@@ -1272,9 +1272,11 @@ export function Dashboard({
         {/* 🎯 Prompt Modal - Auto-opens when teller receives a new prompt from keeper */}
         <Dialog open={showPromptModal} onOpenChange={setShowPromptModal}>
           <DialogContent 
-            className="max-w-md mx-4 sm:mx-auto"
-            // REMOVE ALL inline styles — let Radix + safe areas handle it
-            // This gives you perfect centering + respects notch + dashboard header
+            className="max-w-md mx-4 sm:mx-auto 
+                       top-[15%] sm:top-1/2 
+                       -translate-y-0 sm:-translate-y-1/2 
+                       data-[state=open]:slide-in-from-top-[20%] 
+                       sm:data-[state=open]:slide-in-from-top-0"
           >
             <DialogHeader>
               <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
