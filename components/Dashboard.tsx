@@ -1271,7 +1271,13 @@ export function Dashboard({
 
         {/* 🎯 Prompt Modal - Auto-opens when teller receives a new prompt from keeper */}
         <Dialog open={showPromptModal} onOpenChange={setShowPromptModal}>
-          <DialogContent className="max-w-md">
+          <DialogContent 
+            className="max-w-md"
+            style={{
+              top: `calc(50% + env(safe-area-inset-top, 0px) / 2)`,
+              paddingTop: 'calc(1.5rem + env(safe-area-inset-top, 0px) / 4)'
+            }}
+          >
             <DialogHeader>
               <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
                 💡 New Memory Prompt
