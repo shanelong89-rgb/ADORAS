@@ -1272,10 +1272,9 @@ export function Dashboard({
         {/* 🎯 Prompt Modal - Auto-opens when teller receives a new prompt from keeper */}
         <Dialog open={showPromptModal} onOpenChange={setShowPromptModal}>
           <DialogContent 
-            className="max-w-md"
-            style={{
-              top: `calc(50% + env(safe-area-inset-top, 180px) / 2 + 47px)`,
-            }}
+            className="max-w-md mx-4 sm:mx-auto"
+            // REMOVE ALL inline styles — let Radix + safe areas handle it
+            // This gives you perfect centering + respects notch + dashboard header
           >
             <DialogHeader>
               <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
@@ -1286,7 +1285,7 @@ export function Dashboard({
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4">
+            <div className="space-y-4 py-2">
               {/* Prompt Question */}
               <div className="p-4 bg-gradient-to-br from-[rgb(245,249,233)] to-[rgb(235,244,218)] border border-primary/20 rounded-lg">
                 <p className="text-base font-medium text-foreground" style={{ fontFamily: 'Inter' }}>
@@ -1295,22 +1294,24 @@ export function Dashboard({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-3">
                 <Button
+                  size="lg"
                   onClick={() => {
                     setShowPromptModal(false);
                     setActiveTab('chat');
                     setShouldScrollChatToBottom(true);
                     onActiveTabChange?.('chat');
                   }}
-                  className="w-full"
+                  className="w-full font-medium"
                 >
                   Answer Now
                 </Button>
                 <Button
+                  size="lg"
                   variant="outline"
                   onClick={() => setShowPromptModal(false)}
-                  className="w-full"
+                  className="w-full font-medium"
                 >
                   Answer Later
                 </Button>
