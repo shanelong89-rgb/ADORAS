@@ -10,7 +10,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { toast } from 'sonner';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
 import { extractPhotoMetadata, extractVideoMetadata, extractVideoCreationDate } from '../utils/exifExtractor';
@@ -2404,21 +2404,27 @@ export function ChatTab({
           style={{ zIndex: 9999 }}
         >
           <DialogHeader>
-            <div className="flex items-center space-x-2 mb-2">
+            <div className="flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
-              <DialogTitle style={{ fontFamily: 'Archivo', margin: 0 }}>
+              <DialogTitle style={{ fontFamily: 'Archivo' }}>
                 {userType === 'keeper' ? 'Prompt Sent' : 'Share Your Story'}
               </DialogTitle>
             </div>
+            <DialogDescription className="sr-only">
+              Memory prompt details
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-2 -mt-2">
             <p className="text-sm font-medium text-foreground" style={{ fontFamily: 'Inter' }}>
               {activePrompt}
             </p>
             {userType === 'keeper' && (
-              <p className="text-xs text-muted-foreground mt-2" style={{ fontFamily: 'Inter' }}>
+              <p className="text-xs text-muted-foreground" style={{ fontFamily: 'Inter' }}>
                 Waiting for Storyteller's response... You can add your own thoughts below.
               </p>
             )}
-          </DialogHeader>
+          </div>
           
           {/* Action Buttons - Only for Storytellers (Tellers) */}
           {userType === 'teller' && (
