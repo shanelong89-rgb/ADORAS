@@ -420,6 +420,15 @@ html {
   z-index: 9999 !important;
 }
 
+/* BUT: Allow toasts to pierce through by ensuring dialog overlay doesn't block them */
+[data-slot="dialog-overlay"] {
+  pointer-events: none !important; /* Let toasts show through */
+}
+
+[data-slot="dialog-content"] {
+  pointer-events: auto !important; /* But keep dialog interactive */
+}
+
 /* Custom datetime-local input styling to match Adoras theme */
 input[type="datetime-local"] {
   color-scheme: light;
@@ -582,6 +591,12 @@ input[type="datetime-local"]::-webkit-datetime-edit-ampm-field:focus {
 /* Individual toast styling */
 [data-sonner-toast] {
   z-index: 999999 !important; /* Ensure individual toasts are also on top */
+}
+
+/* Force toasts above dialogs with maximum specificity */
+.toast-above-dialog {
+  z-index: 999999 !important;
+  position: relative !important;
 }
 
 /* Force prevent horizontal overflow in dialogs - iOS PWA fix */
