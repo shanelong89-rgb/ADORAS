@@ -10,7 +10,7 @@ import { Database, HardDrive, Image, Video, Mic, FileText, Cloud, Download, Tras
 import { Card, CardContent } from './ui/card';
 import { toast } from 'sonner';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
-import { useAuth } from '../utils/api/AuthContext';
+import { apiClient } from '../utils/api/client';
 
 interface StorageDataProps {
   isOpen: boolean;
@@ -29,7 +29,6 @@ interface StorageStats {
 }
 
 export function StorageData({ isOpen, onClose, userId }: StorageDataProps) {
-  const { accessToken } = useAuth();
   const [autoBackup, setAutoBackup] = useState(true);
   const [wifiOnly, setWifiOnly] = useState(true);
   const [compressPhotos, setCompressPhotos] = useState(false);
@@ -46,12 +45,14 @@ export function StorageData({ isOpen, onClose, userId }: StorageDataProps) {
   });
 
   useEffect(() => {
-    if (isOpen && accessToken) {
+    if (isOpen) {
       fetchStorageStats();
     }
-  }, [isOpen, accessToken]);
+  }, [isOpen]);
 
   const fetchStorageStats = async () => {
+    const accessToken = apiClient.getAccessToken();
+    
     if (!accessToken) {
       console.error('❌ Storage stats fetch failed: No access token');
       toast.error('Please sign in to view storage stats');
@@ -61,6 +62,9 @@ export function StorageData({ isOpen, onClose, userId }: StorageDataProps) {
     try {
       setLoading(true);
       console.log('📊 Fetching storage stats...');
+      console.log('🔑 Access token present:', !!accessToken);
+      console.log('🔑 Token length:', accessToken.length);
+      console.log('🔑 Token preview:', accessToken.substring(0, 20) + '...');
       
       const response = await fetch(
         `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/storage/stats`,
@@ -68,6 +72,7 @@ export function StorageData({ isOpen, onClose, userId }: StorageDataProps) {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
           },
         }
       );
@@ -77,7 +82,12 @@ export function StorageData({ isOpen, onClose, userId }: StorageDataProps) {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Storage stats fetch failed:', response.status, errorText);
-        toast.error(`Failed to load storage stats: ${response.status}`);
+        
+        if (response.status === 401) {
+          toast.error('Authentication failed. Please try signing out and back in.');
+        } else {
+          toast.error(`Failed to load storage stats: ${response.status}`);
+        }
         setLoading(false);
         return;
       }
