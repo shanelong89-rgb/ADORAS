@@ -2403,31 +2403,21 @@ export function ChatTab({
                      -translate-y-0 sm:-translate-y-0"
           style={{ zIndex: 9999 }}
         >
-          <DialogHeader className="flex flex-row items-start justify-between space-x-3">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <BookOpen className="w-5 h-5 text-primary" />
-                <DialogTitle style={{ fontFamily: 'Archivo', margin: 0 }}>
-                  {userType === 'keeper' ? 'Prompt Sent' : 'Share Your Story'}
-                </DialogTitle>
-              </div>
-              <p className="text-sm font-medium text-foreground" style={{ fontFamily: 'Inter' }}>
-                {activePrompt}
-              </p>
-              {userType === 'keeper' && (
-                <p className="text-xs text-muted-foreground mt-2" style={{ fontFamily: 'Inter' }}>
-                  Waiting for Storyteller's response... You can add your own thoughts below.
-                </p>
-              )}
+          <DialogHeader>
+            <div className="flex items-center space-x-2 mb-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              <DialogTitle style={{ fontFamily: 'Archivo', margin: 0 }}>
+                {userType === 'keeper' ? 'Prompt Sent' : 'Share Your Story'}
+              </DialogTitle>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClearPrompt}
-              className="flex-shrink-0 h-8 w-8 hover:bg-primary/10 -mt-1"
-            >
-              <X className="w-4 h-4 text-muted-foreground" />
-            </Button>
+            <p className="text-sm font-medium text-foreground" style={{ fontFamily: 'Inter' }}>
+              {activePrompt}
+            </p>
+            {userType === 'keeper' && (
+              <p className="text-xs text-muted-foreground mt-2" style={{ fontFamily: 'Inter' }}>
+                Waiting for Storyteller's response... You can add your own thoughts below.
+              </p>
+            )}
           </DialogHeader>
           
           {/* Action Buttons - Only for Storytellers (Tellers) */}
