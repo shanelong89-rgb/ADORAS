@@ -716,28 +716,28 @@ body:has([data-avatar-cropper="true"]) {
 /* Dashboard content padding - prevents content from hiding under header */
 /* ONLY used for Media tab to fix double scroll issue */
 .pt-safe-dashboard {
-  padding-top: calc(env(safe-area-inset-top, 0px) + 94px);
+  padding-top: 0px; /* Default for mobile - no extra padding */
   overscroll-behavior-y: contain; /* Prevent double scroll */
 }
 
 /* Mobile PWA standalone → keep it tight, no extra gap */
 @media (display-mode: standalone) {
   .pt-safe-dashboard {
-    padding-top: calc(env(safe-area-inset-top, 0px) + 94px) !important;
+    padding-top: 0px !important;
   }
 }
 
-/* Desktop / browser tab → No extra padding since search bar handles positioning itself */
+/* Desktop / browser tab → Add padding to push content below fixed Dashboard header */
 @media (min-width: 768px) and (display-mode: browser) {
   .pt-safe-dashboard {
-    padding-top: 0px !important;
+    padding-top: 94px !important;
   }
 }
 
-/* Fallback for browsers that don't support display-mode - desktop gets no padding */
+/* Fallback for browsers that don't support display-mode - desktop gets padding */
 @media (min-width: 768px) {
   .pt-safe-dashboard {
-    padding-top: 0px !important;
+    padding-top: 94px !important;
   }
 }
 
