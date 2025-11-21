@@ -183,6 +183,7 @@ export function ChatTab({
   const [liveTranscript, setLiveTranscript] = useState('');
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [micPermissionStatus, setMicPermissionStatus] = useState<'prompt' | 'granted' | 'denied' | 'unknown'>('unknown');
+  const [micPermissionEverGranted, setMicPermissionEverGranted] = useState(false);
   const [documentStates, setDocumentStates] = useState<{[key: string]: {
     textShown: boolean;
   }}>({});
@@ -271,6 +272,16 @@ export function ChatTab({
     };
   }, []);
 
+  // 🎤 Smart Permission Tracking - Load on mount (WhatsApp Web pattern)
+  useEffect(() => {
+    const everGranted = localStorage.getItem('adoras_mic_ever_granted') === 'true';
+    setMicPermissionEverGranted(everGranted);
+    
+    if (everGranted) {
+      console.log('✅ Microphone was previously granted by user');
+    }
+  }, []);
+
   // Check microphone permission status on mount
   useEffect(() => {
     const checkMicPermission = async () => {
@@ -285,7 +296,7 @@ export function ChatTab({
           });
         }
       } catch (error) {
-        // Permissions API not supported, will check on first use
+        // Permissions API not supported on iOS Safari
         console.log('Permissions API not supported');
       }
     };
@@ -786,6 +797,10 @@ export function ChatTab({
           console.log('✅ Microphone access granted');
           mediaStreamRef.current = stream;
           setMicPermissionStatus('granted');
+          
+          // 🎤 Smart Permission Tracking - Remember that user granted permission
+          localStorage.setItem('adoras_mic_ever_granted', 'true');
+          setMicPermissionEverGranted(true);
         } else {
           console.log('✅ Reusing existing active microphone stream');
         }
@@ -1027,6 +1042,10 @@ export function ChatTab({
             // This is expected when user denies permission - not an error
             console.log('ℹ️ Microphone permission denied by user');
             setMicPermissionStatus('denied');
+            
+            // 🎤 Smart Permission Tracking - Clear flag if permission is now denied
+            localStorage.removeItem('adoras_mic_ever_granted');
+            setMicPermissionEverGranted(false);
             
             // Provide device-specific instructions
             const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
@@ -2266,22 +2285,42 @@ export function ChatTab({
         <div className="flex items-center space-x-1.5 sm:space-x-2 px-2 sm:px-4">
           {/* Voice Recording Button - Left */}
           <TooltipProvider>
-            <Tooltip open={micPermissionStatus === 'denied' ? undefined : false}>
+            <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleRecording}
-                  className={`rounded-full w-9 h-9 sm:w-11 sm:h-11 hover:bg-muted flex-shrink-0 ${isRecording ? 'text-red-500 bg-red-50' : ''}`}
-                >
-                  <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
-                </Button>
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleRecording}
+                    className={`rounded-full w-9 h-9 sm:w-11 sm:h-11 hover:bg-muted flex-shrink-0 ${
+                      isRecording 
+                        ? 'text-red-500 bg-red-50' 
+                        : micPermissionEverGranted 
+                          ? 'text-green-600' 
+                          : ''
+                    }`}
+                  >
+                    <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </Button>
+                  {/* 🎤 Smart indicator: Show checkmark if permission was previously granted */}
+                  {micPermissionEverGranted && !isRecording && (
+                    <div className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full flex items-center justify-center">
+                      <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
               </TooltipTrigger>
-              {micPermissionStatus === 'denied' && (
-                <TooltipContent side="top" className="max-w-xs text-xs">
+              <TooltipContent side="top" className="max-w-xs text-xs">
+                {micPermissionStatus === 'denied' ? (
                   <p>Microphone access denied. Click to see instructions.</p>
-                </TooltipContent>
-              )}
+                ) : micPermissionEverGranted && !isRecording ? (
+                  <p>✅ Microphone ready — tap to record</p>
+                ) : (
+                  <p>Tap to record voice message</p>
+                )}
+              </TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
