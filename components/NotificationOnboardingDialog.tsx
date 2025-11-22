@@ -16,7 +16,7 @@ import {
 import { Button } from './ui/button';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { Bell, BellOff, Smartphone, Info, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from 'sonner@2.0.3';
 import {
   isNotificationSupported,
   requestNotificationPermission,
