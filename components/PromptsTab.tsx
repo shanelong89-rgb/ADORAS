@@ -127,7 +127,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
   // Render loading state
   if (isLoading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center" style={{ top: '160px' }}>
+      <div className="fixed inset-0 flex items-center justify-center" style={{ top: '100px' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">Loading today's prompt...</p>
