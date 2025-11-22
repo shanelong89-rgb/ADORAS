@@ -180,7 +180,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Prompt Display */}
-          <div className="flex items-start gap-4 p-3 bg-white/80 rounded-xl">
+          <div className="flex items-start gap-4 p-4 bg-white/80 rounded-xl">
             <div className="text-4xl">{categoryIcon}</div>
             <div className="flex-1 space-y-2">
               {/* Show topic header for keepers */}
