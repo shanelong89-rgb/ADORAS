@@ -27,18 +27,20 @@ interface TodaysPrompt {
   memoryId?: string;
 }
 
+interface RandomPrompt {
+  question: string;
+  topicHeader?: string;
+  category: string;
+  userType: 'keeper' | 'teller';
+}
+
 export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory, memories, onNavigateToChat }: PromptsTabProps) {
   const { user } = useAuth();
   const [todaysPrompt, setTodaysPrompt] = useState<TodaysPrompt | null>(null);
+  const [randomPrompts, setRandomPrompts] = useState<RandomPrompt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [randomPrompts, setRandomPrompts] = useState<Array<{
-    question: string;
-    topicHeader?: string;
-    category: string;
-    userType: 'keeper' | 'teller';
-  }>>([]);
   const [isRefreshingPrompts, setIsRefreshingPrompts] = useState(false);
+  const [selectedRandomPromptIndex, setSelectedRandomPromptIndex] = useState<number | null>(null);
 
   // Fetch today's prompt from the API
   useEffect(() => {
@@ -51,7 +53,6 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
 
       try {
         setIsLoading(true);
-        setError(null);
         console.log('📝 Fetching today\'s prompt for user:', user.id);
 
         const response = await apiClient.getTodaysPrompt(user.id);
@@ -61,11 +62,9 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
           setTodaysPrompt(response.prompt);
         } else {
           console.warn('⚠️ No prompt available:', response.error);
-          setError(response.error || 'No prompt available today');
         }
       } catch (err) {
         console.error('❌ Failed to fetch prompt:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load prompt');
       } finally {
         setIsLoading(false);
       }
@@ -132,29 +131,6 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">Loading today's prompt...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Render error state
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
-          <Sparkles className="w-8 h-8 text-destructive" />
-        </div>
-        <div className="text-center space-y-2">
-          <h3 className="font-semibold">Unable to load prompts</h3>
-          <p className="text-sm text-muted-foreground max-w-sm">{error}</p>
-          <Button 
-            onClick={() => window.location.reload()} 
-            variant="outline" 
-            size="sm"
-            className="mt-4"
-          >
-            Retry
-          </Button>
         </div>
       </div>
     );
@@ -328,25 +304,56 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
           </div>
 
           <div className="space-y-3">
-            {randomPrompts.map((prompt, index) => (
-              <button
-                key={index}
-                onClick={() => handleSendToPartner(prompt.question)}
-                className="w-full text-left p-4 bg-white rounded-lg border border-gray-200 hover:border-[#3d5a52] hover:bg-[#F5F9E9] transition-all group"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl flex-shrink-0">{getCategoryIcon(prompt.category)}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[#2d2d2d] mb-2 line-clamp-2 group-hover:text-[#3d5a52] transition-colors">
-                      {prompt.question}
-                    </p>
-                    <Badge variant="secondary" className="bg-gray-100 text-[#6b6b6b] border-none text-xs">
-                      {prompt.category}
-                    </Badge>
-                  </div>
+            {randomPrompts.map((prompt, index) => {
+              const isSelected = selectedRandomPromptIndex === index;
+              
+              return (
+                <div
+                  key={index}
+                  className={`bg-white rounded-lg border transition-all ${
+                    isSelected 
+                      ? 'border-[#3d5a52] bg-[#F5F9E9] shadow-md' 
+                      : 'border-gray-200'
+                  }`}
+                >
+                  <button
+                    onClick={() => setSelectedRandomPromptIndex(isSelected ? null : index)}
+                    className="w-full text-left p-4 hover:bg-[#F5F9E9]/50 transition-colors rounded-lg"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl flex-shrink-0">{getCategoryIcon(prompt.category)}</div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm mb-2 ${
+                          isSelected ? 'text-[#3d5a52]' : 'text-[#2d2d2d]'
+                        } transition-colors`}>
+                          {prompt.question}
+                        </p>
+                        <Badge variant="secondary" className="bg-gray-100 text-[#6b6b6b] border-none text-xs">
+                          {prompt.category}
+                        </Badge>
+                      </div>
+                    </div>
+                  </button>
+                  
+                  {/* Show Share Button when selected */}
+                  {isSelected && (
+                    <div className="px-4 pb-4 pt-2">
+                      <Button
+                        onClick={() => {
+                          handleSendToPartner(prompt.question);
+                          setSelectedRandomPromptIndex(null);
+                        }}
+                        className="w-full bg-[rgb(54,69,59)] hover:bg-[#2d4a42] text-white"
+                        size="sm"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        {isKeeper ? `Share with ${partnerName || 'Partner'}` : `Respond to Prompt`}
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
