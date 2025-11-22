@@ -124,8 +124,6 @@ interface ChatTabProps {
   onClearPrompt?: () => void;
   shouldScrollToBottom?: boolean; // Trigger scroll to bottom
   onScrollToBottomComplete?: () => void; // Callback after scroll completes
-  triggerInputMethod?: 'text' | 'voice' | 'file' | null; // Trigger specific input method
-  onInputMethodTriggered?: () => void; // Callback after triggering
 }
 
 export function ChatTab({ 
@@ -139,9 +137,7 @@ export function ChatTab({
   activePrompt,
   onClearPrompt,
   shouldScrollToBottom,
-  onScrollToBottomComplete,
-  triggerInputMethod,
-  onInputMethodTriggered
+  onScrollToBottomComplete
 }: ChatTabProps) {
   // ========================================================================
   // CRASH GUARD: Mount protection to prevent video loading crashes
@@ -215,29 +211,6 @@ export function ChatTab({
       setCurrentPromptContext(activePrompt);
     }
   }, [activePrompt]);
-
-  // Handle triggered input methods from Share Story modal
-  useEffect(() => {
-    if (triggerInputMethod && onInputMethodTriggered) {
-      const timer = setTimeout(() => {
-        if (triggerInputMethod === 'text') {
-          // Focus text input
-          messageInputRef.current?.focus();
-        } else if (triggerInputMethod === 'voice') {
-          // Start voice recording
-          if (!isRecording) {
-            startRecording();
-          }
-        } else if (triggerInputMethod === 'file') {
-          // Trigger file picker
-          photoInputRef.current?.click();
-        }
-        onInputMethodTriggered();
-      }, 300);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [triggerInputMethod, onInputMethodTriggered, isRecording]);
 
   // ========================================================================
   // CONSOLIDATED SCROLL MANAGEMENT - Single source of truth
