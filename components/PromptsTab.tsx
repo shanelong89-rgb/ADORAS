@@ -142,36 +142,40 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
   return (
     <div className="space-y-6">
       {/* Today's Prompt Card */}
-      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+      <Card className="border-none bg-[#d9cfc1] shadow-md">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <CardTitle className="text-lg">Today's Prompt</CardTitle>
+              <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-[#3d5a52]" />
+              </div>
+              <CardTitle className="text-lg text-[#2d2d2d]">Today's Prompt</CardTitle>
             </div>
-            <Clock className="w-4 h-4 text-muted-foreground" />
+            <Clock className="w-4 h-4 text-[#6b6b6b]" />
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Prompt Display */}
-          <div className="flex items-start gap-4 p-4 bg-background rounded-lg">
+          <div className="flex items-start gap-4 p-4 bg-white/80 rounded-xl">
             <div className="text-4xl">{categoryIcon}</div>
             <div className="flex-1 space-y-2">
-              <p className="text-lg">{displayText}</p>
+              <p className="text-lg text-[#2d2d2d]">{displayText}</p>
               {todaysPrompt.category && (
-                <Badge variant="secondary">{todaysPrompt.category}</Badge>
+                <Badge variant="secondary" className="bg-white/60 text-[#3d5a52] border-none">
+                  {todaysPrompt.category}
+                </Badge>
               )}
               
               {/* Keeper-specific info */}
               {isKeeper && (
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-[#6b6b6b] mt-2">
                   💡 This is a topic header for you to share stories about. Your Teller receives detailed questions.
                 </p>
               )}
               
               {/* Teller-specific info */}
               {isTeller && (
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-xs text-[#6b6b6b] mt-2">
                   💡 You receive detailed prompts every 2 days to give you time to respond thoughtfully.
                 </p>
               )}
@@ -182,7 +186,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
           {!todaysPrompt.answered ? (
             <Button
               onClick={() => handleSendToPartner(displayText || todaysPrompt.question)}
-              className="w-full"
+              className="w-full bg-[#3d5a52] hover:bg-[#2d4a42] text-white"
               size="lg"
             >
               <Send className="w-4 h-4 mr-2" />
@@ -190,11 +194,11 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
             </Button>
           ) : (
             <div className="text-center py-4 space-y-2">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-700 dark:text-green-400 rounded-full">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#3d5a52]/10 text-[#3d5a52] rounded-full">
                 <span className="text-xl">✓</span>
                 <span className="text-sm font-medium">Prompt answered!</span>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-[#6b6b6b]">
                 You've already responded to today's prompt
               </p>
             </div>
@@ -204,41 +208,41 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
 
       {/* Info Section */}
       <div className="space-y-4 px-4">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-primary" />
+        <h3 className="font-semibold flex items-center gap-2 text-[#2d2d2d]">
+          <Sparkles className="w-4 h-4 text-[#3d5a52]" />
           How Prompts Work
         </h3>
         
         {isKeeper ? (
-          <div className="space-y-3 text-sm text-muted-foreground">
+          <div className="space-y-3 text-sm text-[#6b6b6b]">
             <div className="flex gap-3">
               <span className="text-2xl">📅</span>
               <div>
-                <p className="font-medium text-foreground">Daily Topic Headers</p>
+                <p className="font-medium text-[#2d2d2d]">Daily Topic Headers</p>
                 <p>You receive a new topic every day to share stories about</p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="text-2xl">💬</span>
               <div>
-                <p className="font-medium text-foreground">Share Freely</p>
+                <p className="font-medium text-[#2d2d2d]">Share Freely</p>
                 <p>Use the topic as inspiration to share memories and stories</p>
               </div>
             </div>
           </div>
         ) : (
-          <div className="space-y-3 text-sm text-muted-foreground">
+          <div className="space-y-3 text-sm text-[#6b6b6b]">
             <div className="flex gap-3">
               <span className="text-2xl">📅</span>
               <div>
-                <p className="font-medium text-foreground">Every 2 Days</p>
+                <p className="font-medium text-[#2d2d2d]">Every 2 Days</p>
                 <p>You receive a new detailed prompt every 2 days</p>
               </div>
             </div>
             <div className="flex gap-3">
               <span className="text-2xl">💭</span>
               <div>
-                <p className="font-medium text-foreground">Thoughtful Questions</p>
+                <p className="font-medium text-[#2d2d2d]">Thoughtful Questions</p>
                 <p>Take your time to craft meaningful responses</p>
               </div>
             </div>
