@@ -286,7 +286,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
       {randomPrompts.length > 0 && (
         <div className="space-y-4 px-4">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-[#2d2d2d]">More Prompts</h3>
+            <h3 className="font-semibold text-[#2d2d2d]" style={{ fontFamily: 'Archivo' }}>More Prompts</h3>
             <Button
               variant="ghost"
               size="sm"
@@ -325,7 +325,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm mb-2 ${
                           isSelected ? 'text-[#3d5a52]' : 'text-[#2d2d2d]'
-                        } transition-colors`}>
+                        } transition-colors`} style={{ fontFamily: 'Archivo' }}>
                           {prompt.question}
                         </p>
                         <Badge variant="secondary" className="bg-gray-100 text-[#6b6b6b] border-none text-xs">
