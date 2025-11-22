@@ -73,10 +73,23 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
       return;
     }
 
-    // Navigate to chat with this prompt pre-filled
-    if (onNavigateToChat) {
+    // For keepers: Actually send the prompt as a message
+    if (userType === 'keeper') {
+      onAddMemory({
+        type: 'text',
+        content: promptText,
+        sender: 'keeper',
+        category: 'Prompts',
+        tags: ['prompt', 'daily-prompt', todaysPrompt?.category || ''].filter(Boolean),
+        promptQuestion: promptText,
+        conversationContext: todaysPrompt?.topicHeader || todaysPrompt?.category
+      });
+      toast.success(`Prompt sent to ${partnerName}!`);
+    } 
+    // For tellers: Navigate to chat to respond
+    else if (onNavigateToChat) {
       onNavigateToChat(promptText);
-      toast.success('Prompt added to chat!');
+      toast.success('Opening chat to respond...');
     }
   };
 
@@ -199,7 +212,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
               size="lg"
             >
               <Send className="w-4 h-4 mr-2" />
-              Send to {partnerName || 'Partner'}
+              {isKeeper ? `Share with ${partnerName || 'Partner'}` : `Respond to Prompt`}
             </Button>
           ) : (
             <div className="text-center py-4 space-y-2">
