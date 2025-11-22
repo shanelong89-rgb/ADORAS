@@ -167,7 +167,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
     <div className="space-y-6">
       {/* Today's Prompt Card */}
       <Card className="border-none bg-gradient-to-b from-[rgb(182,191,179)] to-[#F5F9E9] shadow-md">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center">
