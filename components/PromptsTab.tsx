@@ -134,9 +134,10 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
   const isKeeper = userType === 'keeper';
   const isTeller = userType === 'teller';
   
-  // For keepers: Show topic header only
-  // For tellers: Show full question
-  const displayText = isKeeper ? todaysPrompt.topicHeader : todaysPrompt.question;
+  // For keepers: Show BOTH topic header and question
+  // For tellers: Show full question only
+  const displayText = todaysPrompt.question;
+  const showTopicHeader = isKeeper && todaysPrompt.topicHeader;
   const categoryIcon = getCategoryIcon(todaysPrompt.category || '');
 
   return (
@@ -159,6 +160,14 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
           <div className="flex items-start gap-4 p-4 bg-white/80 rounded-xl">
             <div className="text-4xl">{categoryIcon}</div>
             <div className="flex-1 space-y-2">
+              {/* Show topic header for keepers */}
+              {showTopicHeader && (
+                <div className="mb-2">
+                  <Badge variant="default" className="bg-[#3d5a52] text-white border-none text-sm">
+                    📌 {todaysPrompt.topicHeader}
+                  </Badge>
+                </div>
+              )}
               <p className="text-lg text-[#2d2d2d]">{displayText}</p>
               {todaysPrompt.category && (
                 <Badge variant="secondary" className="bg-white/60 text-[#3d5a52] border-none">
@@ -169,7 +178,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
               {/* Keeper-specific info */}
               {isKeeper && (
                 <p className="text-xs text-[#6b6b6b] mt-2">
-                  💡 This is a topic header for you to share stories about. Your Teller receives detailed questions.
+                  💡 The topic header helps categorize your stories. Share your thoughts on this question!
                 </p>
               )}
               
@@ -186,7 +195,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
           {!todaysPrompt.answered ? (
             <Button
               onClick={() => handleSendToPartner(displayText || todaysPrompt.question)}
-              className="w-full bg-[#36453B] hover:bg-[#2d4a42] text-white"
+              className="w-full bg-[rgb(54,69,59)] hover:bg-[#2d4a42] text-white"
               size="lg"
             >
               <Send className="w-4 h-4 mr-2" />
