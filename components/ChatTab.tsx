@@ -1501,7 +1501,8 @@ export function ChatTab({
         if (!scrollAreaRef?.current) return;
         
         // Scroll to absolute bottom (accounting for dynamic paddingBottom)
-        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+        // Add extra buffer to ensure last message is visible above input
+        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight + 100;
       });
     } catch (error) {
       // Silently fail
@@ -1548,10 +1549,14 @@ export function ChatTab({
   // 4. NEW MESSAGES: Auto-scroll to bottom on new messages
   useEffect(() => {
     if (hasScrolledInitiallyRef.current && chatMessages.length > prevMessageCountRef.current) {
-      scrollToBottom('auto');
-      const timer = setTimeout(() => scrollToBottom('smooth'), 100);
+      // Multiple scroll attempts to ensure visibility
+      const timers = [
+        setTimeout(() => scrollToBottom('auto'), 0),
+        setTimeout(() => scrollToBottom('smooth'), 100),
+        setTimeout(() => scrollToBottom('auto'), 300) // Extra attempt for slow renders
+      ];
       prevMessageCountRef.current = chatMessages.length;
-      return () => clearTimeout(timer);
+      return () => timers.forEach(t => clearTimeout(t));
     }
   }, [chatMessages.length, scrollToBottom]);
 
@@ -2112,7 +2117,7 @@ export function ChatTab({
         style={{ 
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
-          paddingBottom: `calc(${inputBoxHeight}px + env(safe-area-inset-bottom, 0px))`,
+          paddingBottom: `calc(${inputBoxHeight}px + env(safe-area-inset-bottom, 0px) + 20px)`,
           flex: '1 1 0',
           minHeight: 0
         }}
