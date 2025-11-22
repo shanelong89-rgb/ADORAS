@@ -32,6 +32,13 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
   const [todaysPrompt, setTodaysPrompt] = useState<TodaysPrompt | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [randomPrompts, setRandomPrompts] = useState<Array<{
+    question: string;
+    topicHeader?: string;
+    category: string;
+    userType: 'keeper' | 'teller';
+  }>>([]);
+  const [isRefreshingPrompts, setIsRefreshingPrompts] = useState(false);
 
   // Fetch today's prompt from the API
   useEffect(() => {
@@ -67,6 +74,31 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
     fetchTodaysPrompt();
   }, [user?.id]);
 
+  // Fetch random prompts for inspiration
+  useEffect(() => {
+    fetchRandomPrompts();
+  }, [user?.id]);
+
+  const fetchRandomPrompts = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setIsRefreshingPrompts(true);
+      console.log('🎲 Fetching random prompts...');
+      
+      const response = await apiClient.getRandomPrompts(user.id, 3);
+      
+      if (response.success && response.prompts) {
+        console.log('✅ Random prompts loaded:', response.prompts);
+        setRandomPrompts(response.prompts);
+      }
+    } catch (err) {
+      console.error('❌ Failed to fetch random prompts:', err);
+    } finally {
+      setIsRefreshingPrompts(false);
+    }
+  };
+  
   const handleSendToPartner = (promptText: string) => {
     if (!partnerName) {
       toast.error('No partner connected');
@@ -96,7 +128,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
   // Render loading state
   if (isLoading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center" style={{ top: '100px' }}>
+      <div className="fixed inset-0 flex items-center justify-center" style={{ top: '160px' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">Loading today's prompt...</p>
@@ -273,6 +305,51 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
           </div>
         )}
       </div>
+
+      {/* More Prompts Section */}
+      {randomPrompts.length > 0 && (
+        <div className="space-y-4 px-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-[#2d2d2d]">More Prompts</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchRandomPrompts}
+              disabled={isRefreshingPrompts}
+              className="text-[#3d5a52] hover:text-[#2d4a42] hover:bg-[#3d5a52]/10"
+            >
+              {isRefreshingPrompts ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
+              <span className="ml-2">Generate New</span>
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {randomPrompts.map((prompt, index) => (
+              <button
+                key={index}
+                onClick={() => handleSendToPartner(prompt.question)}
+                className="w-full text-left p-4 bg-white rounded-lg border border-gray-200 hover:border-[#3d5a52] hover:bg-[#F5F9E9] transition-all group"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="text-2xl flex-shrink-0">{getCategoryIcon(prompt.category)}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[#2d2d2d] mb-2 line-clamp-2 group-hover:text-[#3d5a52] transition-colors">
+                      {prompt.question}
+                    </p>
+                    <Badge variant="secondary" className="bg-gray-100 text-[#6b6b6b] border-none text-xs">
+                      {prompt.category}
+                    </Badge>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Connection Status */}
       {!partnerName && (
