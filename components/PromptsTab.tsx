@@ -440,7 +440,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
             <Card 
               key={prompt.id}
               className={`cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border bg-white/80 backdrop-blur-sm border-border/40 rounded-xl ${
-                selectedPrompt === prompt.id ? 'shadow-md scale-[1.01] bg-primary/5' : ''
+                selectedPrompt === prompt.id ? 'ring-2 ring-primary shadow-md scale-[1.01] bg-primary/5' : ''
               }`}
               onClick={() => setSelectedPrompt(selectedPrompt === prompt.id ? null : prompt.id)}
             >
