@@ -142,14 +142,14 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
   return (
     <div className="space-y-6">
       {/* Today's Prompt Card */}
-      <Card className="border-none bg-[#d9cfc1] shadow-md">
+      <Card className="border-none bg-gradient-to-b from-[rgb(182,191,179)] to-[#F5F9E9] shadow-md">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-[#3d5a52]" />
               </div>
-              <CardTitle className="text-lg text-[#2d2d2d]">Today's Prompt</CardTitle>
+              <CardTitle className="text-lg text-[rgb(255,255,255)]">Today's Prompt</CardTitle>
             </div>
             <Clock className="w-4 h-4 text-[#6b6b6b]" />
           </div>
