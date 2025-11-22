@@ -2061,12 +2061,11 @@ export function ChatTab({
 
       {/* Messages Area - Scrollable flex-1 container */}
       <div 
-        className="overflow-y-auto overscroll-contain pt-safe-top"
+        className="overflow-y-auto overscroll-contain pt-safe-top pb-3"
         ref={scrollAreaRef}
         style={{ 
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
-          paddingBottom: `calc(${inputBoxHeight}px + env(safe-area-inset-bottom, 0px))`,
           flex: '1 1 0',
           minHeight: 0
         }}
@@ -2115,14 +2114,16 @@ export function ChatTab({
               );
             })
           )}
+          {/* Spacer to ensure last message is visible above input box */}
+          <div style={{ height: `${inputBoxHeight + 20}px`, flexShrink: 0 }} />
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input Box Area - Fixed at bottom, flush to screen edge */}
+      {/* Input Box Area - Fixed at bottom with proper spacing */}
       <div 
         ref={inputBoxRef}
-        className="bg-white border-t shadow-lg flex-shrink-0" 
+        className="bg-white border-t flex-shrink-0" 
         style={{ 
           position: 'fixed',
           bottom: 0,
@@ -2130,7 +2131,8 @@ export function ChatTab({
           right: 0,
           paddingBottom: 'max(12px, env(safe-area-inset-bottom, 0))',
           zIndex: 60,
-          boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06)'
+          boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)',
+          borderTop: '1px solid rgba(0,0,0,0.1)'
         }}
       >
         {/* Recording Indicator */}
