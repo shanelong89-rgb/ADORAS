@@ -140,25 +140,15 @@ export function ChatTab({
   onScrollToBottomComplete
 }: ChatTabProps) {
   // ========================================================================
-  // CRASH GUARD: Mount protection to prevent tab-switch crashes
-  // Prevents operations during component mount (e.g., video loading, scroll detection)
+  // CRASH GUARD: Mount protection to prevent video loading crashes
   // ========================================================================
   const isMountedRef = useRef(false);
-  const [isFullyLoaded, setIsFullyLoaded] = useState(false);
+  const [isFullyLoaded, setIsFullyLoaded] = useState(true); // Start true, no delay
 
   useEffect(() => {
     isMountedRef.current = true;
-    
-    // Wait 200ms before rendering content to prevent race conditions
-    const loadTimer = setTimeout(() => {
-      if (isMountedRef.current) {
-        setIsFullyLoaded(true);
-      }
-    }, 200);
-
     return () => {
       isMountedRef.current = false;
-      clearTimeout(loadTimer);
     };
   }, []);
 
@@ -1483,82 +1473,41 @@ export function ChatTab({
     return isRelevantCategory && !isInitialPromptMessage;
   }).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-  // Track previous message count to detect new messages
-  const prevMessageCountRef = useRef<number>(0);
-  const hasScrolledInitiallyRef = useRef<boolean>(false);
-  
-  // CRITICAL FIX: Reset scroll tracker when partner changes (for connection switching)
-  useEffect(() => {
-    hasScrolledInitiallyRef.current = false;
-    prevMessageCountRef.current = 0;
-    console.log(`🔄 Partner changed to ${partnerProfile?.name} - resetting scroll tracker`);
-  }, [partnerProfile?.id]);
-  
-  // 🎯 UNIFIED scrollToBottom function - works with simple div scroll container
+  // ========================================================================
+  // 🎯 SIMPLIFIED SCROLL SYSTEM - Single reliable scroll mechanism
+  // ========================================================================
+
+  // Scroll to bottom using the actual end reference
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    try {
-      requestAnimationFrame(() => {
-        if (!scrollAreaRef?.current) return;
-        
-        // Scroll to absolute bottom (accounting for dynamic paddingBottom)
-        // Add extra buffer to ensure last message is visible above input
-        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight + 100;
-      });
-    } catch (error) {
-      // Silently fail
-    }
+    if (!scrollAreaRef?.current || !messagesEndRef?.current) return;
+    
+    // Use native scrollIntoView for most reliable positioning
+    messagesEndRef.current.scrollIntoView({ 
+      behavior, 
+      block: 'end' 
+    });
   }, []);
 
-  // ========================================================================
-  // 🎯 UNIFIED SCROLL SYSTEM - All scroll logic consolidated here
-  // ========================================================================
-  
-  // 1. INITIAL MOUNT: Scroll to bottom when chat first loads
+  // Single effect for all scrolling scenarios
   useEffect(() => {
-    if (!hasScrolledInitiallyRef.current && chatMessages.length > 0) {
-      const timers = [
-        setTimeout(() => scrollToBottom('auto'), 100),
-        setTimeout(() => scrollToBottom('auto'), 250),
-        setTimeout(() => {
-          scrollToBottom('auto');
-          prevMessageCountRef.current = chatMessages.length;
-          hasScrolledInitiallyRef.current = true;
-        }, 500)
-      ];
-      
-      return () => timers.forEach(clearTimeout);
-    }
+    // Wait for DOM to be ready, then scroll
+    const timer = setTimeout(() => {
+      scrollToBottom('auto');
+    }, 50);
+    
+    return () => clearTimeout(timer);
   }, [chatMessages.length, scrollToBottom]);
 
-  // 2. TAB VISIBILITY: Scroll when switching to this tab
+  // Handle explicit scroll requests from parent (tab switching)
   useEffect(() => {
     if (shouldScrollToBottom) {
-      const timers = [
-        setTimeout(() => scrollToBottom('auto'), 50),
-        setTimeout(() => {
-          scrollToBottom('auto');
-          onScrollToBottomComplete?.();
-        }, 200)
-      ];
-      return () => timers.forEach(clearTimeout);
+      const timer = setTimeout(() => {
+        scrollToBottom('auto');
+        onScrollToBottomComplete?.();
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [shouldScrollToBottom, scrollToBottom, onScrollToBottomComplete]);
-
-  // 3. ACTIVE PROMPT: Removed scroll-to-top effect since prompt is now a floating dialog
-
-  // 4. NEW MESSAGES: Auto-scroll to bottom on new messages
-  useEffect(() => {
-    if (hasScrolledInitiallyRef.current && chatMessages.length > prevMessageCountRef.current) {
-      // Multiple scroll attempts to ensure visibility
-      const timers = [
-        setTimeout(() => scrollToBottom('auto'), 0),
-        setTimeout(() => scrollToBottom('smooth'), 100),
-        setTimeout(() => scrollToBottom('auto'), 300) // Extra attempt for slow renders
-      ];
-      prevMessageCountRef.current = chatMessages.length;
-      return () => timers.forEach(t => clearTimeout(t));
-    }
-  }, [chatMessages.length, scrollToBottom]);
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -2117,7 +2066,7 @@ export function ChatTab({
         style={{ 
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
-          paddingBottom: `calc(${inputBoxHeight}px + env(safe-area-inset-bottom, 0px) + 20px)`,
+          paddingBottom: `calc(${inputBoxHeight}px + env(safe-area-inset-bottom, 0px))`,
           flex: '1 1 0',
           minHeight: 0
         }}
