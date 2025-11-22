@@ -538,8 +538,8 @@ class AdorasAPIClient {
   /**
    * Test SMS sending (diagnostic)
    */
-  async testSMS(phoneNumber: string, message?: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    return this.request<{ success: boolean; messageId?: string; error?: string }>('/test/sms', {
+  async testSMS(phoneNumber: string, message?: string): Promise<{ success: boolean; messageId?: string; error?: string; details?: any; troubleshooting?: string[] }> {
+    return this.request<{ success: boolean; messageId?: string; error?: string; details?: any; troubleshooting?: string[] }>('/test/sms', {
       method: 'POST',
       body: JSON.stringify({ phoneNumber, message }),
     }, false); // Optional auth - endpoint accepts both authenticated and unauthenticated requests
@@ -824,6 +824,46 @@ class AdorasAPIClient {
         body: JSON.stringify({ confirmationPhrase: 'CONFIRMED' }),
       }
     );
+  }
+
+  // ============================================================================
+  // PROMPTS
+  // ============================================================================
+
+  /**
+   * Get today's prompt for a user
+   * Keepers get daily topic headers, Tellers get every-2-days full prompts
+   */
+  async getTodaysPrompt(userId: string): Promise<{
+    success: boolean;
+    prompt?: {
+      date: string;
+      text: string;
+      topicHeader?: string;
+      category?: string;
+      userType: 'keeper' | 'teller';
+      answered: boolean;
+      memoryId?: string;
+    };
+    error?: string;
+  }> {
+    return this.request(`/prompts/today/${userId}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Mark a prompt as answered
+   */
+  async answerPrompt(userId: string, date: string, memoryId: string): Promise<{
+    success: boolean;
+    message?: string;
+    error?: string;
+  }> {
+    return this.request('/prompts/answer', {
+      method: 'POST',
+      body: JSON.stringify({ userId, date, memoryId }),
+    });
   }
 
   // ============================================================================
