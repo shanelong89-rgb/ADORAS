@@ -838,7 +838,7 @@ class AdorasAPIClient {
     success: boolean;
     prompt?: {
       date: string;
-      text: string;
+      question: string;
       topicHeader?: string;
       category?: string;
       userType: 'keeper' | 'teller';
@@ -847,9 +847,43 @@ class AdorasAPIClient {
     };
     error?: string;
   }> {
-    return this.request(`/prompts/today/${userId}`, {
+    const response = await this.request<{
+      success: boolean;
+      prompt?: any;
+      userPrompt?: any;
+      error?: string;
+    }>(`/prompts/today/${userId}`, {
       method: 'GET',
     });
+
+    // Transform backend response to frontend format
+    if (response.success && response.prompt && response.userPrompt) {
+      return {
+        success: true,
+        prompt: {
+          date: response.userPrompt.date,
+          question: response.prompt.question,
+          topicHeader: response.prompt.topicHeader,
+          category: response.prompt.category,
+          userType: response.prompt.userType,
+          answered: response.userPrompt.status === 'answered',
+          memoryId: response.userPrompt.memoryId,
+        },
+      };
+    }
+
+    // No prompt available for today (off-day in rotation)
+    if (response.success && !response.prompt) {
+      return {
+        success: true,
+        prompt: undefined,
+      };
+    }
+
+    return {
+      success: false,
+      error: response.error || 'Failed to load prompt',
+    };
   }
 
   /**
