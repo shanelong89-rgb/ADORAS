@@ -26,7 +26,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { Menu, Zap, MessageCircle, Image, User, Check, UserPlus, Bell, Shield, Database, HelpCircle, LogOut, List, Users, Send, Mic, Camera, BookOpen } from 'lucide-react';
+import { Menu, Zap, MessageCircle, Image, User, Check, UserPlus, Bell, Shield, Database, HelpCircle, LogOut, List, Users } from 'lucide-react';
 import { useAuth } from '../utils/api/AuthContext';
 import { realtimeSync, type PresenceState } from '../utils/realtimeSync';
 import { useTranslation } from '../utils/i18n';
@@ -99,9 +99,8 @@ export function Dashboard({
   const [shouldScrollChatToBottom, setShouldScrollChatToBottom] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activePrompt, setActivePrompt] = useState<string | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null); // Store prompt for notification modal
   const [showPromptModal, setShowPromptModal] = useState(false); // Auto-open modal for new prompts
-  const [showShareStoryModal, setShowShareStoryModal] = useState(false); // Input method picker
-  const [triggerInputMethod, setTriggerInputMethod] = useState<'text' | 'voice' | 'file' | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showAccountSettings, setShowAccountSettings] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -569,9 +568,11 @@ export function Dashboard({
       
       // Auto-set activePrompt for tellers when they receive a prompt from keeper
       if (isPrompt && userType === 'teller') {
-        setActivePrompt(newMemory.promptQuestion || '');
+        // Store prompt in pendingPrompt (for notification modal)
+        // activePrompt will be set when user clicks "Answer Now"
+        setPendingPrompt(newMemory.promptQuestion || '');
         setShowPromptModal(true); // 🎯 AUTO-OPEN MODAL for tellers
-        console.log('   ✅ Set active prompt for teller:', newMemory.promptQuestion);
+        console.log('   ✅ Showing prompt notification for:', newMemory.promptQuestion);
         console.log('   🔔 Opening prompt modal for teller to respond');
       }
       
@@ -1269,8 +1270,6 @@ export function Dashboard({
                 onDeleteMemory={onDeleteMemory}
                 shouldScrollToBottom={shouldScrollChatToBottom}
                 onScrollToBottomComplete={() => setShouldScrollChatToBottom(false)}
-                triggerInputMethod={triggerInputMethod}
-                onInputMethodTriggered={() => setTriggerInputMethod(null)}
               />
             </div>
           )}
@@ -1408,7 +1407,7 @@ export function Dashboard({
               {/* Prompt Question */}
               <div className="p-4 bg-gradient-to-br from-[rgb(245,249,233)] to-[rgb(235,244,218)] border border-primary/20 rounded-lg">
                 <p className="text-base font-medium text-foreground" style={{ fontFamily: 'Inter' }}>
-                  {activePrompt}
+                  {pendingPrompt}
                 </p>
               </div>
 
@@ -1418,7 +1417,10 @@ export function Dashboard({
                   size="lg"
                   onClick={() => {
                     setShowPromptModal(false);
-                    setShowShareStoryModal(true);
+                    setActivePrompt(pendingPrompt); // Set activePrompt when clicking "Answer Now"
+                    setActiveTab('chat');
+                    setShouldScrollChatToBottom(true);
+                    onActiveTabChange?.('chat');
                   }}
                   className="w-full font-medium"
                 >
@@ -1427,85 +1429,15 @@ export function Dashboard({
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={() => setShowPromptModal(false)}
+                  onClick={() => {
+                    setShowPromptModal(false);
+                    setPendingPrompt(null); // Clear pending prompt
+                  }}
                   className="w-full font-medium"
                 >
                   Answer Later
                 </Button>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Share Your Story Modal - Input Method Selection */}
-        <Dialog open={showShareStoryModal} onOpenChange={setShowShareStoryModal}>
-          <DialogContent 
-            className="max-w-md mx-4 sm:mx-auto
-                       top-[20%] sm:top-[25%]
-                       -translate-y-0 sm:-translate-y-0"
-            style={{ zIndex: 9999 }}
-          >
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2" style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
-                <BookOpen className="w-5 h-5" />
-                Share Your Story
-              </DialogTitle>
-              <DialogDescription style={{ fontFamily: 'Inter' }} className="text-center">
-                {activePrompt}
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-3 py-2">
-              {/* Type Button */}
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => {
-                  setShowShareStoryModal(false);
-                  setTriggerInputMethod('text');
-                  setActiveTab('chat');
-                  setShouldScrollChatToBottom(true);
-                  onActiveTabChange?.('chat');
-                }}
-                className="w-full font-medium flex items-center justify-center gap-2"
-              >
-                <Send className="w-5 h-5" />
-                Type
-              </Button>
-
-              {/* Voice Memo Button */}
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => {
-                  setShowShareStoryModal(false);
-                  setTriggerInputMethod('voice');
-                  setActiveTab('chat');
-                  setShouldScrollChatToBottom(true);
-                  onActiveTabChange?.('chat');
-                }}
-                className="w-full font-medium flex items-center justify-center gap-2"
-              >
-                <Mic className="w-5 h-5" />
-                Voice Memo
-              </Button>
-
-              {/* Photo/Video Button */}
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => {
-                  setShowShareStoryModal(false);
-                  setTriggerInputMethod('file');
-                  setActiveTab('chat');
-                  setShouldScrollChatToBottom(true);
-                  onActiveTabChange?.('chat');
-                }}
-                className="w-full font-medium flex items-center justify-center gap-2"
-              >
-                <Camera className="w-5 h-5" />
-                Photo/Video
-              </Button>
             </div>
           </DialogContent>
         </Dialog>
