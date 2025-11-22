@@ -186,7 +186,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
           {!todaysPrompt.answered ? (
             <Button
               onClick={() => handleSendToPartner(displayText || todaysPrompt.question)}
-              className="w-full bg-[#3d5a52] hover:bg-[#2d4a42] text-white"
+              className="w-full bg-[#36453B] hover:bg-[#2d4a42] text-white"
               size="lg"
             >
               <Send className="w-4 h-4 mr-2" />
