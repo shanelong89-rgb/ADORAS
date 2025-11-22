@@ -167,7 +167,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
     <div className="space-y-6">
       {/* Today's Prompt Card */}
       <Card className="border-none bg-gradient-to-b from-[rgb(182,191,179)] to-[#F5F9E9] shadow-md">
-        <CardHeader className="pb-1">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center">
@@ -180,7 +180,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Prompt Display */}
-          <div className="flex items-start gap-4 p-4 bg-white/80 rounded-xl">
+          <div className="flex items-start gap-4 p-3 bg-white/80 rounded-xl">
             <div className="text-4xl">{categoryIcon}</div>
             <div className="flex-1 space-y-2">
               {/* Show topic header for keepers */}
