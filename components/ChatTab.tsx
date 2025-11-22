@@ -1474,28 +1474,52 @@ export function ChatTab({
   }).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
   // ========================================================================
-  // 🎯 SIMPLIFIED SCROLL SYSTEM - Single reliable scroll mechanism
+  // 🎯 DEFINITIVE SCROLL SYSTEM - Waits for media to fully load
   // ========================================================================
 
-  // Scroll to bottom using the actual end reference
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
-    if (!scrollAreaRef?.current || !messagesEndRef?.current) return;
-    
-    // Use native scrollIntoView for most reliable positioning
-    messagesEndRef.current.scrollIntoView({ 
-      behavior, 
-      block: 'end' 
+    requestAnimationFrame(() => {
+      if (!messagesEndRef.current) return;
+      
+      // Use scrollIntoView for perfect alignment with browser's layout engine
+      messagesEndRef.current.scrollIntoView({ 
+        behavior, 
+        block: 'end' 
+      });
     });
   }, []);
 
-  // Single effect for all scrolling scenarios
-  useEffect(() => {
-    // Wait for DOM to be ready, then scroll
-    const timer = setTimeout(() => {
+  // Debounced media load handler - prevents excessive re-scrolls
+  const handleMediaLoad = useCallback(() => {
+    if ((handleMediaLoad as any)._timer) {
+      clearTimeout((handleMediaLoad as any)._timer);
+    }
+    (handleMediaLoad as any)._timer = setTimeout(() => {
       scrollToBottom('auto');
-    }, 50);
+    }, 150);
+  }, [scrollToBottom]);
+
+  // Single scroll effect that accounts for media loading
+  useEffect(() => {
+    if (chatMessages.length === 0) return;
     
-    return () => clearTimeout(timer);
+    // Immediate initial scroll (for text messages)
+    scrollToBottom('auto');
+    
+    // Second scroll after quick media load (images)
+    const quickTimer = setTimeout(() => scrollToBottom('auto'), 300);
+    
+    // Third scroll after slow media load (videos, large files)
+    const slowTimer = setTimeout(() => scrollToBottom('smooth'), 1000);
+    
+    // Final safety scroll for very slow connections
+    const finalTimer = setTimeout(() => scrollToBottom('auto'), 2000);
+    
+    return () => {
+      clearTimeout(quickTimer);
+      clearTimeout(slowTimer);
+      clearTimeout(finalTimer);
+    };
   }, [chatMessages.length, scrollToBottom]);
 
   // Handle explicit scroll requests from parent (tab switching)
@@ -1549,6 +1573,7 @@ export function ChatTab({
                         alt={memory.content}
                         className="w-full h-auto rounded-lg hover:opacity-90 transition-opacity"
                         loading="lazy"
+                        onLoad={handleMediaLoad}
                         onError={(e) => {
                           console.error('Photo failed to load:', memory.photoUrl?.substring(0, 100));
                           // Show placeholder on error
@@ -1731,7 +1756,9 @@ export function ChatTab({
                           if (isFullyLoaded) {
                             console.log('✅ Video loaded:', memory.content, 'URL:', memory.videoUrl);
                           }
+                          handleMediaLoad();
                         }}
+                        onLoadedData={handleMediaLoad}
                         onLoadStart={() => {
                           if (isFullyLoaded) {
                             console.log('🎬 Video loading started:', {
@@ -2061,7 +2088,7 @@ export function ChatTab({
 
       {/* Messages Area - Scrollable flex-1 container */}
       <div 
-        className="overflow-y-auto overscroll-contain pt-safe-top pb-3"
+        className="overflow-y-auto overscroll-contain pt-safe-top flex flex-col justify-end"
         ref={scrollAreaRef}
         style={{ 
           touchAction: 'pan-y',
