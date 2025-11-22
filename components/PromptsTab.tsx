@@ -173,7 +173,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
               <div className="w-10 h-10 rounded-xl bg-white/80 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-[#3d5a52]" />
               </div>
-              <CardTitle className="text-lg text-[rgb(255,255,255)]">Today's Prompt</CardTitle>
+              <CardTitle className="text-lg text-[rgb(255,255,255)]" style={{ fontFamily: 'Archivo' }}>Today's Prompt</CardTitle>
             </div>
             <Clock className="w-4 h-4 text-[#6b6b6b]" />
           </div>
@@ -191,7 +191,7 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
                   </Badge>
                 </div>
               )}
-              <p className="text-lg text-[#2d2d2d]">{displayText}</p>
+              <p className="text-lg text-[#2d2d2d]" style={{ fontFamily: 'Archivo' }}>{displayText}</p>
               {todaysPrompt.category && (
                 <Badge variant="secondary" className="bg-white/60 text-[#3d5a52] border-none">
                   {todaysPrompt.category}
