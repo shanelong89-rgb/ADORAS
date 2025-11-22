@@ -2142,7 +2142,7 @@ export function ChatTab({
             })
           )}
           {/* Spacer to ensure last message is visible above input box */}
-          <div style={{ height: `${inputBoxHeight + 20}px`, flexShrink: 0 }} />
+          <div style={{ height: `${inputBoxHeight + 0}px`, flexShrink: 0 }} />
           <div ref={messagesEndRef} />
         </div>
       </div>
