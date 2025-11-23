@@ -124,7 +124,7 @@ export default function App() {
   // Check if simple test mode is enabled
   const isSimpleTestMode = new URLSearchParams(window.location.search).get('test') === 'true';
   // Check if admin mode is enabled
-  const isAdminMode = window.location.pathname === '/adminv2';
+  const isAdminMode = window.location.pathname === '/adminv2' || window.location.pathname === '/admin/v2';
 
   useEffect(() => {
     // Phase 3f: Setup global error handlers and performance monitoring
