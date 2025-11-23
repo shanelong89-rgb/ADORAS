@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { SmartAvatar } from './SmartAvatar';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
@@ -289,7 +290,7 @@ export function KeeperConnections({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent 
-          className="max-w-[min(calc(100vw-1rem),640px)] max-h-[90vh] p-0 flex flex-col"
+          className="max-w-[min(calc(100vw-1rem),640px)] max-h-[70vh] p-0 flex flex-col"
           style={{ overflowX: 'hidden', width: '100%' }}
         >
           <DialogHeader className="px-4 sm:px-6 pt-6 pb-4 shrink-0" style={{ overflowX: 'hidden' }}>
@@ -346,12 +347,13 @@ export function KeeperConnections({
                           className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                           style={{ overflowX: 'hidden', maxWidth: '100%' }}
                         >
-                          <Avatar className="w-12 h-12 border-2 border-primary/20 shrink-0">
-                            <AvatarImage src={request.sender.photo} />
-                            <AvatarFallback className="bg-primary/10 text-primary">
-                              {request.sender.name[0]}
-                            </AvatarFallback>
-                          </Avatar>
+                          <SmartAvatar
+                            src={request.sender.photo}
+                            alt={request.sender.name}
+                            fallback={request.sender.name[0]?.toUpperCase() || '?'}
+                            fallbackClassName="bg-primary/10 text-primary"
+                            className="w-12 h-12 border-2 border-primary/20 shrink-0"
+                          />
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
@@ -443,12 +445,13 @@ export function KeeperConnections({
                         >
                           {/* Header: Avatar + Name + Badge */}
                           <div className="flex items-start gap-3">
-                            <Avatar className="w-12 h-12 sm:w-16 sm:h-16 border-2 border-primary/20 shrink-0">
-                              <AvatarImage src={connection.partner.photo} />
-                              <AvatarFallback className="bg-primary/10 text-primary text-base sm:text-lg">
-                                {connection.partner.name[0]}
-                              </AvatarFallback>
-                            </Avatar>
+                            <SmartAvatar
+                              src={connection.partner.photo}
+                              alt={connection.partner.name}
+                              fallback={connection.partner.name[0]?.toUpperCase() || '?'}
+                              fallbackClassName="bg-primary/10 text-primary text-base sm:text-lg"
+                              className="w-12 h-12 sm:w-16 sm:h-16 border-2 border-primary/20 shrink-0"
+                            />
 
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
