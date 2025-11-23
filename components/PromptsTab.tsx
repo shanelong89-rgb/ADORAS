@@ -25,6 +25,7 @@ interface TodaysPrompt {
   userType: 'keeper' | 'teller';
   answered: boolean;
   memoryId?: string;
+  isShared?: boolean; // ✅ V289.2: NEW - indicates connection-level prompt
 }
 
 interface RandomPrompt {
@@ -185,18 +186,32 @@ export function PromptsTab({ userType, partnerName, partnerProfile, onAddMemory,
             <div className="flex-1 space-y-2">
               {/* Show topic header for keepers */}
               {showTopicHeader && (
-                <div className="mb-2">
+                <div className="mb-2 flex items-center gap-2 flex-wrap">
                   <Badge variant="default" className="bg-[#3d5a52] text-white border-none text-sm">
                     📌 {todaysPrompt.topicHeader}
                   </Badge>
+                  {/* ✅ V289.2: Show (Shared) badge for connection-level prompts */}
+                  {todaysPrompt.isShared && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-xs">
+                      🤝 Shared
+                    </Badge>
+                  )}
                 </div>
               )}
               <p className="text-lg text-[#2d2d2d] leading-snug" style={{ fontFamily: 'Archivo' }}>{displayText}</p>
-              {todaysPrompt.category && (
-                <Badge variant="secondary" className="bg-white/60 text-[#3d5a52] border-none">
-                  {todaysPrompt.category}
-                </Badge>
-              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {todaysPrompt.category && (
+                  <Badge variant="secondary" className="bg-white/60 text-[#3d5a52] border-none">
+                    {todaysPrompt.category}
+                  </Badge>
+                )}
+                {/* ✅ V289.2: Show (Shared) badge if no topic header but is shared */}
+                {todaysPrompt.isShared && !showTopicHeader && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300 text-xs">
+                    🤝 Shared
+                  </Badge>
+                )}
+              </div>
               
               {/* Keeper-specific info */}
               {isKeeper && (
