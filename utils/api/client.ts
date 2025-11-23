@@ -835,6 +835,45 @@ class AdorasAPIClient {
     );
   }
 
+  /**
+   * Get user's personal invite code
+   */
+  async getInviteCode(): Promise<{ success: boolean; inviteCode?: string; error?: string }> {
+    return this.request<{ success: boolean; inviteCode?: string; error?: string }>(
+      '/invite-code',
+      {
+        method: 'GET',
+      }
+    );
+  }
+
+  /**
+   * Send connection request using someone's invite code
+   */
+  async sendConnectionRequest(inviteCode: string): Promise<{ 
+    success: boolean; 
+    message?: string; 
+    request?: {
+      id: string;
+      recipientName: string;
+      recipientEmail: string;
+    };
+    error?: string;
+  }> {
+    return this.request<{ 
+      success: boolean; 
+      message?: string; 
+      request?: any;
+      error?: string;
+    }>(
+      '/send-connection-request',
+      {
+        method: 'POST',
+        body: JSON.stringify({ inviteCode }),
+      }
+    );
+  }
+
   // ============================================================================
   // PROMPTS
   // ============================================================================
