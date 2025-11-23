@@ -2095,7 +2095,7 @@ export function ChatTab({
           WebkitOverflowScrolling: 'touch',
           flex: '1 1 0',
           minHeight: 0,
-          paddingTop: 'max(180px, env(safe-area-inset-top, 0px) + 180px)'
+          paddingTop: 'max(500px, env(safe-area-inset-top, 100px) + 500px)'
         }}
       >
         <div 
