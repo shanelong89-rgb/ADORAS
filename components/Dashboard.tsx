@@ -93,7 +93,7 @@ export function Dashboard({
   unreadCounts = {},
   onActiveTabChange
 }: DashboardProps) {
-  const { signout } = useAuth();
+  const { signout, accessToken } = useAuth();
   const { t } = useTranslation(userProfile.appLanguage || 'english');
   const { toasts, showToast, closeToast } = useInAppToasts();
   const [activeTab, setActiveTab] = useState('prompts');
@@ -244,15 +244,13 @@ export function Dashboard({
 
   // Sync user timezone for 8am prompt notifications
   useEffect(() => {
-    const syncTimezone = async () => {
-      const { accessToken } = useAuth.getState();
-      if (accessToken && needsTimezoneSync()) {
-        console.log('🌍 Syncing timezone for 8am prompt notifications...');
-        await syncTimezoneToBackend(accessToken);
-      }
-    };
-    syncTimezone();
-  }, []); // Run once on mount
+    if (accessToken && needsTimezoneSync()) {
+      console.log('🌍 Syncing timezone for 8am prompt notifications...');
+      syncTimezoneToBackend(accessToken).catch(err => 
+        console.error('Failed to sync timezone:', err)
+      );
+    }
+  }, [accessToken]); // Run once when accessToken is available
 
   // Update document title with unread count
   useEffect(() => {
@@ -488,11 +486,19 @@ export function Dashboard({
 
   // Mark messages as read when switching connections + show loading state
   const prevConnectionIdRef = useRef<string | undefined>();
+  const hasInitializedConnectionRef = useRef(false);
+  
   useEffect(() => {
     const currentConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
     
-    // Only trigger when connection actually changes
-    if (currentConnectionId && currentConnectionId !== prevConnectionIdRef.current && prevConnectionIdRef.current !== undefined) {
+    // Only trigger when connection actually changes (not on initial load)
+    const isActualSwitch = currentConnectionId && 
+                          currentConnectionId !== prevConnectionIdRef.current && 
+                          prevConnectionIdRef.current !== undefined &&
+                          prevConnectionIdRef.current !== '' && // Ignore empty string initial state
+                          hasInitializedConnectionRef.current; // Ignore first load
+    
+    if (isActualSwitch) {
       console.log(`🔄 Connection switched to ${currentConnectionId}`);
       
       // Show loading state during switch
@@ -520,6 +526,11 @@ export function Dashboard({
       }, 1000); // 1 second delay to allow memories to load and populate state
       
       return () => clearTimeout(timer);
+    }
+    
+    // Mark as initialized after first connection ID is set
+    if (currentConnectionId && !hasInitializedConnectionRef.current) {
+      hasInitializedConnectionRef.current = true;
     }
     
     prevConnectionIdRef.current = currentConnectionId;
