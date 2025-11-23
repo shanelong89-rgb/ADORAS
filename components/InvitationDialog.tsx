@@ -135,17 +135,19 @@ export function InvitationDialog({
         // Clear form
         setPartnerEmail('');
         
-        // Close dialog after 2 seconds
+        // Close dialog after 1.5 seconds (faster to prevent stuck overlay)
         setTimeout(() => {
-          onClose();
           setSuccess(null);
-        }, 2000);
+          setError(null);
+          setIsLoading(false);
+          onClose();
+        }, 1500);
       } else {
         setError(result.error || 'Failed to send connection request');
+        setIsLoading(false);
       }
     } catch (err) {
       setError('Network error. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
