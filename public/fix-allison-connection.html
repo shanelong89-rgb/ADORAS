@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Allison Connection</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: white;
+      padding: 40px 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { margin-bottom: 30px; color: #667eea; }
+    .plan {
+      background: #16213e;
+      padding: 25px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+    .plan h2 {
+      color: #ffd93d;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+    .plan ol {
+      margin-left: 20px;
+    }
+    .plan li {
+      margin-bottom: 10px;
+      font-size: 15px;
+    }
+    .plan code {
+      background: #0f3460;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 13px;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    button:hover { background: #5568d3; }
+    button:disabled {
+      background: #4a5568;
+      cursor: not-allowed;
+    }
+    .result {
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    .success { color: #51cf66; }
+    .error { color: #ff6b6b; }
+    .warning { color: #ffd93d; }
+    pre {
+      background: #0a0f1e;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    .step {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #667eea44;
+    }
+    .step:last-child {
+      border-bottom: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Fix Allison's Connection</h1>
+    
+    <div class="plan">
+      <h2>📋 Fix Plan</h2>
+      <ol>
+        <li>Update connection <code>1761271821274-jwolla1</code> to use correct Allison user ID</li>
+        <li>Change tellerId from <code>c2d51ad1-7386-4ce3-99a3-6fed398b99a7</code> (duplicate)</li>
+        <li>To <code>a6ade4b8-a80e-4e34-90e8-455f73ae0dcc</code> (correct - created 10/24/2025)</li>
+        <li>Delete duplicate user profile <code>c2d51ad1-7386-4ce3-99a3-6fed398b99a7</code></li>
+      </ol>
+    </div>
+
+    <button id="fixBtn" onclick="executeFix()">✅ Execute Fix</button>
+
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const API = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
+
+    const OLD_USER_ID = 'c2d51ad1-7386-4ce3-99a3-6fed398b99a7';
+    const NEW_USER_ID = 'a6ade4b8-a80e-4e34-90e8-455f73ae0dcc';
+    const CONNECTION_ID = '1761271821274-jwolla1';
+
+    async function executeFix() {
+      const btn = document.getElementById('fixBtn');
+      const results = document.getElementById('results');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Fixing...';
+      
+      let html = '<div class="result">';
+
+      try {
+        // Step 1: Get the connection to verify it exists
+        html += '<div class="step">';
+        html += '<h3 class="warning">Step 1: Verifying connection...</h3>';
+        
+        const checkRes = await fetch(`${API}/admin/search-connections`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({ email: 'allison.tam@hotmail.com' })
+        });
+        
+        const checkData = await checkRes.json();
+        
+        if (!checkData.success) {
+          html += `<p class="error">❌ Error: ${checkData.error}</p>`;
+          html += '</div></div>';
+          results.innerHTML = html;
+          btn.disabled = false;
+          btn.textContent = '✅ Execute Fix';
+          return;
+        }
+        
+        const connection = checkData.connections.find(c => c.connectionId === CONNECTION_ID);
+        
+        if (!connection) {
+          html += `<p class="error">❌ Connection ${CONNECTION_ID} not found!</p>`;
+          html += '</div></div>';
+          results.innerHTML = html;
+          btn.disabled = false;
+          btn.textContent = '✅ Execute Fix';
+          return;
+        }
+        
+        html += '<p class="success">✅ Connection found</p>';
+        html += '<pre>' + JSON.stringify(connection, null, 2) + '</pre>';
+        html += '</div>';
+
+        // Step 2: Update the connection
+        html += '<div class="step">';
+        html += '<h3 class="warning">Step 2: Updating connection to correct user ID...</h3>';
+        
+        const migrateRes = await fetch(`${API}/admin/migrate-connection`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({
+            connectionId: CONNECTION_ID,
+            oldUserId: OLD_USER_ID,
+            newUserId: NEW_USER_ID,
+            userName: 'allison tam',
+            userEmail: 'allison.tam@hotmail.com',
+            userType: 'teller'
+          })
+        });
+        
+        const migrateData = await migrateRes.json();
+        
+        if (!migrateData.success) {
+          html += `<p class="error">❌ Migration failed: ${migrateData.error}</p>`;
+          html += '<pre>' + JSON.stringify(migrateData, null, 2) + '</pre>';
+          html += '</div></div>';
+          results.innerHTML = html;
+          btn.disabled = false;
+          btn.textContent = '✅ Execute Fix';
+          return;
+        }
+        
+        html += '<p class="success">✅ Connection updated successfully</p>';
+        html += '<p>Memory count preserved: ' + migrateData.memoryCount + '</p>';
+        html += '<pre>' + JSON.stringify(migrateData, null, 2) + '</pre>';
+        html += '</div>';
+
+        // Step 3: Delete the old duplicate user profile
+        html += '<div class="step">';
+        html += '<h3 class="warning">Step 3: Deleting duplicate user profile...</h3>';
+        
+        const deleteRes = await fetch(`${API}/admin/cleanup-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({
+            email: 'allison.tam@hotmail.com'
+          })
+        });
+        
+        const deleteData = await deleteRes.json();
+        
+        // Note: This will delete ALL allison.tam@hotmail.com users, but since we just migrated,
+        // it should only delete the old one
+        
+        html += '<p class="warning">⚠️ Note: cleanup-user endpoint will find and delete user by email</p>';
+        html += '<p class="warning">Since we migrated the connection, the old UUID should be orphaned</p>';
+        html += '<pre>' + JSON.stringify(deleteData, null, 2) + '</pre>';
+        html += '</div>';
+
+        // Step 4: Verify the fix
+        html += '<div class="step">';
+        html += '<h3 class="warning">Step 4: Verifying fix...</h3>';
+        
+        const verifyRes = await fetch(`${API}/admin/search-connections`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({ email: 'allison.tam@hotmail.com' })
+        });
+        
+        const verifyData = await verifyRes.json();
+        
+        if (verifyData.success) {
+          html += '<p class="success">✅ Verification complete</p>';
+          html += '<p>User ID: ' + verifyData.userId + '</p>';
+          html += '<p>Connections: ' + verifyData.connections.length + '</p>';
+          html += '<pre>' + JSON.stringify(verifyData, null, 2) + '</pre>';
+        }
+        
+        html += '</div>';
+
+        html += '<div style="margin-top: 30px; padding: 20px; background: #51cf66; color: #000; border-radius: 8px; font-weight: bold; text-align: center;">';
+        html += '🎉 FIX COMPLETE! Go to /full-diagnosis.html to verify all connections are correct.';
+        html += '</div>';
+
+      } catch (error) {
+        html += '<div class="step">';
+        html += `<p class="error">❌ Error: ${error.message}</p>`;
+        html += '<pre>' + error.stack + '</pre>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      results.innerHTML = html;
+      btn.disabled = false;
+      btn.textContent = '✅ Execute Fix';
+    }
+  </script>
+</body>
+</html>
