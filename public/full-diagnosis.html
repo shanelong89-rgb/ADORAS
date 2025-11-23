@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Full Database Diagnosis</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: white;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; }
+    h2 { margin-top: 30px; color: #667eea; }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 10px 10px 0;
+    }
+    button:hover { background: #5568d3; }
+    pre {
+      background: #0f3460;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-top: 10px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 12px;
+    }
+    .section {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .error { color: #ff6b6b; }
+    .success { color: #51cf66; }
+    .warning { color: #ffd93d; }
+    .info { color: #74c0fc; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #667eea;
+    }
+    th {
+      background: #0f3460;
+      font-weight: bold;
+    }
+    tr:hover {
+      background: #0f3460;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Full Database Diagnosis</h1>
+    
+    <div class="section">
+      <h2>Run Complete Scan</h2>
+      <button onclick="runFullScan()">🔎 Scan Everything</button>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const API = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
+
+    async function runFullScan() {
+      const results = document.getElementById('results');
+      results.innerHTML = '<div class="section">Scanning database...</div>';
+
+      try {
+        // Get all data types
+        const [usersRes, connectionsRes, invitationsRes, requestsRes] = await Promise.all([
+          fetch(`${API}/admin/check-users`, { headers: { 'Authorization': `Bearer ${KEY}` } }),
+          fetch(`${API}/admin/check-connections`, { headers: { 'Authorization': `Bearer ${KEY}` } }),
+          fetch(`${API}/admin/check-invitations`, { headers: { 'Authorization': `Bearer ${KEY}` } }),
+          fetch(`${API}/admin/connection-requests`, { headers: { 'Authorization': `Bearer ${KEY}` } })
+        ]);
+
+        const users = await usersRes.json();
+        const connections = await connectionsRes.json();
+        const invitations = await invitationsRes.json();
+        const requests = await requestsRes.json();
+
+        let html = '';
+
+        // USERS
+        html += '<div class="section">';
+        html += '<h2>👥 Users (' + (users.users?.length || 0) + ')</h2>';
+        if (users.users && users.users.length > 0) {
+          html += '<table>';
+          html += '<tr><th>ID</th><th>Name</th><th>Email</th><th>Type</th><th>Created</th></tr>';
+          users.users.forEach(user => {
+            html += '<tr>';
+            html += '<td><code>' + user.id + '</code></td>';
+            html += '<td>' + user.name + '</td>';
+            html += '<td>' + user.email + '</td>';
+            html += '<td>' + user.type + '</td>';
+            html += '<td>' + new Date(user.createdAt).toLocaleString() + '</td>';
+            html += '</tr>';
+          });
+          html += '</table>';
+        } else {
+          html += '<p class="error">❌ No users found!</p>';
+        }
+        html += '<pre>' + JSON.stringify(users, null, 2) + '</pre>';
+        html += '</div>';
+
+        // CONNECTIONS
+        html += '<div class="section">';
+        html += '<h2>🔗 Connections (' + (connections.connections?.length || 0) + ')</h2>';
+        if (connections.connections && connections.connections.length > 0) {
+          html += '<table>';
+          html += '<tr><th>ID</th><th>Keeper</th><th>Teller</th><th>Same Role</th><th>Created</th></tr>';
+          connections.connections.forEach(conn => {
+            html += '<tr>';
+            html += '<td><code>' + conn.connectionId + '</code></td>';
+            html += '<td>' + conn.keeperName + ' (' + conn.keeperType + ')</td>';
+            html += '<td>' + conn.tellerName + ' (' + conn.tellerType + ')</td>';
+            html += '<td>' + (conn.isSameRole ? 'Yes' : 'No') + '</td>';
+            html += '<td>' + new Date(conn.createdAt).toLocaleString() + '</td>';
+            html += '</tr>';
+          });
+          html += '</table>';
+        } else {
+          html += '<p class="error">❌ No connections found!</p>';
+        }
+        html += '<pre>' + JSON.stringify(connections, null, 2) + '</pre>';
+        html += '</div>';
+
+        // INVITATIONS
+        html += '<div class="section">';
+        html += '<h2>✉️ Invitations (' + (invitations.invitations?.length || 0) + ')</h2>';
+        if (invitations.invitations && invitations.invitations.length > 0) {
+          html += '<table>';
+          html += '<tr><th>Code</th><th>Keeper</th><th>Teller Name</th><th>Status</th><th>Created</th></tr>';
+          invitations.invitations.forEach(inv => {
+            html += '<tr>';
+            html += '<td><code>' + inv.code + '</code></td>';
+            html += '<td>' + inv.keeperName + '</td>';
+            html += '<td>' + inv.tellerName + '</td>';
+            html += '<td>' + inv.status + '</td>';
+            html += '<td>' + new Date(inv.createdAt).toLocaleString() + '</td>';
+            html += '</tr>';
+          });
+          html += '</table>';
+        } else {
+          html += '<p class="info">ℹ️ No invitations found</p>';
+        }
+        html += '<pre>' + JSON.stringify(invitations, null, 2) + '</pre>';
+        html += '</div>';
+
+        // CONNECTION REQUESTS
+        html += '<div class="section">';
+        html += '<h2>📨 Connection Requests (' + (requests.requests?.length || 0) + ')</h2>';
+        if (requests.requests && requests.requests.length > 0) {
+          html += '<table>';
+          html += '<tr><th>ID</th><th>Sender</th><th>Receiver</th><th>Status</th></tr>';
+          requests.requests.forEach(req => {
+            html += '<tr>';
+            html += '<td><code>' + req.id + '</code></td>';
+            html += '<td>' + req.sender_name + ' (' + req.sender_email + ')</td>';
+            html += '<td>' + req.receiver_name + ' (' + req.receiver_email + ')</td>';
+            html += '<td>' + req.status + '</td>';
+            html += '</tr>';
+          });
+          html += '</table>';
+        } else {
+          html += '<p class="info">ℹ️ No connection requests found</p>';
+        }
+        html += '<pre>' + JSON.stringify(requests, null, 2) + '</pre>';
+        html += '</div>';
+
+        // SUMMARY
+        html += '<div class="section">';
+        html += '<h2>📊 Summary</h2>';
+        html += '<p><strong>Total Users:</strong> ' + (users.users?.length || 0) + '</p>';
+        html += '<p><strong>Total Connections:</strong> ' + (connections.connections?.length || 0) + '</p>';
+        html += '<p><strong>Total Invitations:</strong> ' + (invitations.invitations?.length || 0) + '</p>';
+        html += '<p><strong>Total Connection Requests:</strong> ' + (requests.requests?.length || 0) + '</p>';
+        
+        if ((users.users?.length || 0) === 0) {
+          html += '<p class="error" style="margin-top: 20px;">🚨 CRITICAL: No users exist in the database!</p>';
+        }
+        if ((connections.connections?.length || 0) === 0) {
+          html += '<p class="error" style="margin-top: 10px;">🚨 CRITICAL: No connections exist in the database!</p>';
+        }
+        html += '</div>';
+
+        results.innerHTML = html;
+      } catch (error) {
+        results.innerHTML = `<div class="section error">❌ Error: ${error.message}</div>`;
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+</html>
