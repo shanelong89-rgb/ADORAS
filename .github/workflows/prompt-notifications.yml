@@ -1,0 +1,16 @@
+name: Send Prompt Notifications
+
+on:
+  schedule:
+    # Runs every hour at minute 0
+    - cron: '0 * * * *'
+  workflow_dispatch: # Manual trigger
+
+jobs:
+  send-notifications:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Prompt Notifications
+        run: |
+          curl -X POST https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb/cron/send-prompt-notifications \
+            -H "Content-Type: application/json"
