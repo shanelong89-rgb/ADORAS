@@ -1,5 +1,5 @@
 // Adoras Service Worker - PWA Support
-// Version 289 - Clean prompts service rewrite + 8am timezone notifications
+// Version 289.1 - Fixed double load + timezone sync + prompts service
 
 const CACHE_NAME = 'adoras-v289';
 const RUNTIME_CACHE = 'adoras-runtime-v289';
