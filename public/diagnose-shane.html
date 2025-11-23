@@ -68,6 +68,13 @@
           headers: { 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: 'shanelong@gmail.com', password: 'shanelong' })
         });
+        
+        if (!loginRes.ok) {
+          const errorText = await loginRes.text();
+          results.innerHTML = `<div class="section error">❌ HTTP Error ${loginRes.status}: ${errorText}</div>`;
+          return;
+        }
+        
         const loginData = await loginRes.json();
         
         if (!loginData.success) {
@@ -81,10 +88,18 @@
         let html = `<div class="section success">✅ Shane's User ID: <code>${shaneId}</code></div>`;
 
         // Step 2: Get Shane's connections
-        const connectionsRes = await fetch(`${API}/connections/list`, {
+        const connectionsRes = await fetch(`${API}/connections`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${shaneToken}` }
         });
+        
+        if (!connectionsRes.ok) {
+          const errorText = await connectionsRes.text();
+          html += `<div class="section error">❌ Connections Error ${connectionsRes.status}: ${errorText}</div>`;
+          results.innerHTML = html;
+          return;
+        }
+        
         const connectionsData = await connectionsRes.json();
 
         html += `<div class="section"><h2>📋 Shane's Connections (${connectionsData.connections?.length || 0})</h2>`;
