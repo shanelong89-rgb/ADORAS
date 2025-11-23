@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADORAS Connection Fix</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      max-width: 1200px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    button.danger {
+      background: #e53e3e;
+    }
+    button.danger:hover {
+      background: #c53030;
+    }
+    button.success {
+      background: #48bb78;
+    }
+    button.success:hover {
+      background: #38a169;
+    }
+    pre {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .result {
+      margin-top: 20px;
+    }
+    .success-msg {
+      background: #c6f6d5;
+      border: 2px solid #48bb78;
+      color: #22543d;
+      padding: 16px;
+      border-radius: 6px;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    .error-msg {
+      background: #fed7d7;
+      border: 2px solid #fc8181;
+      color: #742a2a;
+      padding: 16px;
+      border-radius: 6px;
+      margin-top: 20px;
+      font-weight: 600;
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .highlight {
+      background: #fef3c7;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔧 ADORAS Connection Fix Utility</h1>
+  
+  <div class="card">
+    <h2>Step 0: Check/Fix User Account</h2>
+    <p>Check if Allison's account exists and recreate it if needed.</p>
+    <button onclick="checkUser()">🔍 Check Allison's Account</button>
+    <button class="success" onclick="recreateAllison()">✨ Recreate Allison's Account</button>
+    <div id="userResult" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>Step 1: Diagnose</h2>
+    <p>Run diagnostics to see all users and connections, identify the problem.</p>
+    <button onclick="diagnose()">🔍 Run Diagnostics</button>
+    <div id="diagnoseResult" class="result"></div>
+  </div>
+
+  <div class="card">
+    <h2>Step 2: Auto-Fix Shane ↔ Allison</h2>
+    <p>Automatically fix the Shane ↔ Allison connection by replacing the invalid user ID.</p>
+    <button class="success" onclick="autoFix()">✅ Auto-Fix Connection</button>
+    <div id="fixResult" class="result"></div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
+
+    async function checkUser() {
+      const btn = event.target;
+      const resultDiv = document.getElementById('userResult');
+      
+      btn.innerHTML = '<span class="spinner"></span> Checking...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/fix/check-user`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ANON_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email: 'allison.tam@hotmail.com' })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          let html = '<div class="success-msg">✅ User Check Complete</div>';
+          
+          html += '<h3>Account Status</h3>';
+          html += `<p>Email: <code>${data.email}</code></p>`;
+          html += `<p>Auth Exists: <span class="highlight">${data.auth.exists ? 'YES ✅' : 'NO ❌'}</span></p>`;
+          html += `<p>Profile Exists: <span class="highlight">${data.profile.exists ? 'YES ✅' : 'NO ❌'}</span></p>`;
+          html += `<p>Supabase Auth: <span class="highlight">${data.supabase.exists ? 'YES ✅' : 'NO ❌'}</span></p>`;
+
+          html += '<h3>Login Status</h3>';
+          if (data.status.canLogin) {
+            html += '<div class="success-msg">✅ Account is ready - Allison can login!</div>';
+          } else {
+            html += '<div class="error-msg">❌ Account has issues - cannot login</div>';
+            if (data.status.needsAuth) html += '<p>❌ Missing auth record</p>';
+            if (data.status.needsProfile) html += '<p>❌ Missing profile</p>';
+            if (data.status.needsSupabase) html += '<p>❌ Missing Supabase auth</p>';
+            html += '<p><strong>→ Click "Recreate Allison\'s Account" to fix</strong></p>';
+          }
+
+          if (data.profile.data) {
+            html += '<h3>Profile Details</h3>';
+            html += `<p>ID: <code>${data.profile.data.id}</code></p>`;
+            html += `<p>Name: ${data.profile.data.name}</p>`;
+            html += `<p>Type: ${data.profile.data.type}</p>`;
+          }
+
+          html += '<h3>Full Response</h3>';
+          html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = `<div class="error-msg">❌ Error: ${data.error}</div>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="error-msg">❌ Network Error: ${error.message}</div>`;
+      }
+
+      btn.innerHTML = '🔍 Check Allison\'s Account';
+      btn.disabled = false;
+    }
+
+    async function recreateAllison() {
+      if (!confirm('This will recreate Allison\'s account with password "password123". Continue?')) {
+        return;
+      }
+
+      const btn = event.target;
+      const resultDiv = document.getElementById('userResult');
+      
+      btn.innerHTML = '<span class="spinner"></span> Recreating...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/fix/recreate-user`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ANON_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            email: 'allison.tam@hotmail.com',
+            password: 'password123',
+            name: 'Allison Tam',
+            type: 'keeper',
+            relationship: '',
+            bio: ''
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          let html = '<div class="success-msg">✅ ALLISON\'S ACCOUNT RECREATED SUCCESSFULLY!</div>';
+          
+          html += '<h3>Account Details</h3>';
+          html += `<p>ID: <code>${data.user.id}</code></p>`;
+          html += `<p>Email: ${data.user.email}</p>`;
+          html += `<p>Name: ${data.user.name}</p>`;
+          html += `<p>Type: ${data.user.type}</p>`;
+
+          html += '<h3>Login Credentials</h3>';
+          html += `<p>Email: <code>allison.tam@hotmail.com</code></p>`;
+          html += `<p>Password: <code>password123</code></p>`;
+          html += '<p><strong>→ Allison can now log in!</strong></p>';
+          
+          html += '<h3>Full Response</h3>';
+          html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = `<div class="error-msg">❌ Error: ${data.error}</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="error-msg">❌ Network Error: ${error.message}</div>`;
+      }
+
+      btn.innerHTML = '✨ Recreate Allison\'s Account';
+      btn.disabled = false;
+    }
+
+    async function diagnose() {
+      const btn = event.target;
+      const resultDiv = document.getElementById('diagnoseResult');
+      
+      btn.innerHTML = '<span class="spinner"></span> Running...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/fix/diagnose`, {
+          headers: {
+            'Authorization': `Bearer ${ANON_KEY}`
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          let html = '<div class="success-msg">✅ Diagnostics Complete</div>';
+          
+          html += '<h3>Summary</h3>';
+          html += `<p>Total Users: <span class="highlight">${data.summary.totalUsers}</span></p>`;
+          html += `<p>Total Connections: <span class="highlight">${data.summary.totalConnections}</span></p>`;
+          html += `<p>Shane Found: <span class="highlight">${data.summary.shaneFound ? 'YES' : 'NO'}</span></p>`;
+          html += `<p>Allison Found: <span class="highlight">${data.summary.allisonFound ? 'YES' : 'NO'}</span></p>`;
+
+          if (data.users.shane) {
+            html += '<h3>Shane Long</h3>';
+            html += `<p>ID: <code>${data.users.shane.id}</code></p>`;
+            html += `<p>Email: ${data.users.shane.email}</p>`;
+            html += `<p>Type: ${data.users.shane.type}</p>`;
+          }
+
+          if (data.users.allison) {
+            html += '<h3>Allison Tam</h3>';
+            html += `<p>ID: <code>${data.users.allison.id}</code></p>`;
+            html += `<p>Email: ${data.users.allison.email}</p>`;
+            html += `<p>Type: ${data.users.allison.type}</p>`;
+          }
+
+          if (data.connections.shaneConnections && data.connections.shaneConnections.length > 0) {
+            html += '<h3>Shane\'s Connections</h3>';
+            data.connections.shaneConnections.forEach(conn => {
+              const isProblematic = conn.keeperName === 'MISSING PROFILE' || conn.tellerName === 'MISSING PROFILE';
+              html += `<div style="background: ${isProblematic ? '#fed7d7' : '#f7fafc'}; padding: 12px; margin: 8px 0; border-radius: 4px; border: ${isProblematic ? '2px solid #fc8181' : '1px solid #e2e8f0'}">`;
+              html += `<strong>${isProblematic ? '⚠️ PROBLEMATIC: ' : ''}${conn.keeperName} ↔ ${conn.tellerName}</strong><br>`;
+              html += `Connection ID: <code>${conn.connectionId}</code><br>`;
+              html += `Memories: <span class="highlight">${conn.memoryCount}</span><br>`;
+              html += `Keeper: ${conn.keeperEmail} (${conn.keeperId})<br>`;
+              html += `Teller: ${conn.tellerEmail} (${conn.tellerId})`;
+              html += '</div>';
+            });
+          }
+
+          if (data.connections.problematic) {
+            html += '<div class="error-msg">⚠️ PROBLEMATIC CONNECTION FOUND</div>';
+            html += '<h3>Problem Details</h3>';
+            html += `<p>Connection ID: <code>${data.connections.problematic.connectionId}</code></p>`;
+            html += `<p>Memories: <span class="highlight">${data.connections.problematic.memoryCount} memories need proper attribution!</span></p>`;
+            html += `<p>Keeper: ${data.connections.problematic.keeperName} (${data.connections.problematic.keeperId})</p>`;
+            html += `<p>Teller: ${data.connections.problematic.tellerName} (${data.connections.problematic.tellerId})</p>`;
+          }
+
+          html += '<h3>Full Response</h3>';
+          html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = `<div class="error-msg">❌ Error: ${data.error}</div>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="error-msg">❌ Network Error: ${error.message}</div>`;
+      }
+
+      btn.innerHTML = '🔍 Run Diagnostics';
+      btn.disabled = false;
+    }
+
+    async function autoFix() {
+      if (!confirm('This will automatically fix the Shane ↔ Allison connection by replacing the invalid user ID. Continue?')) {
+        return;
+      }
+
+      const btn = event.target;
+      const resultDiv = document.getElementById('fixResult');
+      
+      btn.innerHTML = '<span class="spinner"></span> Fixing...';
+      btn.disabled = true;
+
+      try {
+        const response = await fetch(`${API_BASE}/fix/auto-fix-shane-allison`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          let html = '<div class="success-msg">✅ CONNECTION FIXED SUCCESSFULLY!</div>';
+          
+          html += '<h3>Fix Details</h3>';
+          html += `<p>Connection ID: <code>${data.details.connectionId}</code></p>`;
+          html += `<p>Memories Preserved: <span class="highlight">${data.details.memoryCount}</span></p>`;
+          html += `<p>Invalid User ID Removed: <code>${data.details.invalidUserId}</code></p>`;
+          
+          html += '<h3>Replaced With</h3>';
+          html += `<p>User: <strong>${data.details.replacedWith.name}</strong></p>`;
+          html += `<p>Email: ${data.details.replacedWith.email}</p>`;
+          html += `<p>ID: <code>${data.details.replacedWith.userId}</code></p>`;
+
+          html += '<h3>Before → After</h3>';
+          html += `<p>Keeper: ${data.details.before.keeper} → <strong>${data.details.after.keeper}</strong></p>`;
+          html += `<p>Teller: ${data.details.before.teller} → <strong>${data.details.after.teller}</strong></p>`;
+
+          html += '<h3>Full Response</h3>';
+          html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.innerHTML = `<div class="error-msg">❌ Error: ${data.error}</div><pre>${JSON.stringify(data, null, 2)}</pre>`;
+        }
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="error-msg">❌ Network Error: ${error.message}</div>`;
+      }
+
+      btn.innerHTML = '✅ Auto-Fix Connection';
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
