@@ -1538,7 +1538,11 @@ export function ChatTab({
   };
 
   const renderMessage = (memory: Memory) => {
-    const isOwnMessage = memory.sender === userType;
+    // ✅ V289.2: Use senderId for same-role connections (keeper-keeper, teller-teller)
+    // For backwards compatibility, fall back to sender role comparison
+    const isOwnMessage = memory.senderId 
+      ? memory.senderId === userProfile.id 
+      : memory.sender === userType;
     const senderProfile = isOwnMessage ? userProfile : partnerProfile;
 
     return (
@@ -2142,7 +2146,7 @@ export function ChatTab({
             })
           )}
           {/* Spacer to ensure last message is visible above input box */}
-          <div style={{ height: `${inputBoxHeight + -10}px`, flexShrink: 0 }} />
+          <div style={{ height: `${inputBoxHeight + 20}px`, flexShrink: 0 }} />
           <div ref={messagesEndRef} />
         </div>
       </div>
