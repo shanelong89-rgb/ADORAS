@@ -179,8 +179,8 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col p-6">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
             Manage Invitations
           </DialogTitle>
@@ -209,8 +209,8 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1">
-              <div className="space-y-6 pr-4">
+            <ScrollArea className="flex-1 px-6">
+              <div className="space-y-6 pr-4 py-2 pb-4">
                 {/* Pending Section (Invitations + Requests) */}
                 {totalPending > 0 && (
                   <div>
@@ -308,7 +308,7 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
               </div>
             </ScrollArea>
 
-            <div className="flex justify-between items-center pt-4 border-t gap-2 flex-wrap sm:flex-nowrap">
+            <div className="flex justify-between items-center px-6 pt-4 pb-6 border-t gap-2 flex-wrap sm:flex-nowrap shrink-0">
               <Button variant="outline" onClick={loadAll} disabled={isLoading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
