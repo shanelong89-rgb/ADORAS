@@ -805,27 +805,15 @@
       }
 
       try {
-        const response = await fetch(`${API_BASE}/admin/debug-request`, {
+        const response = await fetch(`${API_BASE}/admin/check-profile`, {
           method: 'POST',
           headers: AUTH_HEADERS,
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email, debug: true })
         });
 
-        // Log the raw response for debugging
-        const responseText = await response.text();
-        console.log('Raw response:', responseText);
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
+        const data = await response.json();
 
-        let data;
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          showResult('debugRequestResult', `❌ <strong>JSON Parse Error:</strong><br>Status: ${response.status}<br>Response: <pre>${responseText.substring(0, 500)}</pre>`, 'error');
-          return;
-        }
-
-        if (data.success) {
+        if (data.success && data.debug) {
           const user = data.user;
           const requestDetails = data.requestDetails || [];
           
