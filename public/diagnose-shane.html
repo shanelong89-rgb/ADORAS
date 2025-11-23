@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diagnose Shane's Connections</title>
+  <title>Fix Shane's Connection</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -23,9 +23,11 @@
       border-radius: 6px;
       font-size: 16px;
       cursor: pointer;
-      margin-bottom: 20px;
+      margin: 10px 10px 20px 0;
     }
     button:hover { background: #5568d3; }
+    button.danger { background: #e74c3c; }
+    button.danger:hover { background: #c0392b; }
     pre {
       background: #0f3460;
       padding: 20px;
@@ -44,12 +46,48 @@
     .error { color: #ff6b6b; }
     .success { color: #51cf66; }
     .warning { color: #ffd93d; }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #667eea;
+      border-radius: 6px;
+      background: #0f3460;
+      color: white;
+      font-size: 14px;
+      margin: 10px 0;
+    }
+    label { display: block; margin-top: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>🔍 Diagnose Shane's Connections</h1>
-    <button onclick="diagnose()">Run Diagnosis</button>
+    <h1>🔧 Fix Shane's Connection</h1>
+    
+    <div class="section">
+      <h2>Issue Summary</h2>
+      <p><strong>Shane's ID:</strong> <code>177cc25a-5062-48e0-81b5-af5701bc3e77</code></p>
+      <p><strong>Orphaned Connection:</strong> <code>1761271821274-jwolla1</code></p>
+      <p><strong>CORRECT Allison ID (Unknown):</strong> <code>c2d51ad1-7386-4ce3-99a3-6fed398b99a7</code></p>
+      <p><strong>WRONG ID (showing as "allison tam"):</strong> <code>a6ade4b8-a80e-4e34-90e8-455f73ae0dcc</code></p>
+    </div>
+
+    <div class="section">
+      <h2>Step 1: Check User Profiles</h2>
+      <button onclick="checkProfiles()">Check Both User IDs</button>
+    </div>
+
+    <div class="section">
+      <h2>Step 2: Create/Fix Allison's Profile</h2>
+      <p>If the CORRECT ID is missing a profile, we'll create one:</p>
+      <label>Name:</label>
+      <input type="text" id="name" value="allison tam" />
+      <label>Email:</label>
+      <input type="text" id="email" value="allison.tam@hotmail.com" />
+      <label>Role:</label>
+      <input type="text" id="role" value="keeper" />
+      <button onclick="createProfile()">Create/Update Profile</button>
+    </div>
+
     <div id="results"></div>
   </div>
 
@@ -57,109 +95,112 @@
     const API = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
     const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
 
-    async function diagnose() {
+    const CORRECT_ALLISON_ID = 'c2d51ad1-7386-4ce3-99a3-6fed398b99a7';
+    const WRONG_ID = 'a6ade4b8-a80e-4e34-90e8-455f73ae0dcc';
+
+    async function checkProfiles() {
       const results = document.getElementById('results');
       results.innerHTML = '<div class="section">Loading...</div>';
 
       try {
-        // Step 1: Sign in as Shane to get his user ID
-        const loginRes = await fetch(`${API}/auth/signin`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'shanelong@gmail.com', password: 'shanelong' })
-        });
+        // Check both user IDs
+        const [correctRes, wrongRes] = await Promise.all([
+          fetch(`${API}/admin/check-user-by-id/${CORRECT_ALLISON_ID}`, {
+            headers: { 'Authorization': `Bearer ${KEY}` }
+          }),
+          fetch(`${API}/admin/check-user-by-id/${WRONG_ID}`, {
+            headers: { 'Authorization': `Bearer ${KEY}` }
+          })
+        ]);
+
+        const correctData = await correctRes.json();
+        const wrongData = await wrongRes.json();
         
-        if (!loginRes.ok) {
-          const errorText = await loginRes.text();
-          results.innerHTML = `<div class="section error">❌ HTTP Error ${loginRes.status}: ${errorText}</div>`;
-          return;
+        let html = '<div class="section">';
+        html += '<h2>User Profile Check Results</h2>';
+        
+        html += '<h3>CORRECT Allison ID: <code>' + CORRECT_ALLISON_ID + '</code></h3>';
+        if (correctData.exists) {
+          html += '<div style="padding: 10px; background: #1a472a; border-radius: 6px; margin: 10px 0;">';
+          html += '✅ Profile EXISTS<br>';
+          html += 'Name: ' + correctData.profile.name + '<br>';
+          html += 'Email: ' + correctData.profile.email + '<br>';
+          html += 'Type: ' + correctData.profile.type;
+          html += '</div>';
+        } else {
+          html += '<div style="padding: 10px; background: #7d1128; border-radius: 6px; margin: 10px 0;">';
+          html += '❌ Profile MISSING - This is the problem!<br>';
+          html += 'Use "Create/Update Profile" below to fix this.';
+          html += '</div>';
         }
-        
-        const loginData = await loginRes.json();
-        
-        if (!loginData.success) {
-          results.innerHTML = `<div class="section error">❌ Can't sign in as Shane: ${loginData.error}</div>`;
-          return;
-        }
 
-        const shaneId = loginData.user.id;
-        const shaneToken = loginData.accessToken;
-
-        let html = `<div class="section success">✅ Shane's User ID: <code>${shaneId}</code></div>`;
-
-        // Step 2: Get Shane's connections
-        const connectionsRes = await fetch(`${API}/connections`, {
-          method: 'GET',
-          headers: { 'Authorization': `Bearer ${shaneToken}` }
-        });
-        
-        if (!connectionsRes.ok) {
-          const errorText = await connectionsRes.text();
-          html += `<div class="section error">❌ Connections Error ${connectionsRes.status}: ${errorText}</div>`;
-          results.innerHTML = html;
-          return;
-        }
-        
-        const connectionsData = await connectionsRes.json();
-
-        html += `<div class="section"><h2>📋 Shane's Connections (${connectionsData.connections?.length || 0})</h2>`;
-        
-        if (connectionsData.connections && connectionsData.connections.length > 0) {
-          for (const item of connectionsData.connections) {
-            const conn = item.connection;
-            const partner = item.partner;
-            
-            const partnerId = conn.keeperId === shaneId ? conn.tellerId : conn.keeperId;
-            const partnerName = partner ? partner.name : 'Unknown';
-            
-            html += `<div style="margin: 20px 0; padding: 15px; background: #0f3460; border-radius: 6px;">
-              <div><strong>Connection ID:</strong> ${conn.id}</div>
-              <div><strong>Partner Name:</strong> ${partnerName}</div>
-              <div><strong>Partner ID:</strong> ${partnerId}</div>
-              <div><strong>Status:</strong> ${conn.status}</div>
-            </div>`;
-
-            // Check if this is the Unknown connection
-            if (!partner || partnerName === 'Unknown') {
-              html += `<div style="padding: 10px; background: #7d1128; border-radius: 6px; margin-bottom: 10px;">
-                ❌ <strong>ORPHANED CONNECTION FOUND!</strong><br>
-                Connection ID: ${conn.id}<br>
-                Orphaned Partner ID: ${partnerId}<br>
-                This is the user ID we need to replace with Allison's ID!
-              </div>`;
-            }
-          }
+        html += '<h3>WRONG ID: <code>' + WRONG_ID + '</code></h3>';
+        if (wrongData.exists) {
+          html += '<div style="padding: 10px; background: #0f3460; border-radius: 6px; margin: 10px 0;">';
+          html += 'ℹ️ Profile exists<br>';
+          html += 'Name: ' + wrongData.profile.name + '<br>';
+          html += 'Email: ' + wrongData.profile.email + '<br>';
+          html += 'Type: ' + wrongData.profile.type;
+          html += '</div>';
+        } else {
+          html += '<div style="padding: 10px; background: #0f3460; border-radius: 6px; margin: 10px 0;">';
+          html += 'ℹ️ Profile not found';
+          html += '</div>';
         }
 
         html += '</div>';
+        results.innerHTML = html;
+      } catch (error) {
+        results.innerHTML = `<div class="section error">❌ Error: ${error.message}</div>`;
+        console.error(error);
+      }
+    }
 
-        // Step 3: Check if allison.tam@hotmail.com exists
-        html += '<div class="section"><h2>🔍 Checking for Allison\'s Account</h2>';
-        
-        const allisonLoginRes = await fetch(`${API}/auth/signin`, {
+    async function createProfile() {
+      const results = document.getElementById('results');
+      results.innerHTML = '<div class="section">Creating profile...</div>';
+
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const role = document.getElementById('role').value;
+
+      try {
+        const res = await fetch(`${API}/admin/create-user-profile`, {
           method: 'POST',
-          headers: { 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'allison.tam@hotmail.com', password: 'password123' })
+          headers: { 
+            'Authorization': `Bearer ${KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId: CORRECT_ALLISON_ID,
+            name: name,
+            email: email,
+            type: role,
+            relationship: '',
+            bio: ''
+          })
         });
-        const allisonLoginData = await allisonLoginRes.json();
 
-        if (allisonLoginData.success) {
-          html += `<div style="padding: 10px; background: #1a472a; border-radius: 6px;">
-            ✅ Allison's account EXISTS<br>
-            User ID: ${allisonLoginData.user.id}<br>
-            Email: ${allisonLoginData.user.email}
-          </div>`;
+        const data = await res.json();
+
+        let html = '<div class="section">';
+        if (data.success) {
+          html += '<h2 class="success">✅ Profile Created Successfully!</h2>';
+          html += '<p>User ID: <code>' + data.profile.id + '</code></p>';
+          html += '<p>Name: ' + data.profile.name + '</p>';
+          html += '<p>Email: ' + data.profile.email + '</p>';
+          html += '<p>Type: ' + data.profile.type + '</p>';
+          html += '<hr style="margin: 20px 0; border: 1px solid #667eea;">';
+          html += '<h3>✅ What happens now?</h3>';
+          html += '<p>The connection "1761271821274-jwolla1" should now show "allison tam" instead of "Unknown"!</p>';
+          html += '<p>Go back to <a href="/diagnose-shane.html" style="color: #667eea;">diagnose-shane.html</a> and run it again to verify the fix.</p>';
         } else {
-          html += `<div style="padding: 10px; background: #7d1128; border-radius: 6px;">
-            ❌ Allison's account DOESN'T EXIST<br>
-            Error: ${allisonLoginData.error}
-          </div>`;
+          html += '<h2 class="error">❌ Failed to create profile</h2>';
+          html += '<p>' + data.error + '</p>';
         }
-
         html += '</div>';
 
         results.innerHTML = html;
-
       } catch (error) {
         results.innerHTML = `<div class="section error">❌ Error: ${error.message}</div>`;
         console.error(error);
