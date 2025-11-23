@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnose Shane's Connections</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: white;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+    button:hover { background: #5568d3; }
+    pre {
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .section {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .error { color: #ff6b6b; }
+    .success { color: #51cf66; }
+    .warning { color: #ffd93d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Diagnose Shane's Connections</h1>
+    <button onclick="diagnose()">Run Diagnosis</button>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const API = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
+
+    async function diagnose() {
+      const results = document.getElementById('results');
+      results.innerHTML = '<div class="section">Loading...</div>';
+
+      try {
+        // Step 1: Sign in as Shane to get his user ID
+        const loginRes = await fetch(`${API}/auth/signin`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'shanelong@gmail.com', password: 'password123' })
+        });
+        const loginData = await loginRes.json();
+        
+        if (!loginData.success) {
+          results.innerHTML = `<div class="section error">❌ Can't sign in as Shane: ${loginData.error}</div>`;
+          return;
+        }
+
+        const shaneId = loginData.user.id;
+        const shaneToken = loginData.accessToken;
+
+        let html = `<div class="section success">✅ Shane's User ID: <code>${shaneId}</code></div>`;
+
+        // Step 2: Get Shane's connections
+        const connectionsRes = await fetch(`${API}/connections/list`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${shaneToken}` }
+        });
+        const connectionsData = await connectionsRes.json();
+
+        html += `<div class="section"><h2>📋 Shane's Connections (${connectionsData.connections?.length || 0})</h2>`;
+        
+        if (connectionsData.connections && connectionsData.connections.length > 0) {
+          for (const conn of connectionsData.connections) {
+            const partnerId = conn.keeperId === shaneId ? conn.tellerId : conn.keeperId;
+            const partnerName = conn.keeperId === shaneId ? conn.tellerName : conn.keeperName;
+            
+            html += `<div style="margin: 20px 0; padding: 15px; background: #0f3460; border-radius: 6px;">
+              <div><strong>Connection ID:</strong> ${conn.id}</div>
+              <div><strong>Partner Name:</strong> ${partnerName}</div>
+              <div><strong>Partner ID:</strong> ${partnerId}</div>
+              <div><strong>Memory Count:</strong> ${conn.memoryCount || 0}</div>
+              <div><strong>Status:</strong> ${conn.status}</div>
+            </div>`;
+
+            // Try to get partner's user profile
+            const profileRes = await fetch(`${API}/profile/${partnerId}`, {
+              method: 'GET',
+              headers: { 'Authorization': `Bearer ${shaneToken}` }
+            });
+            const profileData = await profileRes.json();
+
+            if (profileData.success && profileData.profile) {
+              html += `<div style="padding: 10px; background: #1a472a; border-radius: 6px; margin-bottom: 10px;">
+                ✅ <strong>User Profile Found:</strong><br>
+                Email: ${profileData.profile.email}<br>
+                Name: ${profileData.profile.name}<br>
+                Type: ${profileData.profile.type}
+              </div>`;
+            } else {
+              html += `<div style="padding: 10px; background: #7d1128; border-radius: 6px; margin-bottom: 10px;">
+                ❌ <strong>User Profile NOT Found</strong> - This is the "Unknown" issue!<br>
+                Partner ID: ${partnerId}
+              </div>`;
+            }
+          }
+        }
+
+        html += '</div>';
+
+        // Step 3: Check if allison.tam@hotmail.com exists
+        html += '<div class="section"><h2>🔍 Checking for Allison\'s Account</h2>';
+        
+        const allisonLoginRes = await fetch(`${API}/auth/signin`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'allison.tam@hotmail.com', password: 'password123' })
+        });
+        const allisonLoginData = await allisonLoginRes.json();
+
+        if (allisonLoginData.success) {
+          html += `<div style="padding: 10px; background: #1a472a; border-radius: 6px;">
+            ✅ Allison's account EXISTS<br>
+            User ID: ${allisonLoginData.user.id}<br>
+            Email: ${allisonLoginData.user.email}
+          </div>`;
+        } else {
+          html += `<div style="padding: 10px; background: #7d1128; border-radius: 6px;">
+            ❌ Allison's account DOESN'T EXIST<br>
+            Error: ${allisonLoginData.error}
+          </div>`;
+        }
+
+        html += '</div>';
+
+        results.innerHTML = html;
+
+      } catch (error) {
+        results.innerHTML = `<div class="section error">❌ Error: ${error.message}</div>`;
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+</html>
