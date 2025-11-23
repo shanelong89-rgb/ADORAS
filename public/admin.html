@@ -822,9 +822,9 @@
           html += `<strong>Request IDs in list:</strong> ${data.requestIdsInList.length}<br><br>`;
           
           if (requestDetails.length > 0) {
-            html += '<div class=\"data-list\">';
+            html += '<div class="data-list">';
             requestDetails.forEach((detail, idx) => {
-              html += `<div class=\"data-item\">`;
+              html += `<div class="data-item">`;
               html += `<strong>Request #${idx + 1}:</strong> <code>${detail.requestId}</code><br>`;
               
               if (!detail.exists) {
