@@ -1281,7 +1281,7 @@ export function Dashboard({
           )}
           
           {activeTab === 'chat' && (
-            <div className="m-0 p-0 flex-1 flex flex-col" style={{ minHeight: 0 }}>
+            <div className="flex-1 flex flex-col pt-safe-dashboard" style={{ minHeight: 0 }}>
               <ChatTab 
                 userType={userType}
                 userProfile={userProfile}
