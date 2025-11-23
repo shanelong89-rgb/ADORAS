@@ -6,9 +6,11 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Trash2, RefreshCw, AlertCircle, CheckCircle, X, Users, Mail, Clock, UserPlus } from 'lucide-react';
+import { Trash2, RefreshCw, AlertCircle, CheckCircle, X, Users, Mail, Clock, UserPlus, Search, Link2 } from 'lucide-react';
 import { apiClient } from '../utils/api/client';
 import { toast } from 'sonner';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 interface ConnectionRequest {
   id: string;
@@ -57,6 +59,7 @@ export function AdminPage() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const loadData = async () => {
     setLoading(true);
@@ -295,6 +298,119 @@ export function AdminPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Fix Connections Tool */}
+        <Card className="border-2 border-orange-200 bg-orange-50/50">
+          <CardHeader>
+            <CardTitle className="flex items-center text-orange-800">
+              <Link2 className="w-5 h-5 mr-2" />
+              Fix Connections Tool
+            </CardTitle>
+            <CardDescription>
+              Search for a user's connections by email and view detailed connection info
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Label htmlFor="searchEmail">Search by Email</Label>
+                <Input
+                  id="searchEmail"
+                  type="email"
+                  placeholder="Enter user email (e.g., shanelong@gmail.com)"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {searchTerm && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-orange-800">Connections for: {searchTerm}</p>
+                {connections
+                  .filter(conn => 
+                    conn.keeper_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    conn.teller_email?.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map(conn => {
+                    // Determine which side is the searched user
+                    const isSearchedUserKeeper = conn.keeper_email?.toLowerCase().includes(searchTerm.toLowerCase());
+                    const searchedUser = isSearchedUserKeeper 
+                      ? { name: conn.keeper_name, email: conn.keeper_email, id: conn.keeper_id }
+                      : { name: conn.teller_name, email: conn.teller_email, id: conn.teller_id };
+                    const partnerUser = isSearchedUserKeeper
+                      ? { name: conn.teller_name, email: conn.teller_email, id: conn.teller_id }
+                      : { name: conn.keeper_name, email: conn.keeper_email, id: conn.keeper_id };
+
+                    return (
+                      <div key={conn.id} className="p-4 border-2 border-orange-200 rounded-lg bg-white">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded font-mono">
+                              Connection ID: {conn.id}
+                            </span>
+                            {conn.is_same_role && (
+                              <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">
+                                Same Role
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="p-3 bg-blue-50 rounded">
+                              <p className="text-xs text-blue-600 font-medium mb-1">Searched User</p>
+                              <p className="font-medium">{searchedUser.name}</p>
+                              <p className="text-sm text-muted-foreground">{searchedUser.email}</p>
+                              <code className="text-xs text-blue-600 font-mono block mt-1">
+                                ID: {searchedUser.id}
+                              </code>
+                            </div>
+
+                            <div className="p-3 bg-green-50 rounded">
+                              <p className="text-xs text-green-600 font-medium mb-1">Partner</p>
+                              <p className="font-medium">{partnerUser.name || 'Unknown'}</p>
+                              <p className="text-sm text-muted-foreground">{partnerUser.email || 'No email'}</p>
+                              <code className="text-xs text-green-600 font-mono block mt-1">
+                                ID: {partnerUser.id}
+                              </code>
+                            </div>
+                          </div>
+
+                          <div className="text-xs text-muted-foreground">
+                            Created: {formatDate(conn.created_at)}
+                          </div>
+
+                          {(!partnerUser.email || partnerUser.name === 'Unknown') && (
+                            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                              <p className="text-sm font-medium text-yellow-800 mb-2">
+                                ⚠️ Partner shows as "Unknown" - Use /admin.html to update partner_id
+                              </p>
+                              <p className="text-xs text-yellow-700">
+                                1. Open /admin.html<br/>
+                                2. Find the KV record: connection:{conn.id}<br/>
+                                3. Update the partner_id field to the correct user ID<br/>
+                                4. Save and refresh this page
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                
+                {connections.filter(conn => 
+                  conn.keeper_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  conn.teller_email?.toLowerCase().includes(searchTerm.toLowerCase())
+                ).length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                    <p>No connections found for this email</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Connection Requests */}
         <Card>
