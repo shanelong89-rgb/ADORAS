@@ -833,6 +833,7 @@ class AdorasAPIClient {
   /**
    * Get today's prompt for a user
    * Keepers get daily topic headers, Tellers get every-2-days full prompts
+   * ✅ V289.2: Now supports connection-level prompts for same-role connections
    */
   async getTodaysPrompt(userId: string): Promise<{
     success: boolean;
@@ -844,6 +845,7 @@ class AdorasAPIClient {
       userType: 'keeper' | 'teller';
       answered: boolean;
       memoryId?: string;
+      isShared?: boolean; // ✅ V289.2: Indicates if this is a connection-level prompt
     };
     error?: string;
   }> {
@@ -851,12 +853,31 @@ class AdorasAPIClient {
       success: boolean;
       prompt?: any;
       userPrompt?: any;
+      connectionPrompt?: any; // ✅ V289.2: NEW - for same-role connections
+      isShared?: boolean; // ✅ V289.2: NEW
       error?: string;
     }>(`/prompts/today/${userId}`, {
       method: 'GET',
     });
 
-    // Transform backend response to frontend format
+    // ✅ V289.2: Handle connection prompts (same-role connections)
+    if (response.success && response.prompt && response.connectionPrompt) {
+      return {
+        success: true,
+        prompt: {
+          date: response.connectionPrompt.date,
+          question: response.prompt.question,
+          topicHeader: response.prompt.topicHeader,
+          category: response.prompt.category,
+          userType: response.prompt.userType,
+          answered: response.connectionPrompt.status === 'answered',
+          memoryId: response.connectionPrompt.memoryIds?.[0],
+          isShared: true, // ✅ Connection-level prompt
+        }
+      };
+    }
+
+    // Traditional user prompts (keeper-teller connections)
     if (response.success && response.prompt && response.userPrompt) {
       return {
         success: true,
@@ -867,7 +888,8 @@ class AdorasAPIClient {
           category: response.prompt.category,
           userType: response.prompt.userType,
           answered: response.userPrompt.status === 'answered',
-          memoryId: response.userPrompt.memoryId
+          memoryId: response.userPrompt.memoryId,
+          isShared: false, // ✅ Individual prompt
         }
       };
     }
