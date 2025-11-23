@@ -105,25 +105,27 @@
         html += `<div class="section"><h2>📋 Shane's Connections (${connectionsData.connections?.length || 0})</h2>`;
         
         if (connectionsData.connections && connectionsData.connections.length > 0) {
-          for (const conn of connectionsData.connections) {
+          for (const item of connectionsData.connections) {
+            const conn = item.connection;
+            const partner = item.partner;
+            
             const partnerId = conn.keeperId === shaneId ? conn.tellerId : conn.keeperId;
-            const partnerName = conn.keeperId === shaneId ? conn.tellerName : conn.keeperName;
+            const partnerName = partner ? partner.name : 'Unknown';
             
             html += `<div style="margin: 20px 0; padding: 15px; background: #0f3460; border-radius: 6px;">
               <div><strong>Connection ID:</strong> ${conn.id}</div>
               <div><strong>Partner Name:</strong> ${partnerName}</div>
               <div><strong>Partner ID:</strong> ${partnerId}</div>
-              <div><strong>Memory Count:</strong> ${conn.memoryCount || 0}</div>
               <div><strong>Status:</strong> ${conn.status}</div>
             </div>`;
 
             // Check if this is the Unknown connection
-            if (partnerName === 'Unknown' || !partnerName || partnerName === 'null') {
+            if (!partner || partnerName === 'Unknown') {
               html += `<div style="padding: 10px; background: #7d1128; border-radius: 6px; margin-bottom: 10px;">
                 ❌ <strong>ORPHANED CONNECTION FOUND!</strong><br>
                 Connection ID: ${conn.id}<br>
-                Partner ID: ${partnerId}<br>
-                Memory Count: ${conn.memoryCount || 0}
+                Orphaned Partner ID: ${partnerId}<br>
+                This is the user ID we need to replace with Allison's ID!
               </div>`;
             }
           }
