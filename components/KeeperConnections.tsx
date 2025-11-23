@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { SmartAvatar } from './SmartAvatar';
 import { ScrollArea } from './ui/scroll-area';
@@ -74,7 +75,7 @@ export function KeeperConnections({
   onConnectionsChanged,
   pendingCount = 0 
 }: KeeperConnectionsProps) {
-  const [activeTab, setActiveTab] = useState<'requests' | 'connections'>('requests');
+  const [activeTab, setActiveTab] = useState<'add' | 'requests' | 'connections'>('add');
   
   // Connection Requests State
   const [requests, setRequests] = useState<ConnectionRequest[]>([]);
@@ -87,6 +88,13 @@ export function KeeperConnections({
   const [selectedConnection, setSelectedConnection] = useState<Connection | null>(null);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+
+  // Add Connection State
+  const [myInviteCode, setMyInviteCode] = useState<string>('');
+  const [isLoadingInviteCode, setIsLoadingInviteCode] = useState(false);
+  const [enteredCode, setEnteredCode] = useState('');
+  const [isSendingRequest, setIsSendingRequest] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   // Safe date formatter helper
   const formatSafeDate = (dateString: string | undefined, formatStr: string, fallback: string = 'N/A'): string => {
@@ -106,6 +114,7 @@ export function KeeperConnections({
     if (isOpen) {
       loadRequests();
       loadConnections();
+      loadInviteCode();
       // Auto-switch to requests tab if there are pending requests
       if (pendingCount > 0) {
         setActiveTab('requests');
@@ -286,6 +295,53 @@ export function KeeperConnections({
     }
   };
 
+  // Load Invite Code
+  const loadInviteCode = async () => {
+    setIsLoadingInviteCode(true);
+    try {
+      const response = await apiClient.getInviteCode();
+      
+      if (response.success && response.inviteCode) {
+        setMyInviteCode(response.inviteCode);
+      } else {
+        console.error('Failed to load invite code:', response.error);
+      }
+    } catch (error) {
+      console.error('Error loading invite code:', error);
+      toast.error('Network error. Please try again.');
+    } finally {
+      setIsLoadingInviteCode(false);
+    }
+  };
+
+  // Send Connection Request
+  const handleSendRequest = async () => {
+    if (!enteredCode) {
+      toast.error('Please enter a valid invite code.');
+      return;
+    }
+
+    setIsSendingRequest(true);
+    try {
+      const response = await apiClient.sendConnectionRequest(enteredCode);
+      
+      if (response.success) {
+        toast.success(`Connection request sent to ${enteredCode}`);
+        // Clear the entered code
+        setEnteredCode('');
+        // Refresh requests list
+        await loadRequests();
+      } else {
+        toast.error(response.error || 'Failed to send request');
+      }
+    } catch (error) {
+      console.error('Error sending request:', error);
+      toast.error('Network error. Please try again.');
+    } finally {
+      setIsSendingRequest(false);
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -304,12 +360,15 @@ export function KeeperConnections({
 
           <Tabs 
             value={activeTab} 
-            onValueChange={(v) => setActiveTab(v as 'requests' | 'connections')} 
+            onValueChange={(v) => setActiveTab(v as 'add' | 'requests' | 'connections')} 
             className="flex-1 flex flex-col min-h-0"
             style={{ overflowX: 'hidden' }}
           >
             <div className="px-4 sm:px-6 shrink-0" style={{ overflowX: 'hidden' }}>
-              <TabsList className="grid w-full grid-cols-2" style={{ maxWidth: '100%' }}>
+              <TabsList className="grid w-full grid-cols-3" style={{ maxWidth: '100%' }}>
+                <TabsTrigger value="add" className="relative text-xs sm:text-sm">
+                  Add
+                </TabsTrigger>
                 <TabsTrigger value="requests" className="relative text-xs sm:text-sm">
                   Requests
                   {requests.length > 0 && (
@@ -323,6 +382,117 @@ export function KeeperConnections({
                 </TabsTrigger>
               </TabsList>
             </div>
+
+            {/* Add Connection Tab */}
+            <TabsContent value="add" className="m-0 flex-1 min-h-0" style={{ overflowX: 'hidden' }}>
+              <ScrollArea className="h-full" style={{ overflowX: 'hidden' }}>
+                <div className="px-4 sm:px-6 pb-6" style={{ overflowX: 'hidden', maxWidth: '100%' }}>
+                  {isLoadingInviteCode ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="space-y-4 py-4">
+                      <div className="flex flex-col gap-3 p-3 sm:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                        <div className="flex items-start gap-3">
+                          <SmartAvatar
+                            src={null}
+                            alt="My Invite Code"
+                            fallback="?"
+                            fallbackClassName="bg-primary/10 text-primary"
+                            className="w-12 h-12 border-2 border-primary/20 shrink-0"
+                          />
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm sm:text-base truncate" style={{ fontFamily: 'Archivo' }}>
+                                  My Invite Code
+                                </h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+                                  <span className="text-xs sm:text-sm text-muted-foreground truncate">
+                                    {myInviteCode}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(myInviteCode);
+                                  setCodeCopied(true);
+                                  setTimeout(() => setCodeCopied(false), 2000);
+                                }}
+                                className="flex-1 h-9 text-xs"
+                              >
+                                {codeCopied ? (
+                                  <Check className="w-3 h-3 mr-1 shrink-0" />
+                                ) : (
+                                  <Mail className="w-3 h-3 mr-1 shrink-0" />
+                                )}
+                                <span className="truncate">{codeCopied ? 'Copied!' : 'Copy Code'}</span>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-3 p-3 sm:p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
+                        <div className="flex items-start gap-3">
+                          <SmartAvatar
+                            src={null}
+                            alt="Add Connection"
+                            fallback="?"
+                            fallbackClassName="bg-primary/10 text-primary"
+                            className="w-12 h-12 border-2 border-primary/20 shrink-0"
+                          />
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-sm sm:text-base truncate" style={{ fontFamily: 'Archivo' }}>
+                                  Add Connection
+                                </h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+                                  <input
+                                    type="text"
+                                    value={enteredCode}
+                                    onChange={(e) => setEnteredCode(e.target.value)}
+                                    placeholder="Enter invite code"
+                                    className="text-xs sm:text-sm text-muted-foreground truncate w-full px-2 py-1 border border-muted-foreground rounded"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                size="sm"
+                                onClick={handleSendRequest}
+                                disabled={isSendingRequest}
+                                className="flex-1 h-9 text-xs"
+                              >
+                                {isSendingRequest ? (
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin shrink-0" />
+                                ) : (
+                                  <UserPlus className="w-3 h-3 mr-1 shrink-0" />
+                                )}
+                                <span className="truncate">Send Request</span>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </TabsContent>
 
             {/* Connection Requests Tab */}
             <TabsContent value="requests" className="m-0 flex-1 min-h-0" style={{ overflowX: 'hidden' }}>
