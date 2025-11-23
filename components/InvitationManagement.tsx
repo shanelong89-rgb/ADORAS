@@ -209,8 +209,8 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
           </div>
         ) : (
           <>
-            <ScrollArea className="flex-1 px-6">
-              <div className="space-y-6 pr-4 py-2 pb-4">
+            <ScrollArea className="flex-1">
+              <div className="space-y-6 px-6 py-2 pb-4">
                 {/* Pending Section (Invitations + Requests) */}
                 {totalPending > 0 && (
                   <div>
