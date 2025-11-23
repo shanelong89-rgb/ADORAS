@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inspect Connection Raw Data</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: white;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 10px 10px 0;
+    }
+    button:hover { background: #5568d3; }
+    pre {
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .section {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .error { color: #ff6b6b; }
+    .success { color: #51cf66; }
+    .warning { color: #ffd93d; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Inspect Connection Raw Data</h1>
+    
+    <div class="section">
+      <p>Let's look at the RAW data for connection: <code>1761271821274-jwolla1</code></p>
+      <button onclick="inspectConnection()">Inspect Connection</button>
+      <button onclick="inspectAllConnections()">Get ALL Connections</button>
+    </div>
+
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const API = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
+
+    const CONNECTION_ID = '1761271821274-jwolla1';
+    const SHANE_ID = '177cc25a-5062-48e0-81b5-af5701bc3e77';
+
+    async function inspectConnection() {
+      const results = document.getElementById('results');
+      results.innerHTML = '<div class="section">Loading...</div>';
+
+      try {
+        // We need to add a new endpoint to get raw connection data
+        // For now, let's use the search-connections endpoint
+        const res = await fetch(`${API}/admin/search-connections`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email: 'shanelong@gmail.com' })
+        });
+
+        const data = await res.json();
+
+        let html = '<div class="section">';
+        html += '<h2>Shane\'s Connections:</h2>';
+        
+        if (data.success && data.connections) {
+          data.connections.forEach(conn => {
+            html += '<div style="background: #0f3460; padding: 15px; border-radius: 6px; margin: 15px 0;">';
+            html += '<h3>Connection: <code>' + conn.connectionId + '</code></h3>';
+            html += '<strong>Keeper ID:</strong> <code>' + conn.keeperId + '</code><br>';
+            html += '<strong>Keeper Name:</strong> ' + conn.keeperName + '<br>';
+            html += '<strong>Keeper Email:</strong> ' + conn.keeperEmail + '<br>';
+            html += '<strong>Keeper Type:</strong> ' + conn.keeperType + '<br><br>';
+            html += '<strong>Teller ID:</strong> <code>' + conn.tellerId + '</code><br>';
+            html += '<strong>Teller Name:</strong> ' + conn.tellerName + '<br>';
+            html += '<strong>Teller Email:</strong> ' + conn.tellerEmail + '<br>';
+            html += '<strong>Teller Type:</strong> ' + conn.tellerType + '<br><br>';
+            html += '<strong>Memory Count:</strong> ' + conn.memoryCount + '<br>';
+            html += '<strong>Same Role:</strong> ' + conn.isSameRole;
+            html += '</div>';
+
+            if (conn.connectionId === CONNECTION_ID) {
+              html += '<div class="section warning">';
+              html += '<h3>⚠️ This is the target connection!</h3>';
+              html += '<p>Shane is the KEEPER with ID: <code>' + conn.keeperId + '</code></p>';
+              html += '<p>Partner is the TELLER with ID: <code>' + conn.tellerId + '</code></p>';
+              html += '<p>So we need to change the TELLER ID from <code>' + conn.tellerId + '</code> to the correct auth UUID.</p>';
+              html += '</div>';
+            }
+          });
+        }
+
+        html += '<h3 style="margin-top: 30px;">Full Response:</h3>';
+        html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        html += '</div>';
+
+        results.innerHTML = html;
+      } catch (error) {
+        results.innerHTML = `<div class="section error">❌ Error: ${error.message}</div>`;
+        console.error(error);
+      }
+    }
+
+    async function inspectAllConnections() {
+      const results = document.getElementById('results');
+      results.innerHTML = '<div class="section">Loading all connections...</div>';
+
+      try {
+        const res = await fetch(`${API}/admin/connections`, {
+          headers: { 'Authorization': `Bearer ${KEY}` }
+        });
+
+        const data = await res.json();
+
+        let html = '<div class="section">';
+        html += '<h2>All Connections (' + data.count + '):</h2>';
+        
+        if (data.success && data.connections) {
+          data.connections.forEach(conn => {
+            const isTarget = conn.id === 'connection:' + CONNECTION_ID;
+            html += '<div style="background: ' + (isTarget ? '#7d1128' : '#0f3460') + '; padding: 15px; border-radius: 6px; margin: 10px 0;">';
+            html += '<strong>ID:</strong> <code>' + conn.id + '</code><br>';
+            html += '<strong>Keeper:</strong> ' + conn.keeper_name + ' (<code>' + conn.keeper_id + '</code>)<br>';
+            html += '<strong>Teller:</strong> ' + conn.teller_name + ' (<code>' + conn.teller_id + '</code>)<br>';
+            html += '<strong>Same Role:</strong> ' + conn.is_same_role;
+            if (isTarget) {
+              html += '<br><br><strong class="error">🎯 THIS IS THE TARGET CONNECTION!</strong>';
+            }
+            html += '</div>';
+          });
+        }
+
+        html += '<h3 style="margin-top: 30px;">Full Response:</h3>';
+        html += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        html += '</div>';
+
+        results.innerHTML = html;
+      } catch (error) {
+        results.innerHTML = `<div class="section error">❌ Error: ${error.message}</div>`;
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+</html>
