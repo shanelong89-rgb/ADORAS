@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { SmartAvatar } from './SmartAvatar';
 import { ScrollArea } from './ui/scroll-area';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
@@ -317,7 +318,7 @@ export function TellerConnections({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogContent className="max-w-2xl max-h-[70vh] flex flex-col">
           <DialogHeader>
             <DialogTitle style={{ fontFamily: 'Archivo', letterSpacing: '-0.05em' }}>
               Connections
@@ -368,12 +369,13 @@ export function TellerConnections({
                         <div className="p-4 rounded-lg border bg-card">
                           {/* Header */}
                           <div className="flex items-start gap-4 mb-4">
-                            <Avatar className="w-16 h-16 ring-2 ring-primary/20">
-                              <AvatarImage src={request.sender.photo} />
-                              <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                                {request.sender.name[0]?.toUpperCase() || '?'}
-                              </AvatarFallback>
-                            </Avatar>
+                            <SmartAvatar 
+                              src={request.sender.photo}
+                              alt={request.sender.name}
+                              fallback={request.sender.name[0]?.toUpperCase() || '?'}
+                              fallbackClassName="bg-primary/10 text-primary text-lg"
+                              className="w-16 h-16 ring-2 ring-primary/20"
+                            />
                             
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-lg break-words" style={{ fontFamily: 'Archivo' }}>
@@ -481,12 +483,13 @@ export function TellerConnections({
                         {index > 0 && <Separator className="my-4" />}
                         
                         <div className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                          <Avatar className="w-16 h-16 ring-2 ring-primary/20">
-                            <AvatarImage src={connection.partner.photo} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-lg">
-                              {connection.partner.name[0]?.toUpperCase() || '?'}
-                            </AvatarFallback>
-                          </Avatar>
+                          <SmartAvatar 
+                            src={connection.partner.photo}
+                            alt={connection.partner.name}
+                            fallback={connection.partner.name[0]?.toUpperCase() || '?'}
+                            fallbackClassName="bg-primary/10 text-primary text-lg"
+                            className="w-16 h-16 ring-2 ring-primary/20"
+                          />
                           
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2 mb-2">
