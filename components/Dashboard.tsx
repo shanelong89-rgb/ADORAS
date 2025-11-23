@@ -34,6 +34,7 @@ import { NotificationMiniBadge } from './NotificationBadge';
 import { apiClient } from '../utils/api/client';
 import { showNativeNotificationBanner } from '../utils/notificationService';
 import { InAppToastContainer, useInAppToasts } from './InAppToast';
+import { syncTimezoneToBackend, needsTimezoneSync } from '../utils/timezone';
 
 interface DashboardProps {
   userId?: string; // Stable user ID from AuthContext (doesn't change during profile updates)
@@ -240,6 +241,18 @@ export function Dashboard({
     const interval = setInterval(loadPendingRequestsCount, 300000);
     return () => clearInterval(interval);
   }, [loadPendingRequestsCount]);
+
+  // Sync user timezone for 8am prompt notifications
+  useEffect(() => {
+    const syncTimezone = async () => {
+      const { accessToken } = useAuth.getState();
+      if (accessToken && needsTimezoneSync()) {
+        console.log('🌍 Syncing timezone for 8am prompt notifications...');
+        await syncTimezoneToBackend(accessToken);
+      }
+    };
+    syncTimezone();
+  }, []); // Run once on mount
 
   // Update document title with unread count
   useEffect(() => {
