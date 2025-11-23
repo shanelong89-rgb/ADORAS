@@ -6,6 +6,7 @@
  */
 
 import { apiClient } from './api/client';
+import { projectId } from './supabase/info';
 
 /**
  * Get user's current timezone (IANA format)
@@ -27,10 +28,11 @@ export function detectUserTimezone(): string {
 export async function syncTimezoneToBackend(accessToken: string): Promise<void> {
   try {
     const timezone = detectUserTimezone();
+    console.log(`🌍 Syncing timezone for 8am prompt notifications...`);
     console.log(`🌍 Detected timezone: ${timezone}`);
     
     const response = await fetch(
-      `${apiClient.BASE_URL}/user/timezone`,
+      `https://${projectId}.supabase.co/functions/v1/make-server-deded1eb/user/timezone`,
       {
         method: 'POST',
         headers: {
@@ -52,7 +54,7 @@ export async function syncTimezoneToBackend(accessToken: string): Promise<void> 
       console.error('Failed to sync timezone:', await response.text());
     }
   } catch (error) {
-    console.error('Error syncing timezone:', error);
+    console.error('Failed to sync timezone:', error);
   }
 }
 
