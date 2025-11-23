@@ -2088,17 +2088,18 @@ export function ChatTab({
 
       {/* Messages Area - Scrollable flex-1 container */}
       <div 
-        className="overflow-y-auto overscroll-contain pt-safe-top flex flex-col justify-end"
+        className="overflow-y-auto overscroll-contain flex flex-col justify-end"
         ref={scrollAreaRef}
         style={{ 
           touchAction: 'pan-y',
           WebkitOverflowScrolling: 'touch',
           flex: '1 1 0',
-          minHeight: 0
+          minHeight: 0,
+          paddingTop: 'max(160px, env(safe-area-inset-top, 0px) + 160px)'
         }}
       >
         <div 
-          className={`space-y-4 max-w-full px-3 ${activePrompt || currentPromptContext ? 'pt-0' : 'pt-100'}`}
+          className={`space-y-4 max-w-full px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`}
           style={{ 
             overflow: 'visible'
           }}
