@@ -1,8 +1,8 @@
 // Adoras Service Worker - PWA Support
-// Version 2.0.5 - CRITICAL FIX: Cleaned push handler for iOS + Force Update
+// Version 289 - Clean prompts service rewrite + 8am timezone notifications
 
-const CACHE_NAME = 'adoras-v15';
-const RUNTIME_CACHE = 'adoras-runtime-v15';
+const CACHE_NAME = 'adoras-v289';
+const RUNTIME_CACHE = 'adoras-runtime-v289';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
