@@ -573,6 +573,15 @@ class AdorasAPIClient {
   }
 
   /**
+   * Cancel/delete a connection request (for sender)
+   */
+  async cancelConnectionRequest(requestId: string): Promise<{ success: boolean; message?: string; error?: string }> {
+    return this.request<{ success: boolean; message?: string; error?: string }>(`/connection-requests/${requestId}/cancel`, {
+      method: 'POST',
+    });
+  }
+
+  /**
    * Get user's connections
    */
   async getConnections(): Promise<GetConnectionsResponse> {
