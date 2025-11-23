@@ -2095,7 +2095,7 @@ export function ChatTab({
           WebkitOverflowScrolling: 'touch',
           flex: '1 1 0',
           minHeight: 0,
-          paddingTop: 'max(160px, env(safe-area-inset-top, 0px) + 80px)'
+          paddingTop: 'max(180px, env(safe-area-inset-top, 0px) + 180px)'
         }}
       >
         <div 
@@ -2143,7 +2143,7 @@ export function ChatTab({
             })
           )}
           {/* Spacer to ensure last message is visible above input box */}
-          <div style={{ height: `${inputBoxHeight + 0}px`, flexShrink: 0 }} />
+          <div style={{ height: `${inputBoxHeight + -10}px`, flexShrink: 0 }} />
           <div ref={messagesEndRef} />
         </div>
       </div>
