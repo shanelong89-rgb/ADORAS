@@ -811,7 +811,19 @@
           body: JSON.stringify({ email })
         });
 
-        const data = await response.json();
+        // Log the raw response for debugging
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          showResult('debugRequestResult', `❌ <strong>JSON Parse Error:</strong><br>Status: ${response.status}<br>Response: <pre>${responseText.substring(0, 500)}</pre>`, 'error');
+          return;
+        }
 
         if (data.success) {
           const user = data.user;
