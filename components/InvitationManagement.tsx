@@ -308,7 +308,7 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
               </div>
             </ScrollArea>
 
-            <div className="flex justify-between items-center px-6 pt-4 pb-6 border-t gap-2 flex-wrap sm:flex-nowrap shrink-0">
+            <div className="flex justify-between items-center px-6 pt-4 pb-6 gap-2 flex-wrap sm:flex-nowrap shrink-0">
               <Button variant="outline" onClick={loadAll} disabled={isLoading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -471,8 +471,8 @@ function ConnectionRequestCard({ request, onCopy }: ConnectionRequestCardProps) 
   return (
     <div className="border rounded-lg p-4 bg-card hover:bg-accent/5 transition-colors">
       <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <h4 className="font-semibold" style={{ fontFamily: 'Archivo' }}>
               {request.recipientName || 'Unknown User'}
             </h4>
@@ -480,8 +480,8 @@ function ConnectionRequestCard({ request, onCopy }: ConnectionRequestCardProps) 
               {getStatusIcon(request.status)}
               <span className="capitalize">{request.status}</span>
             </Badge>
-            <Badge variant="secondary" className="text-xs">
-              <Mail className="w-3 h-3 mr-1" />
+            <Badge variant="secondary" className="text-xs flex items-center gap-1 shrink-0">
+              <Mail className="w-3 h-3" />
               Existing User
             </Badge>
           </div>
