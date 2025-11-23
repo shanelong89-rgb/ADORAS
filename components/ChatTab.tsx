@@ -2095,11 +2095,11 @@ export function ChatTab({
           WebkitOverflowScrolling: 'touch',
           flex: '1 1 0',
           minHeight: 0,
-          paddingTop: 'max(160px, env(safe-area-inset-top, 0px) + 160px)'
+          paddingTop: 'max(160px, env(safe-area-inset-top, 0px) + 220px)'
         }}
       >
         <div 
-          className={`space-y-4 max-w-full px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-0'}`}
+          className={`space-y-4 max-w-full px-3 ${activePrompt || currentPromptContext ? 'pt-0' : 'pt-0'}`}
           style={{ 
             overflow: 'visible'
           }}
