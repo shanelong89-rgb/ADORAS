@@ -2098,7 +2098,7 @@ export function ChatTab({
         }}
       >
         <div 
-          className={`space-y-4 max-w-full px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-6'}`}
+          className={`space-y-4 max-w-full px-3 ${activePrompt || currentPromptContext ? 'pt-4' : 'pt-12'}`}
           style={{ 
             overflow: 'visible'
           }}
