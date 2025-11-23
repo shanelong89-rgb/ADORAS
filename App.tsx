@@ -9,6 +9,7 @@ import { GroqAPIKeySetup } from './components/GroqAPIKeySetup'; // Groq API key 
 import { MobileAuthDiagnostic } from './components/MobileAuthDiagnostic'; // Mobile auth diagnostic
 import { ChromeLoginFix } from './components/ChromeLoginFix'; // Chrome login fix
 import { SimpleLoginTest } from './components/SimpleLoginTest'; // Simple login test
+import { AdminPage } from './components/AdminPage'; // Admin panel for database inspection
 import { AuthProvider } from './utils/api/AuthContext';
 import { AppContent } from './components/AppContent';
 import { Toaster } from 'sonner';
@@ -122,6 +123,8 @@ export default function App() {
   const isChromeFixMode = new URLSearchParams(window.location.search).get('chromefix') === 'true';
   // Check if simple test mode is enabled
   const isSimpleTestMode = new URLSearchParams(window.location.search).get('test') === 'true';
+  // Check if admin mode is enabled
+  const isAdminMode = window.location.pathname === '/admin';
 
   useEffect(() => {
     // Phase 3f: Setup global error handlers and performance monitoring
@@ -203,6 +206,29 @@ export default function App() {
           backgroundColor: 'rgb(245, 249, 233)'
         }}>
           <MobileAuthDiagnostic />
+          <Toaster
+            position="top-center"
+            richColors
+            toastOptions={{ 
+              style: { fontFamily: 'Inter, sans-serif' },
+              className: 'z-[9999]', // Ensure toasts appear above dialogs (z-100)
+            }}
+          />
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
+  // Show admin page if admin mode is enabled
+  if (isAdminMode) {
+    return (
+      <ErrorBoundary>
+        <div className="fixed inset-0 overflow-y-auto" style={{
+          paddingTop: 'env(safe-area-inset-top, 0)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0)',
+          backgroundColor: 'rgb(245, 249, 233)'
+        }}>
+          <AdminPage />
           <Toaster
             position="top-center"
             richColors
