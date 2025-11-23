@@ -419,7 +419,10 @@ export function Dashboard({
         // Find all unread messages from partner and update them locally
         const unreadMessageIds = connectionMemories
           .filter(memory => {
-            const isFromPartner = memory.sender !== userType;
+            // ✅ V289.2: Use senderId for same-role connections
+            const isFromPartner = memory.senderId 
+              ? memory.senderId !== userId 
+              : memory.sender !== userType;
             const isMessage = memory.type === 'text' || memory.type === 'voice';
             // ✅ Use stable userId from AuthContext
             const isUnread = !memory.readBy || !memory.readBy.includes(userId);
@@ -566,7 +569,11 @@ export function Dashboard({
       });
       
       // Skip if this is not from partner
-      if (!partnerProfile || newMemory.sender === userType) {
+      // ✅ V289.2: Use senderId for same-role connections
+      const isFromSelf = newMemory.senderId 
+        ? newMemory.senderId === userId 
+        : newMemory.sender === userType;
+      if (!partnerProfile || isFromSelf) {
         console.log('   ℹ️ Skipping notification - message from self');
         return;
       }
