@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Allison's Auth Mapping</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: white;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; }
+    h2 { margin-top: 30px; margin-bottom: 15px; color: #667eea; }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px 10px 10px 0;
+    }
+    button:hover { background: #5568d3; }
+    button.danger { background: #e74c3c; }
+    button.danger:hover { background: #c0392b; }
+    button.success { background: #27ae60; }
+    button.success:hover { background: #229954; }
+    pre, .code-block {
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .section {
+      background: #16213e;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .error { color: #ff6b6b; }
+    .success { color: #51cf66; }
+    .warning { color: #ffd93d; }
+    .info { color: #74c0fc; }
+    code {
+      background: #0f3460;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    .step {
+      background: #0f3460;
+      padding: 15px;
+      border-left: 4px solid #667eea;
+      margin: 15px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Fix Allison's Auth Mapping</h1>
+    
+    <div class="section">
+      <h2>The Problem</h2>
+      <p><strong>Email:</strong> <code>allison.tam@hotmail.com</code></p>
+      <p><strong>WRONG Auth ID (blank profile):</strong> <code>a6ade4b8-a80e-4e34-90e8-455f73ae0dcc</code></p>
+      <p><strong>CORRECT User ID (has 727 memories):</strong> <code>c2d51ad1-7386-4ce3-99a3-6fed398b99a7</code></p>
+      <p class="warning" style="margin-top: 15px;">⚠️ Supabase Auth is linking the email to the WRONG UUID. We need to migrate the connection and memories.</p>
+    </div>
+
+    <div class="section">
+      <h2>Step 1: Diagnose Current State</h2>
+      <button onclick="diagnose()">🔍 Check Current State</button>
+      <div id="diagnoseResults"></div>
+    </div>
+
+    <div class="section">
+      <h2>Step 2: Migrate Connection</h2>
+      <p>This will update the connection to use the CORRECT Auth ID (<code>a6ade4b8-a80e-4e34-90e8-455f73ae0dcc</code>) so Allison can access her 727 memories when she logs in.</p>
+      <button onclick="migrateConnection()" class="success">🔄 Migrate Connection & Memories</button>
+      <div id="migrateResults"></div>
+    </div>
+
+    <div class="section">
+      <h2>Step 3: Verify Fix</h2>
+      <button onclick="verify()">✅ Verify Everything Works</button>
+      <div id="verifyResults"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
+
+    const WRONG_AUTH_ID = 'a6ade4b8-a80e-4e34-90e8-455f73ae0dcc';  // What Supabase Auth uses
+    const OLD_USER_ID = 'c2d51ad1-7386-4ce3-99a3-6fed398b99a7';   // Has the memories
+    const SHANE_ID = '177cc25a-5062-48e0-81b5-af5701bc3e77';
+    const CONNECTION_ID = '1761271821274-jwolla1';
+
+    async function diagnose() {
+      const results = document.getElementById('diagnoseResults');
+      results.innerHTML = '<div class="step">Loading...</div>';
+
+      try {
+        // Check both user profiles
+        const [wrongRes, oldRes] = await Promise.all([
+          fetch(`${API}/admin/check-user-by-id/${WRONG_AUTH_ID}`, {
+            headers: { 'Authorization': `Bearer ${KEY}` }
+          }),
+          fetch(`${API}/admin/check-user-by-id/${OLD_USER_ID}`, {
+            headers: { 'Authorization': `Bearer ${KEY}` }
+          })
+        ]);
+
+        const wrongData = await wrongRes.json();
+        const oldData = await oldRes.json();
+
+        // Search for Shane's connections
+        const shaneRes = await fetch(`${API}/admin/search-connections`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email: 'shanelong@gmail.com' })
+        });
+        const shaneData = await shaneRes.json();
+
+        let html = '<div class="step">';
+        html += '<h3>Current State:</h3>';
+        
+        html += '<h4>1. WRONG Auth ID (what Supabase Auth uses):</h4>';
+        html += '<code>' + WRONG_AUTH_ID + '</code><br>';
+        if (wrongData.exists) {
+          html += '<span class="info">✓ Profile exists</span><br>';
+          html += 'Name: ' + wrongData.profile.name + '<br>';
+          html += 'Email: ' + wrongData.profile.email;
+        } else {
+          html += '<span class="error">✗ No profile (we\'ll create one)</span>';
+        }
+
+        html += '<h4 style="margin-top: 20px;">2. OLD User ID (has the memories):</h4>';
+        html += '<code>' + OLD_USER_ID + '</code><br>';
+        if (oldData.exists) {
+          html += '<span class="info">✓ Profile exists</span><br>';
+          html += 'Name: ' + oldData.profile.name + '<br>';
+          html += 'Email: ' + oldData.profile.email;
+        } else {
+          html += '<span class="error">✗ No profile</span>';
+        }
+
+        html += '<h4 style="margin-top: 20px;">3. Shane\'s Connections:</h4>';
+        if (shaneData.success && shaneData.connections) {
+          shaneData.connections.forEach(conn => {
+            const isOrphan = conn.connectionId === CONNECTION_ID;
+            html += '<div style="padding: 10px; background: ' + (isOrphan ? '#7d1128' : '#0f3460') + '; border-radius: 6px; margin: 10px 0;">';
+            html += 'Connection: <code>' + conn.connectionId + '</code><br>';
+            html += 'Partner ID: <code>' + conn.tellerId + '</code><br>';
+            html += 'Partner Name: ' + conn.tellerName + '<br>';
+            html += 'Memories: ' + conn.memoryCount;
+            if (isOrphan) {
+              html += '<br><strong class="error">← This is the orphaned connection!</strong>';
+            }
+            html += '</div>';
+          });
+        }
+
+        html += '</div>';
+        results.innerHTML = html;
+      } catch (error) {
+        results.innerHTML = `<div class="step error">❌ Error: ${error.message}</div>`;
+        console.error(error);
+      }
+    }
+
+    async function migrateConnection() {
+      const results = document.getElementById('migrateResults');
+      results.innerHTML = '<div class="step">Migrating connection...</div>';
+
+      try {
+        // This will call a new backend endpoint that:
+        // 1. Updates the connection to use WRONG_AUTH_ID instead of OLD_USER_ID
+        // 2. Ensures profile exists for WRONG_AUTH_ID
+        // 3. All memories automatically work because they're keyed by connection ID
+
+        const res = await fetch(`${API}/admin/migrate-connection`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            connectionId: CONNECTION_ID,
+            oldUserId: OLD_USER_ID,
+            newUserId: WRONG_AUTH_ID,
+            userName: 'allison tam',
+            userEmail: 'allison.tam@hotmail.com',
+            userType: 'keeper'
+          })
+        });
+
+        const data = await res.json();
+
+        let html = '<div class="step">';
+        if (data.success) {
+          html += '<h3 class="success">✅ Migration Successful!</h3>';
+          html += '<p>Connection <code>' + CONNECTION_ID + '</code> has been updated.</p>';
+          html += '<p>Old User ID: <code>' + OLD_USER_ID + '</code></p>';
+          html += '<p>New User ID: <code>' + WRONG_AUTH_ID + '</code></p>';
+          html += '<p>Profile created: ' + (data.profileCreated ? 'Yes' : 'Already existed') + '</p>';
+          html += '<p class="success" style="margin-top: 15px;">🎉 Allison can now log in and see all 727 memories!</p>';
+        } else {
+          html += '<h3 class="error">❌ Migration Failed</h3>';
+          html += '<p>' + data.error + '</p>';
+        }
+        html += '</div>';
+
+        results.innerHTML = html;
+      } catch (error) {
+        results.innerHTML = `<div class="step error">❌ Error: ${error.message}<br><br>The migration endpoint doesn't exist yet. We need to add it to the backend!</div>`;
+        console.error(error);
+      }
+    }
+
+    async function verify() {
+      const results = document.getElementById('verifyResults');
+      results.innerHTML = '<div class="step">Verifying...</div>';
+
+      try {
+        // Re-check Shane's connections
+        const shaneRes = await fetch(`${API}/admin/search-connections`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${KEY}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email: 'shanelong@gmail.com' })
+        });
+        const shaneData = await shaneRes.json();
+
+        let html = '<div class="step">';
+        html += '<h3>Verification Results:</h3>';
+
+        if (shaneData.success && shaneData.connections) {
+          const targetConn = shaneData.connections.find(c => c.connectionId === CONNECTION_ID);
+          
+          if (targetConn) {
+            html += '<div style="padding: 15px; background: #1a472a; border-radius: 6px; margin: 10px 0;">';
+            html += '<h4 class="success">✅ Connection Found!</h4>';
+            html += 'Connection ID: <code>' + targetConn.connectionId + '</code><br>';
+            html += 'Partner ID: <code>' + targetConn.tellerId + '</code><br>';
+            html += 'Partner Name: ' + targetConn.tellerName + '<br>';
+            html += 'Partner Email: ' + targetConn.tellerEmail + '<br>';
+            html += 'Memories: ' + targetConn.memoryCount + '<br>';
+            
+            if (targetConn.tellerId === WRONG_AUTH_ID) {
+              html += '<br><strong class="success">✅ CORRECT! Using the auth UUID now!</strong>';
+            } else {
+              html += '<br><strong class="warning">⚠️ Still using old UUID</strong>';
+            }
+            html += '</div>';
+          } else {
+            html += '<div class="error">❌ Connection not found!</div>';
+          }
+        }
+
+        html += '</div>';
+        results.innerHTML = html;
+      } catch (error) {
+        results.innerHTML = `<div class="step error">❌ Error: ${error.message}</div>`;
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+</html>
