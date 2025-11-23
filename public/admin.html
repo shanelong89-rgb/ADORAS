@@ -1,779 +1,725 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ADORAS Admin Panel</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
-    }
-    
-    .header {
-      text-align: center;
-      color: white;
-      margin-bottom: 40px;
-    }
-    
-    .header h1 {
-      font-size: 36px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    
-    .header p {
-      font-size: 16px;
-      opacity: 0.9;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-      gap: 24px;
-      margin-bottom: 24px;
-    }
-    
-    .card {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-      overflow: hidden;
-    }
-    
-    .card-header {
-      padding: 24px;
-      background: linear-gradient(135deg, #f6f8fb 0%, #e9ecef 100%);
-      border-bottom: 1px solid #dee2e6;
-    }
-    
-    .card-header h2 {
-      font-size: 20px;
-      font-weight: 700;
-      color: #1a202c;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .card-header p {
-      font-size: 14px;
-      color: #718096;
-    }
-    
-    .card-content {
-      padding: 24px;
-    }
-    
-    .form-group {
-      margin-bottom: 16px;
-    }
-    
-    label {
-      display: block;
-      font-weight: 600;
-      font-size: 14px;
-      color: #2d3748;
-      margin-bottom: 8px;
-    }
-    
-    input {
-      width: 100%;
-      padding: 12px 16px;
-      border: 2px solid #e2e8f0;
-      border-radius: 8px;
-      font-size: 16px;
-      transition: all 0.2s;
-    }
-    
-    input:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-    
-    button {
-      width: 100%;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    
-    .btn-danger {
-      background: #e53e3e;
-      color: white;
-    }
-    
-    .btn-danger:hover:not(:disabled) {
-      background: #c53030;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
-    }
-    
-    .btn-primary {
-      background: #667eea;
-      color: white;
-    }
-    
-    .btn-primary:hover:not(:disabled) {
-      background: #5568d3;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-    
-    .btn-success {
-      background: #48bb78;
-      color: white;
-    }
-    
-    .btn-success:hover:not(:disabled) {
-      background: #38a169;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
-    }
-    
-    .btn-group {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 16px;
-    }
-    
-    .warning {
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
-      font-size: 13px;
-      color: #856404;
-    }
-    
-    .result {
-      margin-top: 16px;
-      padding: 16px;
-      border-radius: 8px;
-      font-size: 14px;
-      line-height: 1.6;
-      max-height: 400px;
-      overflow-y: auto;
-      display: none;
-    }
-    
-    .result.success {
-      background: #c6f6d5;
-      border: 1px solid #48bb78;
-      color: #22543d;
-      display: block;
-    }
-    
-    .result.error {
-      background: #fed7d7;
-      border: 1px solid #fc8181;
-      color: #742a2a;
-      display: block;
-    }
-    
-    .result.info {
-      background: #bee3f8;
-      border: 1px solid #4299e1;
-      color: #2c5282;
-      display: block;
-    }
-    
-    .spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      border-top-color: white;
-      animation: spin 0.6s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-weight: 600;
-      margin-right: 8px;
-    }
-    
-    .badge-success {
-      background: #c6f6d5;
-      color: #22543d;
-    }
-    
-    .badge-warning {
-      background: #fef3c7;
-      color: #92400e;
-    }
-    
-    .badge-danger {
-      background: #fecaca;
-      color: #7f1d1d;
-    }
-    
-    .badge-info {
-      background: #dbeafe;
-      color: #1e3a8a;
-    }
-    
-    .data-list {
-      margin-top: 12px;
-    }
-    
-    .data-item {
-      background: #f7fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-    
-    .data-item strong {
-      color: #2d3748;
-      display: block;
-      margin-bottom: 4px;
-    }
-    
-    .data-item span {
-      color: #4a5568;
-      font-family: 'Monaco', 'Courier New', monospace;
-    }
-    
-    code {
-      background: #f7fafc;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
-      font-family: 'Monaco', 'Courier New', monospace;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>🛠️ ADORAS Admin Panel</h1>
-    <p>Database diagnostics & cleanup tools</p>
-  </div>
+/**
+ * Admin Routes - Database Inspection & Cleanup
+ * For testing and debugging - view and delete connection requests, invitations, connections
+ */
 
-  <div class="container">
-    <!-- Server Status -->
-    <div class="card" style="margin-bottom: 24px;">
-      <div class="card-header">
-        <h2>📡 Server Status</h2>
-        <p>Check if backend is accessible</p>
-      </div>
-      <div class="card-content">
-        <button class="btn-primary" onclick="checkServerHealth()">
-          Check Server Connection
-        </button>
-        <div id="serverHealthResult" class="result"></div>
-      </div>
-    </div>
+import { Hono } from "npm:hono";
+import { createClient } from 'jsr:@supabase/supabase-js';
+import * as kv from "./kv_store.ts";
+import { Keys } from './database.ts';
 
-    <!-- Delete User -->
-    <div class="grid">
-      <div class="card">
-        <div class="card-header">
-          <h2>🗑️ Delete User</h2>
-          <p>Permanently delete a user and all data</p>
-        </div>
-        <div class="card-content">
-          <div class="warning">
-            ⚠️ This will delete the user, memories, connections, invitations, and all associated data. Cannot be undone.
-          </div>
-          <div class="form-group">
-            <label for="deleteEmail">User Email</label>
-            <input 
-              type="email" 
-              id="deleteEmail" 
-              placeholder="info@adapture.co"
-            />
-          </div>
-          <button class="btn-danger" onclick="deleteUser()">
-            Delete User Account
-          </button>
-          <div id="deleteResult" class="result"></div>
-        </div>
-      </div>
+const admin = new Hono();
 
-      <!-- Check Profile -->
-      <div class="card">
-        <div class="card-header">
-          <h2>👤 Check Profile</h2>
-          <p>View user profile details</p>
-        </div>
-        <div class="card-content">
-          <div class="form-group">
-            <label for="profileEmail">User Email</label>
-            <input 
-              type="email" 
-              id="profileEmail" 
-              placeholder="info@adapture.co"
-            />
-          </div>
-          <button class="btn-primary" onclick="checkProfile()">
-            Check Profile
-          </button>
-          <div id="profileResult" class="result"></div>
-        </div>
-      </div>
-    </div>
+// Create Supabase admin client
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
 
-    <!-- Database Diagnostics -->
-    <div class="grid">
-      <div class="card">
-        <div class="card-header">
-          <h2>📊 Database Status</h2>
-          <p>View all invitations, users, and connections</p>
-        </div>
-        <div class="card-content">
-          <div class="btn-group">
-            <button class="btn-primary" onclick="checkInvitations()">
-              Check Invitations
-            </button>
-            <button class="btn-primary" onclick="checkUsers()">
-              Check Users
-            </button>
-          </div>
-          <div class="btn-group">
-            <button class="btn-primary" onclick="checkConnections()">
-              Check Connections
-            </button>
-            <button class="btn-success" onclick="checkAll()">
-              Check All
-            </button>
-          </div>
-          <div id="diagnosticResult" class="result"></div>
-        </div>
-      </div>
+// Define prefixes for database queries
+const Prefixes = {
+  USER_PROFILE: 'user:',
+  CONNECTION: 'connection:',
+  CONNECTION_REQUEST: 'connection_request:',
+  INVITATION: 'invitation:',
+  MEMORY: 'memory:',
+};
 
-      <!-- Clean Up Orphans -->
-      <div class="card">
-        <div class="card-header">
-          <h2>🧹 Clean Up Orphaned Data</h2>
-          <p>Remove invitations from deleted users</p>
-        </div>
-        <div class="card-content">
-          <div class="warning">
-            This will find and delete invitations and connection requests that belong to users who no longer exist.
-          </div>
-          <button class="btn-success" onclick="cleanupOrphans()">
-            Clean Up Orphaned Data
-          </button>
-          <div id="cleanupResult" class="result"></div>
-        </div>
-      </div>
-    </div>
-  </div>
+/**
+ * GET /make-server-deded1eb/admin/connection-requests
+ * Get all connection requests
+ */
+admin.get("/make-server-deded1eb/admin/connection-requests", async (c) => {
+  try {
+    console.log('[ADMIN] Fetching all connection requests');
 
-  <script>
-    // Supabase configuration
-    const SUPABASE_PROJECT_ID = 'cyaaksjydpegofrldxbo';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
+    // Get all connection request keys
+    const requestKeys = await kv.getByPrefix(Prefixes.CONNECTION_REQUEST);
     
-    const API_BASE = `https://${SUPABASE_PROJECT_ID}.supabase.co/functions/v1/make-server-deded1eb`;
-    const AUTH_HEADERS = { 
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json'
-    };
+    const requests = await Promise.all(
+      requestKeys.map(async (key) => {
+        const request = await kv.get(key);
+        if (!request) return null;
 
-    // Helper functions
-    function showLoading(buttonElement) {
-      buttonElement.disabled = true;
-      buttonElement.innerHTML = '<span class="spinner"></span> Processing...';
+        // Get sender and receiver profiles
+        const [senderProfile, receiverProfile] = await Promise.all([
+          kv.get(`${Prefixes.USER_PROFILE}${request.sender_id}`),
+          kv.get(`${Prefixes.USER_PROFILE}${request.receiver_id}`)
+        ]);
+
+        return {
+          id: key,
+          ...request,
+          sender_name: senderProfile?.name || 'Unknown',
+          sender_email: senderProfile?.email || '',
+          receiver_name: receiverProfile?.name || 'Unknown',
+          receiver_email: receiverProfile?.email || ''
+        };
+      })
+    );
+
+    const validRequests = requests.filter(r => r !== null);
+
+    console.log(`[ADMIN] Found ${validRequests.length} connection requests`);
+
+    return c.json({
+      success: true,
+      requests: validRequests,
+      count: validRequests.length
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error fetching connection requests:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch connection requests'
+    }, 500);
+  }
+});
+
+/**
+ * DELETE /make-server-deded1eb/admin/connection-requests/:id
+ * Delete a connection request by ID
+ */
+admin.delete("/make-server-deded1eb/admin/connection-requests/:id", async (c) => {
+  try {
+    const requestId = c.req.param('id');
+    console.log('[ADMIN] Deleting connection request:', requestId);
+
+    // Check if exists
+    const request = await kv.get(requestId);
+    if (!request) {
+      return c.json({
+        success: false,
+        error: 'Connection request not found'
+      }, 404);
     }
 
-    function hideLoading(buttonElement, originalText) {
-      buttonElement.disabled = false;
-      buttonElement.innerHTML = originalText;
+    // Delete the request
+    await kv.del(requestId);
+
+    console.log('[ADMIN] Connection request deleted:', requestId);
+
+    return c.json({
+      success: true,
+      message: 'Connection request deleted successfully'
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error deleting connection request:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete connection request'
+    }, 500);
+  }
+});
+
+/**
+ * GET /make-server-deded1eb/admin/invitations
+ * Get all invitations
+ */
+admin.get("/make-server-deded1eb/admin/invitations", async (c) => {
+  try {
+    console.log('[ADMIN] Fetching all invitations');
+
+    // Get all invitation keys
+    const invitationKeys = await kv.getByPrefix(Prefixes.INVITATION);
+    
+    const invitations = await Promise.all(
+      invitationKeys.map(async (key) => {
+        const invitation = await kv.get(key);
+        if (!invitation) return null;
+
+        // Get sender profile
+        const senderProfile = await kv.get(`${Prefixes.USER_PROFILE}${invitation.keeper_id}`);
+
+        return {
+          id: key,
+          ...invitation,
+          sender_name: senderProfile?.name || 'Unknown',
+          sender_email: senderProfile?.email || ''
+        };
+      })
+    );
+
+    const validInvitations = invitations.filter(i => i !== null);
+
+    console.log(`[ADMIN] Found ${validInvitations.length} invitations`);
+
+    return c.json({
+      success: true,
+      invitations: validInvitations,
+      count: validInvitations.length
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error fetching invitations:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch invitations'
+    }, 500);
+  }
+});
+
+/**
+ * DELETE /make-server-deded1eb/admin/invitations/:code
+ * Delete an invitation by code
+ */
+admin.delete("/make-server-deded1eb/admin/invitations/:code", async (c) => {
+  try {
+    const code = c.req.param('code');
+    const invitationKey = `${Prefixes.INVITATION}${code}`;
+    console.log('[ADMIN] Deleting invitation:', invitationKey);
+
+    // Check if exists
+    const invitation = await kv.get(invitationKey);
+    if (!invitation) {
+      return c.json({
+        success: false,
+        error: 'Invitation not found'
+      }, 404);
     }
 
-    function showResult(elementId, message, type = 'info') {
-      const resultEl = document.getElementById(elementId);
-      resultEl.className = `result ${type}`;
-      resultEl.innerHTML = message;
-      resultEl.style.display = 'block';
+    // Delete the invitation
+    await kv.del(invitationKey);
+
+    console.log('[ADMIN] Invitation deleted:', invitationKey);
+
+    return c.json({
+      success: true,
+      message: 'Invitation deleted successfully'
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error deleting invitation:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete invitation'
+    }, 500);
+  }
+});
+
+/**
+ * GET /make-server-deded1eb/admin/connections
+ * Get all connections
+ */
+admin.get("/make-server-deded1eb/admin/connections", async (c) => {
+  try {
+    console.log('[ADMIN] Fetching all connections');
+
+    // Get all connection keys
+    const connectionKeys = await kv.getByPrefix(Prefixes.CONNECTION);
+    
+    const connections = await Promise.all(
+      connectionKeys.map(async (key) => {
+        const connection = await kv.get(key);
+        if (!connection) return null;
+
+        // Get keeper and teller profiles
+        const [keeperProfile, tellerProfile] = await Promise.all([
+          kv.get(`${Prefixes.USER_PROFILE}${connection.keeper_id}`),
+          kv.get(`${Prefixes.USER_PROFILE}${connection.teller_id}`)
+        ]);
+
+        // Determine if same-role based on keeper/teller type
+        const isSameRole = keeperProfile?.type === tellerProfile?.type;
+
+        return {
+          id: key,
+          ...connection,
+          keeper_name: keeperProfile?.name || 'Unknown',
+          keeper_email: keeperProfile?.email || '',
+          teller_name: tellerProfile?.name || 'Unknown',
+          teller_email: tellerProfile?.email || '',
+          is_same_role: isSameRole
+        };
+      })
+    );
+
+    const validConnections = connections.filter(c => c !== null);
+
+    console.log(`[ADMIN] Found ${validConnections.length} connections`);
+
+    return c.json({
+      success: true,
+      connections: validConnections,
+      count: validConnections.length
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error fetching connections:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch connections'
+    }, 500);
+  }
+});
+
+/**
+ * POST /make-server-deded1eb/admin/search-connections
+ * Search for connections by user email
+ */
+admin.post("/make-server-deded1eb/admin/search-connections", async (c) => {
+  try {
+    const { email } = await c.req.json();
+    
+    if (!email) {
+      return c.json({
+        success: false,
+        error: 'Email is required'
+      }, 400);
     }
 
-    // Check Server Health
-    async function checkServerHealth() {
-      try {
-        const startTime = Date.now();
-        const response = await fetch(`${API_BASE}/admin/health`, {
-          method: 'GET',
-          headers: AUTH_HEADERS
-        });
+    console.log('[ADMIN] Searching connections for email:', email);
 
-        const data = await response.json();
-        const responseTime = Date.now() - startTime;
-
-        if (data.success) {
-          showResult('serverHealthResult', `
-            ✅ <strong>Server is up and running!</strong><br>
-            <div class="data-list">
-              <div class="data-item">
-                <strong>Response Time:</strong> <span>${responseTime} ms</span>
-              </div>
-              <div class="data-item">
-                <strong>Server Message:</strong> <span>${data.message}</span>
-              </div>
-            </div>
-          `, 'success');
-        } else {
-          showResult('serverHealthResult', `❌ <strong>Error:</strong> ${data.error}`, 'error');
-        }
-      } catch (error) {
-        showResult('serverHealthResult', `❌ <strong>Cannot reach server:</strong> ${error.message}<br><br>Make sure the Supabase Edge Function is deployed and running.`, 'error');
+    // First find the user by email
+    const userKeys = await kv.getByPrefix(Prefixes.USER_PROFILE);
+    let targetUserId = null;
+    
+    for (const key of userKeys) {
+      const profile = await kv.get(key);
+      if (profile && profile.email && profile.email.toLowerCase() === email.toLowerCase()) {
+        targetUserId = profile.id;
+        break;
       }
     }
 
-    // Delete User
-    async function deleteUser() {
-      const email = document.getElementById('deleteEmail').value.trim();
-      if (!email) {
-        showResult('deleteResult', '❌ Please enter an email address', 'error');
-        return;
-      }
-
-      if (!confirm(`⚠️ Are you sure you want to delete ${email}? This cannot be undone!`)) {
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_BASE}/admin/cleanup-user`, {
-          method: 'POST',
-          headers: AUTH_HEADERS,
-          body: JSON.stringify({ email })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          showResult('deleteResult', `
-            ✅ <strong>User deleted successfully!</strong><br>
-            <div class="data-list">
-              <div class="data-item">
-                <strong>User ID:</strong> <span>${data.userId}</span>
-              </div>
-              <div class="data-item">
-                <strong>Items Deleted:</strong>
-                <ul style="margin-top: 8px; margin-left: 20px;">
-                  <li>User profile</li>
-                  <li>Connections: ${data.deletedConnections || 0}</li>
-                  <li>Memories: ${data.deletedMemories || 0}</li>
-                  <li>Invitations: ${data.deletedInvitations || 0}</li>
-                </ul>
-              </div>
-            </div>
-          `, 'success');
-        } else {
-          showResult('deleteResult', `❌ <strong>Error:</strong> ${data.error}`, 'error');
-        }
-      } catch (error) {
-        showResult('deleteResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
-      }
+    if (!targetUserId) {
+      return c.json({
+        success: false,
+        error: 'User not found with that email'
+      }, 404);
     }
 
-    // Check Profile
-    async function checkProfile() {
-      const email = document.getElementById('profileEmail').value.trim();
-      if (!email) {
-        showResult('profileResult', '❌ Please enter an email address', 'error');
-        return;
-      }
+    // Get all connections where this user is involved
+    const connectionKeys = await kv.getByPrefix(Prefixes.CONNECTION);
+    const userConnections = [];
 
-      try {
-        const response = await fetch(`${API_BASE}/admin/check-profile`, {
-          method: 'POST',
-          headers: AUTH_HEADERS,
-          body: JSON.stringify({ email })
-        });
+    for (const key of connectionKeys) {
+      const connection = await kv.get(key);
+      if (!connection) continue;
 
-        const data = await response.json();
+      // Check if this user is either the keeper or teller
+      if (connection.keeper_id === targetUserId || connection.teller_id === targetUserId) {
+        // Get profiles for both users
+        const [keeperProfile, tellerProfile] = await Promise.all([
+          kv.get(`${Prefixes.USER_PROFILE}${connection.keeper_id}`),
+          kv.get(`${Prefixes.USER_PROFILE}${connection.teller_id}`)
+        ]);
 
-        if (data.success && data.profile) {
-          const profile = data.profile;
-          showResult('profileResult', `
-            <strong>✅ Profile Found</strong>
-            <div class="data-list">
-              <div class="data-item"><strong>ID:</strong> <span>${profile.id}</span></div>
-              <div class="data-item"><strong>Name:</strong> <span>${profile.name}</span></div>
-              <div class="data-item"><strong>Email:</strong> <span>${profile.email}</span></div>
-              <div class="data-item"><strong>Type:</strong> <span class="badge badge-info">${profile.type}</span></div>
-              <div class="data-item"><strong>Relationship:</strong> <span>${profile.relationship || 'N/A'}</span></div>
-              <div class="data-item"><strong>Bio:</strong> <span>${profile.bio || 'N/A'}</span></div>
-              <div class="data-item"><strong>Phone:</strong> <span>${profile.phoneNumber || 'N/A'}</span></div>
-              <div class="data-item"><strong>Created:</strong> <span>${new Date(profile.createdAt).toLocaleString()}</span></div>
-            </div>
-          `, 'info');
-        } else {
-          showResult('profileResult', `❌ ${data.error || 'Profile not found'}`, 'error');
-        }
-      } catch (error) {
-        showResult('profileResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
-      }
-    }
-
-    // Check Invitations
-    async function checkInvitations() {
-      try {
-        const response = await fetch(`${API_BASE}/admin/check-invitations`, {
-          method: 'GET',
-          headers: AUTH_HEADERS
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          const invitations = data.invitations || [];
-          let html = `<strong>📨 Total Invitations: ${invitations.length}</strong>`;
-          
-          if (invitations.length > 0) {
-            html += '<div class="data-list">';
-            invitations.forEach(inv => {
-              html += `
-                <div class="data-item">
-                  <strong>Code:</strong> <code>${inv.code}</code><br>
-                  <strong>From:</strong> ${inv.keeperName} (${inv.keeperId})<br>
-                  <strong>To:</strong> ${inv.tellerName || 'Not specified'}<br>
-                  <strong>Status:</strong> <span class="badge badge-${inv.status === 'pending' ? 'warning' : 'success'}">${inv.status}</span><br>
-                  <strong>Created:</strong> ${new Date(inv.createdAt).toLocaleString()}
-                </div>
-              `;
-            });
-            html += '</div>';
-          }
-          
-          showResult('diagnosticResult', html, 'info');
-        } else {
-          showResult('diagnosticResult', `❌ ${data.error}`, 'error');
-        }
-      } catch (error) {
-        showResult('diagnosticResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
-      }
-    }
-
-    // Check Users
-    async function checkUsers() {
-      try {
-        const response = await fetch(`${API_BASE}/admin/check-users`, {
-          method: 'GET',
-          headers: AUTH_HEADERS
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          const users = data.users || [];
-          let html = `<strong>👥 Total Users: ${users.length}</strong>`;
-          
-          if (users.length > 0) {
-            html += '<div class="data-list">';
-            users.forEach(user => {
-              html += `
-                <div class="data-item">
-                  <strong>${user.name}</strong> <span class="badge badge-info">${user.type}</span><br>
-                  <strong>Email:</strong> ${user.email}<br>
-                  <strong>ID:</strong> <code>${user.id}</code><br>
-                  <strong>Created:</strong> ${new Date(user.createdAt).toLocaleString()}
-                </div>
-              `;
-            });
-            html += '</div>';
-          }
-          
-          showResult('diagnosticResult', html, 'info');
-        } else {
-          showResult('diagnosticResult', `❌ ${data.error}`, 'error');
-        }
-      } catch (error) {
-        showResult('diagnosticResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
-      }
-    }
-
-    // Check Connections
-    async function checkConnections() {
-      try {
-        const response = await fetch(`${API_BASE}/admin/check-connections`, {
-          method: 'GET',
-          headers: AUTH_HEADERS
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          const connections = data.connections || [];
-          let html = `<strong>🔗 Total Connection Pairs: ${connections.length}</strong>`;
-          
-          if (connections.length > 0) {
-            html += '<div class="data-list">';
-            connections.forEach(conn => {
-              html += `
-                <div class="data-item">
-                  <strong>Keeper:</strong> ${conn.keeperName} (${conn.keeperType})<br>
-                  <strong>Teller:</strong> ${conn.tellerName} (${conn.tellerType})<br>
-                  <strong>Connection ID:</strong> <code>${conn.connectionId}</code><br>
-                  <strong>Created:</strong> ${new Date(conn.createdAt).toLocaleString()}
-                </div>
-              `;
-            });
-            html += '</div>';
-          }
-          
-          showResult('diagnosticResult', html, 'info');
-        } else {
-          showResult('diagnosticResult', `❌ ${data.error}`, 'error');
-        }
-      } catch (error) {
-        showResult('diagnosticResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
-      }
-    }
-
-    // Check All
-    async function checkAll() {
-      try {
-        showResult('diagnosticResult', '<span class="spinner"></span> Loading all data...', 'info');
+        // Count memories for this connection
+        const memoryKeys = await kv.getByPrefix(`${Prefixes.MEMORY}${connection.id}:`);
         
-        const [invRes, userRes, connRes] = await Promise.all([
-          fetch(`${API_BASE}/admin/check-invitations`, { headers: AUTH_HEADERS }),
-          fetch(`${API_BASE}/admin/check-users`, { headers: AUTH_HEADERS }),
-          fetch(`${API_BASE}/admin/check-connections`, { headers: AUTH_HEADERS })
-        ]);
-
-        const [invData, userData, connData] = await Promise.all([
-          invRes.json(),
-          userRes.json(),
-          connRes.json()
-        ]);
-
-        let html = '<strong>📊 Complete Database Overview</strong><br><br>';
-
-        // Users
-        if (userData.success) {
-          const users = userData.users || [];
-          html += `<strong>👥 Users: ${users.length}</strong>`;
-          if (users.length > 0) {
-            html += '<div class="data-list">';
-            users.forEach(user => {
-              html += `
-                <div class="data-item">
-                  <strong>${user.name}</strong> <span class="badge badge-info">${user.type}</span><br>
-                  <strong>Email:</strong> ${user.email}<br>
-                  <strong>ID:</strong> <code>${user.id}</code>
-                </div>
-              `;
-            });
-            html += '</div>';
-          }
-        }
-
-        // Invitations
-        if (invData.success) {
-          const invitations = invData.invitations || [];
-          html += `<br><strong>📨 Invitations: ${invitations.length}</strong>`;
-          if (invitations.length > 0) {
-            html += '<div class="data-list">';
-            invitations.forEach(inv => {
-              html += `
-                <div class="data-item">
-                  <strong>Code:</strong> <code>${inv.code}</code><br>
-                  <strong>From:</strong> ${inv.keeperName}<br>
-                  <strong>Status:</strong> <span class="badge badge-${inv.status === 'pending' ? 'warning' : 'success'}">${inv.status}</span>
-                </div>
-              `;
-            });
-            html += '</div>';
-          }
-        }
-
-        // Connections
-        if (connData.success) {
-          const connections = connData.connections || [];
-          html += `<br><strong>🔗 Connections: ${connections.length}</strong>`;
-          if (connections.length > 0) {
-            html += '<div class="data-list">';
-            connections.forEach(conn => {
-              html += `
-                <div class="data-item">
-                  <strong>${conn.keeperName}</strong> ↔ <strong>${conn.tellerName}</strong>
-                </div>
-              `;
-            });
-            html += '</div>';
-          }
-        }
-
-        showResult('diagnosticResult', html, 'info');
-      } catch (error) {
-        showResult('diagnosticResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
-      }
-    }
-
-    // Clean Up Orphans
-    async function cleanupOrphans() {
-      if (!confirm('This will delete invitations and connection requests that belong to users who no longer exist. Continue?')) {
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_BASE}/admin/cleanup-orphans`, {
-          method: 'POST',
-          headers: AUTH_HEADERS
+        userConnections.push({
+          connectionId: connection.id,
+          keeperId: connection.keeper_id,
+          keeperName: keeperProfile?.name || 'Unknown',
+          keeperEmail: keeperProfile?.email || '',
+          keeperType: keeperProfile?.type || 'unknown',
+          tellerId: connection.teller_id,
+          tellerName: tellerProfile?.name || 'Unknown',
+          tellerEmail: tellerProfile?.email || '',
+          tellerType: tellerProfile?.type || 'unknown',
+          memoryCount: memoryKeys.length,
+          createdAt: connection.created_at || new Date().toISOString(),
+          isSameRole: keeperProfile?.type === tellerProfile?.type
         });
-
-        const data = await response.json();
-
-        if (data.success) {
-          showResult('cleanupResult', `
-            ✅ <strong>Cleanup complete!</strong><br>
-            <div class="data-list">
-              <div class="data-item">
-                <strong>Orphaned invitations deleted:</strong> ${data.deletedCount}
-              </div>
-            </div>
-          `, 'success');
-        } else {
-          showResult('cleanupResult', `❌ ${data.error}`, 'error');
-        }
-      } catch (error) {
-        showResult('cleanupResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
       }
     }
-  </script>
-</body>
-</html>
+
+    console.log(`[ADMIN] Found ${userConnections.length} connections for user ${targetUserId}`);
+
+    return c.json({
+      success: true,
+      userId: targetUserId,
+      email: email,
+      connections: userConnections,
+      count: userConnections.length
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error searching connections:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to search connections'
+    }, 500);
+  }
+});
+
+/**
+ * DELETE /make-server-deded1eb/admin/connections/:id
+ * Delete a connection by ID
+ */
+admin.delete("/make-server-deded1eb/admin/connections/:id", async (c) => {
+  try {
+    const connectionId = c.req.param('id');
+    console.log('[ADMIN] Deleting connection:', connectionId);
+
+    // Check if exists
+    const connection = await kv.get(connectionId);
+    if (!connection) {
+      return c.json({
+        success: false,
+        error: 'Connection not found'
+      }, 404);
+    }
+
+    // Delete the connection
+    await kv.del(connectionId);
+
+    // Also delete all memories for this connection
+    const memoryKeys = await kv.getByPrefix(`${Prefixes.MEMORY}${connection.id}:`);
+    if (memoryKeys.length > 0) {
+      console.log(`[ADMIN] Deleting ${memoryKeys.length} memories for connection ${connection.id}`);
+      await kv.mdel(memoryKeys);
+    }
+
+    console.log('[ADMIN] Connection deleted:', connectionId);
+
+    return c.json({
+      success: true,
+      message: 'Connection and associated memories deleted successfully',
+      memoriesDeleted: memoryKeys.length
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error deleting connection:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete connection'
+    }, 500);
+  }
+});
+
+/**
+ * GET /make-server-deded1eb/admin/health
+ * Health check for admin
+ */
+admin.get("/make-server-deded1eb/admin/health", async (c) => {
+  return c.json({
+    success: true,
+    message: 'Admin API is running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
+ * POST /make-server-deded1eb/admin/check-profile
+ * Check a user profile by email
+ */
+admin.post("/make-server-deded1eb/admin/check-profile", async (c) => {
+  try {
+    const { email } = await c.req.json();
+    
+    if (!email) {
+      return c.json({
+        success: false,
+        error: 'Email is required'
+      }, 400);
+    }
+
+    console.log('[ADMIN] Checking profile for email:', email);
+
+    // Find user by email
+    const userKeys = await kv.getByPrefix(Prefixes.USER_PROFILE);
+    let userProfile = null;
+    
+    for (const key of userKeys) {
+      const profile = await kv.get(key);
+      if (profile && profile.email && profile.email.toLowerCase() === email.toLowerCase()) {
+        userProfile = profile;
+        break;
+      }
+    }
+
+    if (!userProfile) {
+      return c.json({
+        success: false,
+        error: 'User not found with that email'
+      }, 404);
+    }
+
+    return c.json({
+      success: true,
+      profile: {
+        id: userProfile.id,
+        name: userProfile.name,
+        email: userProfile.email,
+        type: userProfile.type,
+        relationship: userProfile.relationship,
+        bio: userProfile.bio,
+        phoneNumber: userProfile.phone_number,
+        createdAt: userProfile.created_at || new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error checking profile:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to check profile'
+    }, 500);
+  }
+});
+
+/**
+ * GET /make-server-deded1eb/admin/check-invitations
+ * Check all invitations
+ */
+admin.get("/make-server-deded1eb/admin/check-invitations", async (c) => {
+  try {
+    console.log('[ADMIN] Checking all invitations');
+
+    const invitationKeys = await kv.getByPrefix(Prefixes.INVITATION);
+    const invitations = [];
+
+    for (const key of invitationKeys) {
+      const invitation = await kv.get(key);
+      if (!invitation) continue;
+
+      const keeperProfile = await kv.get(`${Prefixes.USER_PROFILE}${invitation.keeper_id}`);
+
+      invitations.push({
+        code: invitation.code,
+        keeperId: invitation.keeper_id,
+        keeperName: keeperProfile?.name || 'Unknown',
+        tellerName: invitation.teller_name || '',
+        status: invitation.status,
+        createdAt: invitation.created_at || new Date().toISOString()
+      });
+    }
+
+    return c.json({
+      success: true,
+      invitations: invitations
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error checking invitations:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to check invitations'
+    }, 500);
+  }
+});
+
+/**
+ * GET /make-server-deded1eb/admin/check-users
+ * Check all users
+ */
+admin.get("/make-server-deded1eb/admin/check-users", async (c) => {
+  try {
+    console.log('[ADMIN] Checking all users');
+
+    const userKeys = await kv.getByPrefix(Prefixes.USER_PROFILE);
+    const users = [];
+
+    for (const key of userKeys) {
+      const profile = await kv.get(key);
+      if (!profile) continue;
+
+      users.push({
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        type: profile.type,
+        createdAt: profile.created_at || new Date().toISOString()
+      });
+    }
+
+    return c.json({
+      success: true,
+      users: users
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error checking users:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to check users'
+    }, 500);
+  }
+});
+
+/**
+ * GET /make-server-deded1eb/admin/check-connections
+ * Check all connections
+ */
+admin.get("/make-server-deded1eb/admin/check-connections", async (c) => {
+  try {
+    console.log('[ADMIN] Checking all connections');
+
+    const connectionKeys = await kv.getByPrefix(Prefixes.CONNECTION);
+    const connections = [];
+
+    for (const key of connectionKeys) {
+      const connection = await kv.get(key);
+      if (!connection) continue;
+
+      const [keeperProfile, tellerProfile] = await Promise.all([
+        kv.get(`${Prefixes.USER_PROFILE}${connection.keeper_id}`),
+        kv.get(`${Prefixes.USER_PROFILE}${connection.teller_id}`)
+      ]);
+
+      connections.push({
+        connectionId: connection.id,
+        keeperName: keeperProfile?.name || 'Unknown',
+        keeperType: keeperProfile?.type || 'unknown',
+        tellerName: tellerProfile?.name || 'Unknown',
+        tellerType: tellerProfile?.type || 'unknown',
+        createdAt: connection.created_at || new Date().toISOString()
+      });
+    }
+
+    return c.json({
+      success: true,
+      connections: connections
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error checking connections:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to check connections'
+    }, 500);
+  }
+});
+
+/**
+ * POST /make-server-deded1eb/admin/cleanup-user
+ * Delete a user and all associated data
+ */
+admin.post("/make-server-deded1eb/admin/cleanup-user", async (c) => {
+  try {
+    const { email } = await c.req.json();
+    
+    if (!email) {
+      return c.json({
+        success: false,
+        error: 'Email is required'
+      }, 400);
+    }
+
+    console.log('[ADMIN] Cleaning up user:', email);
+
+    // Find user by email
+    const userKeys = await kv.getByPrefix(Prefixes.USER_PROFILE);
+    let userId = null;
+    let userKey = null;
+    
+    for (const key of userKeys) {
+      const profile = await kv.get(key);
+      if (profile && profile.email && profile.email.toLowerCase() === email.toLowerCase()) {
+        userId = profile.id;
+        userKey = key;
+        break;
+      }
+    }
+
+    if (!userId) {
+      return c.json({
+        success: false,
+        error: 'User not found with that email'
+      }, 404);
+    }
+
+    // Delete connections
+    const connectionKeys = await kv.getByPrefix(Prefixes.CONNECTION);
+    let deletedConnections = 0;
+    let deletedMemories = 0;
+
+    for (const key of connectionKeys) {
+      const connection = await kv.get(key);
+      if (connection && (connection.keeper_id === userId || connection.teller_id === userId)) {
+        // Delete memories for this connection
+        const memoryKeys = await kv.getByPrefix(`${Prefixes.MEMORY}${connection.id}:`);
+        if (memoryKeys.length > 0) {
+          await kv.mdel(memoryKeys);
+          deletedMemories += memoryKeys.length;
+        }
+        
+        // Delete connection
+        await kv.del(key);
+        deletedConnections++;
+      }
+    }
+
+    // Delete invitations
+    const invitationKeys = await kv.getByPrefix(Prefixes.INVITATION);
+    let deletedInvitations = 0;
+
+    for (const key of invitationKeys) {
+      const invitation = await kv.get(key);
+      if (invitation && invitation.keeper_id === userId) {
+        await kv.del(key);
+        deletedInvitations++;
+      }
+    }
+
+    // Delete user profile
+    await kv.del(userKey);
+
+    console.log(`[ADMIN] User cleanup complete: ${deletedConnections} connections, ${deletedMemories} memories, ${deletedInvitations} invitations deleted`);
+
+    return c.json({
+      success: true,
+      userId: userId,
+      deletedConnections: deletedConnections,
+      deletedMemories: deletedMemories,
+      deletedInvitations: deletedInvitations
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error cleaning up user:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to cleanup user'
+    }, 500);
+  }
+});
+
+/**
+ * POST /make-server-deded1eb/admin/cleanup-orphans
+ * Delete orphaned invitations and connection requests
+ */
+admin.post("/make-server-deded1eb/admin/cleanup-orphans", async (c) => {
+  try {
+    console.log('[ADMIN] Cleaning up orphaned data');
+
+    // Get all user IDs
+    const userKeys = await kv.getByPrefix(Prefixes.USER_PROFILE);
+    const validUserIds = new Set();
+    
+    for (const key of userKeys) {
+      const profile = await kv.get(key);
+      if (profile && profile.id) {
+        validUserIds.add(profile.id);
+      }
+    }
+
+    let deletedCount = 0;
+
+    // Check invitations
+    const invitationKeys = await kv.getByPrefix(Prefixes.INVITATION);
+    for (const key of invitationKeys) {
+      const invitation = await kv.get(key);
+      if (invitation && !validUserIds.has(invitation.keeper_id)) {
+        await kv.del(key);
+        deletedCount++;
+      }
+    }
+
+    // Check connection requests
+    const requestKeys = await kv.getByPrefix(Prefixes.CONNECTION_REQUEST);
+    for (const key of requestKeys) {
+      const request = await kv.get(key);
+      if (request && (!validUserIds.has(request.sender_id) || !validUserIds.has(request.receiver_id))) {
+        await kv.del(key);
+        deletedCount++;
+      }
+    }
+
+    console.log(`[ADMIN] Cleanup complete: ${deletedCount} orphaned items deleted`);
+
+    return c.json({
+      success: true,
+      deletedCount: deletedCount
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error cleaning up orphans:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to cleanup orphans'
+    }, 500);
+  }
+});
+
+export default admin;
