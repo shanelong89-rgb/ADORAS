@@ -131,6 +131,30 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
     }
   };
 
+  const handleDeleteConnectionRequest = async (requestId: string) => {
+    if (!confirm('Are you sure you want to delete this connection request? This cannot be undone.')) {
+      return;
+    }
+
+    setDeletingId(requestId);
+    try {
+      const response = await apiClient.cancelConnectionRequest(requestId);
+      
+      if (response.success) {
+        toast.success('Connection request deleted successfully');
+        // Remove from local state
+        setSentRequests(prev => prev.filter(req => req.id !== requestId));
+      } else {
+        toast.error(response.error || 'Failed to delete connection request');
+      }
+    } catch (error) {
+      console.error('Error deleting connection request:', error);
+      toast.error('Network error. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'sent':
@@ -236,6 +260,8 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
                           key={`req-${request.id}`}
                           request={request}
                           onCopy={copyToClipboard}
+                          onDelete={handleDeleteConnectionRequest}
+                          isDeleting={deletingId === request.id}
                         />
                       ))}
                     </div>
@@ -439,9 +465,11 @@ function InvitationCard({ invitation, onCopy, onDelete, isDeleting, getStatusIco
 interface ConnectionRequestCardProps {
   request: ConnectionRequest;
   onCopy: (text: string, label: string) => void;
+  onDelete?: (id: string) => void;
+  isDeleting?: boolean;
 }
 
-function ConnectionRequestCard({ request, onCopy }: ConnectionRequestCardProps) {
+function ConnectionRequestCard({ request, onCopy, onDelete, isDeleting }: ConnectionRequestCardProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
@@ -491,6 +519,21 @@ function ConnectionRequestCard({ request, onCopy }: ConnectionRequestCardProps) 
             </p>
           )}
         </div>
+        {onDelete && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDelete(request.id)}
+            disabled={isDeleting}
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            {isDeleting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+          </Button>
+        )}
       </div>
 
       <div className="space-y-2 mb-3">
