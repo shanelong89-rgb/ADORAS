@@ -385,36 +385,15 @@
       <!-- Clean Up Orphans -->
       <div class="card">
         <div class="card-header">
-          <h2>🔍 Debug Connection Requests</h2>
-          <p>Inspect a user's connection requests</p>
-        </div>
-        <div class="card-content">
-          <input 
-            type="email" 
-            id="debugEmail" 
-            class="input" 
-            placeholder="shanelong@gmail.com"
-            value="shanelong@gmail.com"
-          />
-          <button class="btn" onclick="debugConnectionRequests()">
-            Debug Connection Requests
-          </button>
-          <div id="debugRequestResult" class="result"></div>
-        </div>
-      </div>
-
-      <!-- Clean Up Orphans -->
-      <div class="card">
-        <div class="card-header">
           <h2>🧹 Clean Up Orphaned Data</h2>
           <p>Remove invitations from deleted users</p>
         </div>
         <div class="card-content">
           <div class="warning">
-            This will find and delete invitations that belong to users who no longer exist.
+            This will find and delete invitations and connection requests that belong to users who no longer exist.
           </div>
           <button class="btn-success" onclick="cleanupOrphans()">
-            Clean Up Orphaned Invitations
+            Clean Up Orphaned Data
           </button>
           <div id="cleanupResult" class="result"></div>
         </div>
@@ -767,7 +746,7 @@
 
     // Clean Up Orphans
     async function cleanupOrphans() {
-      if (!confirm('This will delete invitations that belong to users who no longer exist. Continue?')) {
+      if (!confirm('This will delete invitations and connection requests that belong to users who no longer exist. Continue?')) {
         return;
       }
 
@@ -793,84 +772,6 @@
         }
       } catch (error) {
         showResult('cleanupResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
-      }
-    }
-
-    // Debug Connection Requests
-    async function debugConnectionRequests() {
-      const email = document.getElementById('debugEmail').value.trim();
-      if (!email) {
-        showResult('debugRequestResult', '❌ Please enter an email address', 'error');
-        return;
-      }
-
-      try {
-        const response = await fetch(`${API_BASE}/admin/check-profile`, {
-          method: 'POST',
-          headers: AUTH_HEADERS,
-          body: JSON.stringify({ email, debug: true })
-        });
-
-        const data = await response.json();
-
-        if (data.success && data.debug) {
-          const user = data.user;
-          const requestDetails = data.requestDetails || [];
-          
-          let html = `<strong>🔍 Debug Info for ${user.name} (${user.email})</strong><br><br>`;
-          html += `<strong>User ID:</strong> <code>${user.id}</code><br>`;
-          html += `<strong>Request IDs in list:</strong> ${data.requestIdsInList.length}<br><br>`;
-          
-          if (requestDetails.length > 0) {
-            html += '<div class="data-list">';
-            requestDetails.forEach((detail, idx) => {
-              html += `<div class="data-item">`;
-              html += `<strong>Request #${idx + 1}:</strong> <code>${detail.requestId}</code><br>`;
-              
-              if (!detail.exists) {
-                html += `<span class="badge badge-danger">NOT FOUND IN DATABASE</span><br>`;
-                html += `<em>This is an orphaned reference that should be cleaned up!</em>`;
-              } else {
-                html += `<span class="badge badge-success">EXISTS</span><br>`;
-                html += `<strong>Status:</strong> ${detail.request.status}<br>`;
-                html += `<strong>Requester ID:</strong> <code>${detail.request.requesterId}</code><br>`;
-                html += `<strong>Recipient ID:</strong> <code>${detail.request.recipientId}</code><br>`;
-                html += `<strong>Created:</strong> ${new Date(detail.request.createdAt).toLocaleString()}<br>`;
-                html += `<strong>Fields:</strong> <code>${detail.request.fields.join(', ')}</code><br>`;
-                
-                if (detail.otherUser.exists === false) {
-                  html += `<strong>Other User:</strong> <span class="badge badge-danger">DELETED (${detail.otherUser.id})</span><br>`;
-                  html += `<em>This request is orphaned because the other user was deleted!</em>`;
-                } else {
-                  html += `<strong>Other User:</strong> ${detail.otherUser.name} (${detail.otherUser.email})`;
-                }
-              }
-              
-              html += `</div>`;
-            });
-            html += '</div>';
-          } else {
-            html += '<em>No connection requests found for this user.</em>';
-          }
-          
-          showResult('debugRequestResult', html, 'info');
-        } else {
-          if (data.allUsers) {
-            let html = `❌ ${data.error}<br><br><strong>All users in database:</strong><br>`;
-            html += '<div class="data-list">';
-            data.allUsers.forEach(u => {
-              if (u) {
-                html += `<div class="data-item"><strong>${u.name}</strong><br>${u.email}<br><code>${u.id}</code></div>`;
-              }
-            });
-            html += '</div>';
-            showResult('debugRequestResult', html, 'error');
-          } else {
-            showResult('debugRequestResult', `❌ ${data.error}`, 'error');
-          }
-        }
-      } catch (error) {
-        showResult('debugRequestResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
       }
     }
   </script>
