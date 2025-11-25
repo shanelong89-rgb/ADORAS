@@ -160,8 +160,10 @@ export function Dashboard({
     }
 
     // Get per-connection memories (authoritative source)
-    const connectionMemories = userType === 'keeper' 
-      ? (memoriesByStoryteller[activeConnectionId] || [])
+    // 🐛 FIX: Check BOTH buckets because during initial load, userType might be null
+    // and memories get stored in the "wrong" bucket due to race condition
+    const connectionMemories = (memoriesByStoryteller[activeConnectionId] || []).length > 0
+      ? memoriesByStoryteller[activeConnectionId]
       : (memoriesByLegacyKeeper[activeConnectionId] || []);
 
     // CRITICAL FIX: Merge BOTH sources (per-connection + global), dedupe by ID
