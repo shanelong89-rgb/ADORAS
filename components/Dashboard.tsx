@@ -224,7 +224,7 @@ export function Dashboard({
     try {
       const response = await apiClient.getConnectionRequests();
       if (response.success && response.receivedRequests) {
-        const pending = response.receivedRequests.filter((r: any) => r.status === 'pending');
+        const pending = response.receivedRequests.filter((r: any) => r && r.status === 'pending');
         setPendingRequestsCount(pending.length);
       }
     } catch (error) {
