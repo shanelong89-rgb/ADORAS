@@ -69,6 +69,7 @@ import {
   getNotificationCapabilityMessage,
 } from "../utils/pwaDetection";
 import { NotificationOnboardingDialog } from "./NotificationOnboardingDialog";
+import { OnboardingTour } from "./OnboardingTour";
 import {
   projectId,
   publicAnonKey,
@@ -167,6 +168,14 @@ export function AppContent() {
 
   // Invitation flow detection
   const [inviteCode, setInviteCode] = useState<string | null>(null);
+
+  // Onboarding tour state
+  const [showOnboardingTour, setShowOnboardingTour] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(() => {
+    // Check if user has completed onboarding before
+    const completed = localStorage.getItem('onboarding_completed');
+    return completed === 'true';
+  });
 
   // Phase 1d: Connection loading state
   const [isLoadingConnections, setIsLoadingConnections] =
@@ -1526,6 +1535,19 @@ export function AppContent() {
   }, [currentScreen, memories, networkStatus.isOnline]);
 
   /**
+   * Show onboarding tour for first-time users
+   */
+  useEffect(() => {
+    if (currentScreen === "dashboard" && !hasCompletedOnboarding && userProfile) {
+      // Show onboarding after a brief delay to let dashboard load
+      const timer = setTimeout(() => {
+        setShowOnboardingTour(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [currentScreen, hasCompletedOnboarding, userProfile]);
+
+  /**
    * Phase 3e: Update queued operations count
    */
   useEffect(() => {
@@ -1857,6 +1879,20 @@ export function AppContent() {
 
   const handleWelcomeLogin = () => {
     setCurrentScreen("login");
+  };
+
+  const handleOnboardingTourComplete = () => {
+    setShowOnboardingTour(false);
+    setHasCompletedOnboarding(true);
+    localStorage.setItem('onboarding_completed', 'true');
+    console.log('✅ Onboarding tour completed');
+  };
+
+  const handleOnboardingTourSkip = () => {
+    setShowOnboardingTour(false);
+    setHasCompletedOnboarding(true);
+    localStorage.setItem('onboarding_completed', 'true');
+    console.log('⏭️ Onboarding tour skipped');
   };
 
   const handleLoginSuccess = () => {
@@ -4047,6 +4083,17 @@ export function AppContent() {
           userName={
             partnerProfile?.name || "your family member"
           }
+        />
+      )}
+
+      {/* Onboarding Tour - Shows for first-time users */}
+      {userProfile && userType && (
+        <OnboardingTour
+          isOpen={showOnboardingTour}
+          onComplete={handleOnboardingTourComplete}
+          onSkip={handleOnboardingTourSkip}
+          userType={userType}
+          userName={userProfile.name}
         />
       )}
     </>
