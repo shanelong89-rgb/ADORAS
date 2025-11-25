@@ -1061,7 +1061,8 @@
             ✅ <strong>Rebuild complete!</strong><br>
             <div class="data-list">
               <div class="data-item">
-                <strong>Connection indexes rebuilt:</strong> ${data.rebuiltCount}
+                <strong>Users updated:</strong> ${data.updatedUsers}<br>
+                <strong>Total connections:</strong> ${data.totalConnections}
               </div>
             </div>
           `, 'success');
@@ -1075,11 +1076,13 @@
 
     // Clean Up Duplicate Users
     async function cleanupDuplicateUsers() {
-      if (!confirm('This will find users with duplicate emails and keep the one with the most connections/requests. Other duplicates will be deleted. Continue?')) {
+      if (!confirm('This will delete duplicate user accounts with the same email. The user with the most connections/requests will be kept. Continue?')) {
         return;
       }
 
       try {
+        showResult('cleanupDuplicatesResult', 'Processing...', 'info');
+
         const response = await fetch(`${API_BASE}/admin/cleanup-duplicate-users`, {
           method: 'POST',
           headers: AUTH_HEADERS
@@ -1088,14 +1091,33 @@
         const data = await response.json();
 
         if (data.success) {
-          showResult('cleanupDuplicatesResult', `
-            ✅ <strong>Cleanup complete!</strong><br>
-            <div class="data-list">
-              <div class="data-item">
-                <strong>Duplicate users deleted:</strong> ${data.deletedCount}
-              </div>
-            </div>
-          `, 'success');
+          if (data.deletedCount === 0) {
+            showResult('cleanupDuplicatesResult', `
+              ✅ <strong>No duplicates found!</strong><br>
+              All users have unique email addresses.
+            `, 'success');
+          } else {
+            let html = `
+              ✅ <strong>Cleanup complete!</strong><br>
+              <strong>Deleted ${data.deletedCount} duplicate user(s)</strong><br><br>
+            `;
+            
+            if (data.deletedUsers && data.deletedUsers.length > 0) {
+              html += '<div class="data-list">';
+              data.deletedUsers.forEach(user => {
+                html += `
+                  <div class="data-item">
+                    <strong>${user.name}</strong><br>
+                    <strong>Email:</strong> ${user.email}<br>
+                    <strong>ID:</strong> <code>${user.id}</code>
+                  </div>
+                `;
+              });
+              html += '</div>';
+            }
+            
+            showResult('cleanupDuplicatesResult', html, 'success');
+          }
         } else {
           showResult('cleanupDuplicatesResult', `❌ ${data.error}`, 'error');
         }
