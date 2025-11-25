@@ -69,6 +69,8 @@ export interface Memory {
   type: 'text' | 'photo' | 'voice' | 'video' | 'document';
   content: string;
   sender: 'keeper' | 'teller';
+  senderId?: string; // User ID of sender (for same-role connections)
+  senderName?: string; // Name of sender (for display in same-role connections)
   timestamp: Date;
   category?: string;
   estimatedDate?: string;
