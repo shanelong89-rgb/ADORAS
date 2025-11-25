@@ -580,50 +580,78 @@
       }
 
       try {
-        const response = await fetch(`${API_BASE}/admin/search-connections`, {
+        showResult('connectionSearchResult', '<span class="spinner"></span> Searching...', 'info');
+
+        // First, get the user profile to find their ID
+        const profileRes = await fetch(`${API_BASE}/admin/check-profile`, {
           method: 'POST',
           headers: AUTH_HEADERS,
           body: JSON.stringify({ email })
         });
 
-        const data = await response.json();
+        const profileData = await profileRes.json();
 
-        if (data.success) {
-          const connections = data.connections || [];
-          let html = `<strong>🔗 Found ${connections.length} connection(s) for ${email}</strong><br>`;
-          html += `<strong>User ID:</strong> <code>${data.userId}</code><br><br>`;
-          
-          if (connections.length > 0) {
-            html += '<div class="data-list">';
-            connections.forEach(conn => {
-              const isSameRole = conn.isSameRole ? ' <span class="badge badge-warning">SAME ROLE</span>' : '';
-              html += `
-                <div class="data-item">
-                  <strong>Keeper:</strong> ${conn.keeperName}${isSameRole}<br>
-                  <strong>Keeper ID:</strong> <code>${conn.keeperId}</code><br>
-                  <strong>Keeper Email:</strong> ${conn.keeperEmail}<br>
-                  <strong>Keeper Type:</strong> <span class="badge badge-info">${conn.keeperType}</span><br><br>
-                  
-                  <strong>Teller:</strong> ${conn.tellerName}<br>
-                  <strong>Teller ID:</strong> <code>${conn.tellerId}</code><br>
-                  <strong>Teller Email:</strong> ${conn.tellerEmail}<br>
-                  <strong>Teller Type:</strong> <span class="badge badge-info">${conn.tellerType}</span><br><br>
-                  
-                  <strong>Connection ID:</strong> <code>${conn.connectionId}</code><br>
-                  <strong>Memory Count:</strong> <span class="badge badge-success">${conn.memoryCount}</span><br>
-                  <strong>Created:</strong> ${new Date(conn.createdAt).toLocaleString()}
-                </div>
-              `;
-            });
-            html += '</div>';
-          } else {
-            html += '<p>No connections found for this user.</p>';
-          }
-          
-          showResult('connectionSearchResult', html, 'info');
-        } else {
-          showResult('connectionSearchResult', `❌ ${data.error}`, 'error');
+        if (!profileData.success || !profileData.profile) {
+          showResult('connectionSearchResult', `❌ User not found with email: ${email}`, 'error');
+          return;
         }
+
+        const userId = profileData.profile.id;
+        const userName = profileData.profile.name;
+
+        // Now get all connections
+        const allConnectionsRes = await fetch(`${API_BASE}/admin/connections`, {
+          method: 'GET',
+          headers: AUTH_HEADERS
+        });
+
+        const allConnectionsData = await allConnectionsRes.json();
+
+        if (!allConnectionsData.success) {
+          showResult('connectionSearchResult', `❌ Error fetching full connections: ${allConnectionsData.error}`, 'error');
+          return;
+        }
+
+        // Filter connections where this user is involved
+        const userConnections = allConnectionsData.connections.filter(conn => 
+          conn.keeper_id === userId || conn.teller_id === userId
+        );
+
+        let html = `<strong>🔗 Found ${userConnections.length} connection(s) for ${userName} (${email})</strong><br>`;
+        html += `<strong>User ID:</strong> <code>${userId}</code><br><br>`;
+        
+        if (userConnections.length > 0) {
+          html += '<div class="data-list">';
+          for (const conn of userConnections) {
+            const isSameRole = conn.is_same_role ? ' <span class="badge badge-warning">SAME ROLE</span>' : '';
+            
+            // Get memory count for this connection
+            // We'll need to approximate this since we don't have direct access
+            const memoryCountText = 'Unknown'; // We can't get this without the new endpoint
+            
+            html += `
+              <div class="data-item">
+                <strong>Keeper:</strong> ${conn.keeper_name}${isSameRole}<br>
+                <strong>Keeper ID:</strong> <code>${conn.keeper_id}</code><br>
+                <strong>Keeper Email:</strong> ${conn.keeper_email}<br>
+                <strong>Keeper Type:</strong> <span class="badge badge-info">${conn.keeper_type || 'unknown'}</span><br><br>
+                
+                <strong>Teller:</strong> ${conn.teller_name}<br>
+                <strong>Teller ID:</strong> <code>${conn.teller_id}</code><br>
+                <strong>Teller Email:</strong> ${conn.teller_email}<br>
+                <strong>Teller Type:</strong> <span class="badge badge-info">${conn.teller_type || 'unknown'}</span><br><br>
+                
+                <strong>Connection ID:</strong> <code>${conn.id}</code><br>
+                <strong>Created:</strong> ${new Date(conn.created_at).toLocaleString()}
+              </div>
+            `;
+          }
+          html += '</div>';
+        } else {
+          html += '<p>No connections found for this user.</p>';
+        }
+        
+        showResult('connectionSearchResult', html, 'info');
       } catch (error) {
         showResult('connectionSearchResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
       }
@@ -709,7 +737,7 @@
     // Check Connections
     async function checkConnections() {
       try {
-        const response = await fetch(`${API_BASE}/admin/check-connections`, {
+        const response = await fetch(`${API_BASE}/admin/connections`, {
           method: 'GET',
           headers: AUTH_HEADERS
         });
@@ -718,16 +746,22 @@
 
         if (data.success) {
           const connections = data.connections || [];
-          let html = `<strong>🔗 Total Connection Pairs: ${connections.length}</strong>`;
+          let html = `<strong>🔗 Total Connections: ${connections.length}</strong>`;
           
           if (connections.length > 0) {
             html += '<div class="data-list">';
             connections.forEach(conn => {
+              const sameRoleBadge = conn.is_same_role ? '<span class="badge badge-warning">SAME ROLE</span>' : '';
               html += `
                 <div class="data-item">
-                  <strong>Keeper:</strong> ${conn.keeperName} (${conn.keeperType})<br>
-                  <strong>Teller:</strong> ${conn.tellerName} (${conn.tellerType})<br>
-                  <strong>Connection ID:</strong> <code>${conn.connectionId}</code><br>
+                  <strong>Keeper:</strong> ${conn.keeper_name} <span class="badge badge-info">${conn.keeper_type || 'keeper'}</span><br>
+                  <strong>Keeper Email:</strong> ${conn.keeper_email}<br>
+                  <strong>Keeper ID:</strong> <code>${conn.keeperId}</code><br><br>
+                  <strong>Teller:</strong> ${conn.teller_name} <span class="badge badge-info">${conn.teller_type || 'teller'}</span><br>
+                  <strong>Teller Email:</strong> ${conn.teller_email}<br>
+                  <strong>Teller ID:</strong> <code>${conn.tellerId}</code><br><br>
+                  ${sameRoleBadge}
+                  <strong>Connection ID:</strong> <code>${conn.id}</code><br>
                   <strong>Created:</strong> ${new Date(conn.createdAt).toLocaleString()}
                 </div>
               `;
@@ -752,7 +786,7 @@
         const [invRes, userRes, connRes] = await Promise.all([
           fetch(`${API_BASE}/admin/check-invitations`, { headers: AUTH_HEADERS }),
           fetch(`${API_BASE}/admin/check-users`, { headers: AUTH_HEADERS }),
-          fetch(`${API_BASE}/admin/check-connections`, { headers: AUTH_HEADERS })
+          fetch(`${API_BASE}/admin/connections`, { headers: AUTH_HEADERS })
         ]);
 
         const [invData, userData, connData] = await Promise.all([
@@ -808,9 +842,10 @@
           if (connections.length > 0) {
             html += '<div class="data-list">';
             connections.forEach(conn => {
+              const sameRoleBadge = conn.is_same_role ? '<span class="badge badge-warning">SAME ROLE</span> ' : '';
               html += `
                 <div class="data-item">
-                  <strong>${conn.keeperName}</strong> ↔ <strong>${conn.tellerName}</strong>
+                  ${sameRoleBadge}<strong>${conn.keeper_name}</strong> <span class="badge badge-info">${conn.keeper_type || 'keeper'}</span> ↔ <strong>${conn.teller_name}</strong> <span class="badge badge-info">${conn.teller_type || 'teller'}</span>
                 </div>
               `;
             });
