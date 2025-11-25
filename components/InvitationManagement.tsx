@@ -81,19 +81,28 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
       ]);
       
       if (invitationsResponse.success && invitationsResponse.invitations) {
-        setInvitations(invitationsResponse.invitations);
+        // Filter out any null/undefined entries
+        const validInvitations = invitationsResponse.invitations.filter((inv): inv is Invitation => !!inv && !!inv.id);
+        setInvitations(validInvitations);
       } else {
         console.error('Failed to load invitations:', invitationsResponse.error);
+        setInvitations([]); // Reset to empty array on error
       }
 
       if (requestsResponse.success && requestsResponse.sentRequests) {
-        setSentRequests(requestsResponse.sentRequests);
+        // Filter out any null/undefined entries
+        const validRequests = requestsResponse.sentRequests.filter((req): req is ConnectionRequest => !!req && !!req.id);
+        setSentRequests(validRequests);
       } else {
         console.error('Failed to load connection requests:', requestsResponse.error);
+        setSentRequests([]); // Reset to empty array on error
       }
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Network error. Please try again.');
+      // Reset state on error
+      setInvitations([]);
+      setSentRequests([]);
     } finally {
       setIsLoading(false);
     }
