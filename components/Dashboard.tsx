@@ -138,6 +138,21 @@ export function Dashboard({
   const validatedMemories = React.useMemo(() => {
     const activeConnectionId = userType === 'keeper' ? activeStorytellerId : activeLegacyKeeperId;
     
+    // 🐛 DEBUG: Log inputs
+    console.log('📊 [Dashboard] Computing validatedMemories:', {
+      userType,
+      activeConnectionId,
+      memoriesByStoryteller: Object.keys(memoriesByStoryteller).map(key => ({
+        key,
+        count: memoriesByStoryteller[key]?.length || 0
+      })),
+      memoriesByLegacyKeeper: Object.keys(memoriesByLegacyKeeper).map(key => ({
+        key,
+        count: memoriesByLegacyKeeper[key]?.length || 0
+      })),
+      globalMemoriesCount: memories.length
+    });
+    
     // CRITICAL: Always filter by active connection first
     if (!activeConnectionId) {
       console.log('⚠️ No active connection, returning empty memories');
@@ -171,6 +186,18 @@ export function Dashboard({
     // Convert back to array and sort by timestamp ASC (oldest first)
     const combined = Array.from(allMemoriesMap.values())
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    // 🐛 DEBUG: Log output
+    console.log('📊 [Dashboard] validatedMemories result:', {
+      connectionMemoriesCount: connectionMemories.length,
+      globalFilteredCount: Array.from(allMemoriesMap.values()).length,
+      combinedCount: combined.length,
+      sampleMemories: combined.slice(0, 2).map(m => ({
+        id: m.id,
+        type: m.type,
+        conversationContext: m.conversationContext
+      }))
+    });
     
     return combined;
   }, [memories, userType, activeStorytellerId, activeLegacyKeeperId, memoriesByStoryteller, memoriesByLegacyKeeper]);
