@@ -117,8 +117,8 @@ export function ConnectionRequests({ isOpen, onClose, onAccepted }: ConnectionRe
     }
   };
 
-  const pendingReceived = receivedRequests.filter(r => r.status === 'pending');
-  const pendingSent = sentRequests.filter(r => r.status === 'pending');
+  const pendingReceived = receivedRequests.filter(r => r && r.status === 'pending');
+  const pendingSent = sentRequests.filter(r => r && r.status === 'pending');
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
