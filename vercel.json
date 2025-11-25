@@ -7,7 +7,7 @@
   "crons": [],
   "rewrites": [
     {
-      "source": "/((?!sw\\.js|manifest\\.json|icon|apple-touch-icon).*)",
+      "source": "/((?!sw\\.js|manifest\\.json|manifest\\.webmanifest|icon|apple-touch-icon).*)",
       "destination": "/index.html"
     }
   ],
@@ -26,7 +26,7 @@
       ]
     },
     {
-      "source": "/manifest.json",
+      "source": "/(manifest\\.json|manifest\\.webmanifest)",
       "headers": [
         {
           "key": "Content-Type",
