@@ -1310,6 +1310,7 @@ export function Dashboard({
               <MediaLibraryTab 
                 memories={validatedMemories}
                 userType={userType}
+                userId={userProfile.id}
                 userAge={userProfile.age || 20}
                 partnerBirthday={partnerProfile?.birthday}
                 onEditMemory={onEditMemory}
