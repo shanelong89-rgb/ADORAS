@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Allison Full Diagnostic</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: white;
+      padding: 40px 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    h1 { margin-bottom: 30px; color: #667eea; }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    button:hover { background: #5568d3; }
+    .section {
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .section h2 { color: #74c0fc; margin-bottom: 15px; }
+    .success { color: #51cf66; }
+    .error { color: #ff6b6b; }
+    .warning { color: #ffd93d; }
+    pre {
+      background: #0a0f1e;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #0a0f1e;
+    }
+    th { background: #0a0f1e; color: #74c0fc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 Allison Full Diagnostic</h1>
+    
+    <button onclick="runFullDiagnostic()">🚀 Run Complete Diagnostic</button>
+
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const API = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
+
+    const EMAIL = 'allison.tam@hotmail.com';
+    const UUID_A = 'a6ade4b8-a80e-4e34-90e8-455f73ae0dcc'; // One UUID
+    const UUID_C = 'c2d51ad1-7386-4ce3-99a3-6fed398b99a7'; // Other UUID
+
+    async function runFullDiagnostic() {
+      const results = document.getElementById('results');
+      results.innerHTML = '<div class="section"><h2>⏳ Running diagnostic...</h2></div>';
+
+      let html = '';
+
+      try {
+        // 1. Check Supabase Auth
+        html += '<div class="section">';
+        html += '<h2>1️⃣ Supabase Auth Account</h2>';
+        html += `<p><strong>Email:</strong> ${EMAIL}</p>`;
+        html += '<p class="warning">⚠️ Cannot query Supabase Auth from frontend directly</p>';
+        html += '<p>Based on your screenshot, the Auth account UUID is likely one of these two:</p>';
+        html += `<ul>`;
+        html += `<li><code>${UUID_A}</code></li>`;
+        html += `<li><code>${UUID_C}</code></li>`;
+        html += `</ul>`;
+        html += '</div>';
+
+        // 2. Check Profile A
+        html += '<div class="section">';
+        html += '<h2>2️⃣ Profile A: ' + UUID_A + '</h2>';
+        
+        const profileARes = await fetch(`${API}/admin/check-profile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({ userId: UUID_A })
+        });
+        
+        if (profileARes.ok) {
+          const profileAData = await profileARes.json();
+          if (profileAData.success) {
+            html += '<p class="success">✅ Profile EXISTS</p>';
+            html += '<pre>' + JSON.stringify(profileAData.profile, null, 2) + '</pre>';
+          } else {
+            html += '<p class="error">❌ Profile NOT FOUND</p>';
+          }
+        } else {
+          html += '<p class="error">❌ API Error: ' + profileARes.status + '</p>';
+          const text = await profileARes.text();
+          html += '<pre>' + text + '</pre>';
+        }
+        html += '</div>';
+
+        // 3. Check Profile C
+        html += '<div class="section">';
+        html += '<h2>3️⃣ Profile C: ' + UUID_C + '</h2>';
+        
+        const profileCRes = await fetch(`${API}/admin/check-profile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({ userId: UUID_C })
+        });
+        
+        if (profileCRes.ok) {
+          const profileCData = await profileCRes.json();
+          if (profileCData.success) {
+            html += '<p class="success">✅ Profile EXISTS</p>';
+            html += '<pre>' + JSON.stringify(profileCData.profile, null, 2) + '</pre>';
+          } else {
+            html += '<p class="error">❌ Profile NOT FOUND</p>';
+          }
+        } else {
+          html += '<p class="error">❌ API Error: ' + profileCRes.status + '</p>';
+          const text = await profileCRes.text();
+          html += '<pre>' + text + '</pre>';
+        }
+        html += '</div>';
+
+        // 4. Check Connections for Profile A
+        html += '<div class="section">';
+        html += '<h2>4️⃣ Connections for Profile A</h2>';
+        
+        const connARes = await fetch(`${API}/admin/check-connections`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({ userId: UUID_A })
+        });
+        
+        if (connARes.ok) {
+          const connAData = await connARes.json();
+          if (connAData.success) {
+            html += `<p class="success">✅ Found ${connAData.count} connections</p>`;
+            if (connAData.connections.length > 0) {
+              html += '<table>';
+              html += '<tr><th>Connection ID</th><th>Keeper</th><th>Teller</th><th>Memories</th></tr>';
+              connAData.connections.forEach(conn => {
+                html += '<tr>';
+                html += `<td>${conn.connectionId}</td>`;
+                html += `<td>${conn.keeperName} (${conn.keeperType})</td>`;
+                html += `<td>${conn.tellerName} (${conn.tellerType})</td>`;
+                html += `<td>${conn.memoryCount}</td>`;
+                html += '</tr>';
+              });
+              html += '</table>';
+            }
+          } else {
+            html += '<p class="error">❌ Error: ' + connAData.error + '</p>';
+          }
+        } else {
+          html += '<p class="error">❌ API Error: ' + connARes.status + '</p>';
+        }
+        html += '</div>';
+
+        // 5. Check Connections for Profile C
+        html += '<div class="section">';
+        html += '<h2>5️⃣ Connections for Profile C</h2>';
+        
+        const connCRes = await fetch(`${API}/admin/check-connections`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({ userId: UUID_C })
+        });
+        
+        if (connCRes.ok) {
+          const connCData = await connCRes.json();
+          if (connCData.success) {
+            html += `<p class="success">✅ Found ${connCData.count} connections</p>`;
+            if (connCData.connections.length > 0) {
+              html += '<table>';
+              html += '<tr><th>Connection ID</th><th>Keeper</th><th>Teller</th><th>Memories</th></tr>';
+              connCData.connections.forEach(conn => {
+                html += '<tr>';
+                html += `<td>${conn.connectionId}</td>`;
+                html += `<td>${conn.keeperName} (${conn.keeperType})</td>`;
+                html += `<td>${conn.tellerName} (${conn.tellerType})</td>`;
+                html += `<td>${conn.memoryCount}</td>`;
+                html += '</tr>';
+              });
+              html += '</table>';
+            }
+          } else {
+            html += '<p class="error">❌ Error: ' + connCData.error + '</p>';
+          }
+        } else {
+          html += '<p class="error">❌ API Error: ' + connCRes.status + '</p>';
+        }
+        html += '</div>';
+
+        // 6. Summary
+        html += '<div class="section">';
+        html += '<h2>📊 Summary</h2>';
+        html += '<p>This diagnostic shows:</p>';
+        html += '<ul>';
+        html += '<li>Which UUID has a KV profile</li>';
+        html += '<li>Which UUID has connections</li>';
+        html += '<li>How many memories each connection has</li>';
+        html += '</ul>';
+        html += '<p style="margin-top: 15px;"><strong>The Supabase Auth account UUID should match the UUID with the most connections and memories.</strong></p>';
+        html += '</div>';
+
+      } catch (error) {
+        html += '<div class="section">';
+        html += '<p class="error">❌ Fatal Error: ' + error.message + '</p>';
+        html += '<pre>' + error.stack + '</pre>';
+        html += '</div>';
+      }
+
+      results.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
