@@ -19,6 +19,7 @@ import { PhotoMetadataDialog, PhotoMetadata } from './PhotoMetadataDialog';
 interface MediaLibraryTabProps {
   memories: Memory[];
   userType: UserType;
+  userId?: string; // Current user's ID for same-role connections
   userAge?: number; // Legacy Keeper's current age for date parsing
   partnerBirthday?: Date; // Partner's (storyteller's) birthday for "you were X" date parsing
   onEditMemory?: (memoryId: string, updates: Partial<Memory>) => void;
@@ -140,7 +141,7 @@ function parseChronologicalDate(content: string, currentAge: number = 20, partne
   return null;
 }
 
-export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirthday, onEditMemory, onDeleteMemory }: MediaLibraryTabProps) {
+export function MediaLibraryTab({ memories, userType, userId, userAge = 20, partnerBirthday, onEditMemory, onDeleteMemory }: MediaLibraryTabProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
@@ -720,7 +721,14 @@ export function MediaLibraryTab({ memories, userType, userAge = 20, partnerBirth
                     </Badge>
                   )}
                   <Badge variant={memory.sender === userType ? 'default' : 'secondary'} className="text-xs">
-                    {memory.sender === userType ? 'You' : memory.sender === 'keeper' ? 'Keeper' : 'Teller'}
+                    {(() => {
+                      // For same-role connections, use senderId to determine ownership
+                      if (memory.senderId && userId) {
+                        return memory.senderId === userId ? 'You' : (memory.senderName || 'Partner');
+                      }
+                      // Legacy: use sender role
+                      return memory.sender === userType ? 'You' : (memory.sender === 'keeper' ? 'Keeper' : 'Teller');
+                    })()}
                   </Badge>
                 </>
               )}
