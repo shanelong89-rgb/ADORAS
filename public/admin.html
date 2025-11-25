@@ -331,6 +331,31 @@
         </div>
       </div>
 
+      <!-- Delete Specific Connection -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🔗 Delete Specific Connection</h2>
+          <p>Delete a single connection by ID</p>
+        </div>
+        <div class="card-content">
+          <div class="warning">
+            ⚠️ This will delete the connection and all associated memories. Cannot be undone.
+          </div>
+          <div class="form-group">
+            <label for="deleteConnectionId">Connection ID</label>
+            <input 
+              type="text" 
+              id="deleteConnectionId" 
+              placeholder="1763892989969-6fdtnw9"
+            />
+          </div>
+          <button class="btn-danger" onclick="deleteSpecificConnection()">
+            Delete Connection
+          </button>
+          <div id="deleteConnectionResult" class="result"></div>
+        </div>
+      </div>
+
       <!-- Check Profile -->
       <div class="card">
         <div class="card-header">
@@ -545,6 +570,51 @@
         }
       } catch (error) {
         showResult('deleteResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Delete Specific Connection
+    async function deleteSpecificConnection() {
+      const connectionId = document.getElementById('deleteConnectionId').value.trim();
+      if (!connectionId) {
+        showResult('deleteConnectionResult', '❌ Please enter a connection ID', 'error');
+        return;
+      }
+
+      if (!confirm(`⚠️ Are you sure you want to delete connection ${connectionId}? This cannot be undone!`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/delete-connection`, {
+          method: 'POST',
+          headers: AUTH_HEADERS,
+          body: JSON.stringify({ connectionId })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showResult('deleteConnectionResult', `
+            ✅ <strong>Connection deleted successfully!</strong><br>
+            <div class="data-list">
+              <div class="data-item">
+                <strong>Connection ID:</strong> <span>${data.connectionId}</span>
+              </div>
+              <div class="data-item">
+                <strong>Items Deleted:</strong>
+                <ul style="margin-top: 8px; margin-left: 20px;">
+                  <li>Connection</li>
+                  <li>Memories: ${data.deletedMemories || 0}</li>
+                </ul>
+              </div>
+            </div>
+          `, 'success');
+        } else {
+          showResult('deleteConnectionResult', `❌ <strong>Error:</strong> ${data.error || data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult('deleteConnectionResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
       }
     }
 
