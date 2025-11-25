@@ -185,15 +185,15 @@ export function InvitationManagement({ isOpen, onClose, onCreateNew }: Invitatio
     return new Date(expiresAt) < new Date();
   };
 
-  // Filter invitations
-  const pendingInvitations = invitations.filter(inv => inv.status === 'sent' && !isExpired(inv.expiresAt));
-  const acceptedInvitations = invitations.filter(inv => inv.status === 'accepted');
-  const expiredInvitations = invitations.filter(inv => inv.status === 'expired' || (inv.status === 'sent' && isExpired(inv.expiresAt)));
+  // Filter invitations (filter out null/undefined first)
+  const pendingInvitations = invitations.filter(inv => inv && inv.status === 'sent' && !isExpired(inv.expiresAt));
+  const acceptedInvitations = invitations.filter(inv => inv && inv.status === 'accepted');
+  const expiredInvitations = invitations.filter(inv => inv && (inv.status === 'expired' || (inv.status === 'sent' && isExpired(inv.expiresAt))));
 
-  // Filter connection requests
-  const pendingRequests = sentRequests.filter(req => req.status === 'pending');
-  const acceptedRequests = sentRequests.filter(req => req.status === 'accepted');
-  const declinedRequests = sentRequests.filter(req => req.status === 'declined');
+  // Filter connection requests (filter out null/undefined first)
+  const pendingRequests = sentRequests.filter(req => req && req.status === 'pending');
+  const acceptedRequests = sentRequests.filter(req => req && req.status === 'accepted');
+  const declinedRequests = sentRequests.filter(req => req && req.status === 'declined');
 
   // Combine for counts
   const totalPending = pendingInvitations.length + pendingRequests.length;
