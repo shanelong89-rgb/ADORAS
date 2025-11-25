@@ -462,6 +462,23 @@
           <div id="cleanupConnectionsResult" class="result"></div>
         </div>
       </div>
+
+      <!-- Rebuild Connection Indexes -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🔧 Rebuild Connection Indexes</h2>
+          <p>Fix missing connections in user accounts</p>
+        </div>
+        <div class="card-content">
+          <div class="warning">
+            ⚠️ This will rebuild the connection indexes for all users. Use this if users can't see their connections.
+          </div>
+          <button class="btn-success" onclick="rebuildConnectionIndexes()">
+            Rebuild Connection Indexes
+          </button>
+          <div id="rebuildIndexesResult" class="result"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1005,6 +1022,37 @@
         }
       } catch (error) {
         showResult('cleanupConnectionsResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Rebuild Connection Indexes
+    async function rebuildConnectionIndexes() {
+      if (!confirm('This will rebuild the connection indexes for all users. Use this if users can\'t see their connections. Continue?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/rebuild-connection-indexes`, {
+          method: 'POST',
+          headers: AUTH_HEADERS
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showResult('rebuildIndexesResult', `
+            ✅ <strong>Rebuild complete!</strong><br>
+            <div class="data-list">
+              <div class="data-item">
+                <strong>Connection indexes rebuilt:</strong> ${data.rebuiltCount}
+              </div>
+            </div>
+          `, 'success');
+        } else {
+          showResult('rebuildIndexesResult', `❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('rebuildIndexesResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
       }
     }
   </script>
