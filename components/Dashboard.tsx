@@ -12,7 +12,6 @@ import { StorageData } from './StorageData';
 import { HelpFeedback } from './HelpFeedback';
 import { InvitationDialog } from './InvitationDialog';
 import { InvitationManagement } from './InvitationManagement';
-import { TwilioTestDialog } from './TwilioTestDialog';
 import { KeeperConnections } from './KeeperConnections';
 import { TellerConnections } from './TellerConnections';
 import { PresenceIndicator, PresenceDot, ConnectionStatus } from './PresenceIndicator';
@@ -120,7 +119,6 @@ export function Dashboard({
   const [showHelpFeedback, setShowHelpFeedback] = useState(false);
   const [showInvitationDialog, setShowInvitationDialog] = useState(false);
   const [showInvitationManagement, setShowInvitationManagement] = useState(false);
-  const [showTwilioTest, setShowTwilioTest] = useState(false);
   const [showKeeperConnections, setShowKeeperConnections] = useState(false);
   const [showTellerConnections, setShowTellerConnections] = useState(false);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
@@ -1100,18 +1098,6 @@ export function Dashboard({
 
                           <Button 
                             variant="ghost" 
-                            className="w-full justify-start text-white hover:bg-white/10 hover:text-[#F1F1F1] h-9 sm:h-10 text-sm"
-                            onClick={() => {
-                              setShowTwilioTest(true);
-                              setIsMenuOpen(false);
-                            }}
-                          >
-                            <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
-                            Test SMS
-                          </Button>
-
-                          <Button 
-                            variant="ghost" 
                             className="w-full justify-start text-white hover:bg-white/10 hover:text-[#F1F1F1] h-9 sm:h-10 text-sm relative"
                             onClick={() => {
                               setShowKeeperConnections(true);
@@ -1405,14 +1391,6 @@ export function Dashboard({
             isOpen={showInvitationManagement}
             onClose={() => setShowInvitationManagement(false)}
             onCreateNew={() => setShowInvitationDialog(true)}
-          />
-        )}
-
-        {/* Twilio SMS Test Dialog (Keepers only) */}
-        {userType === 'keeper' && (
-          <TwilioTestDialog
-            isOpen={showTwilioTest}
-            onClose={() => setShowTwilioTest(false)}
           />
         )}
 
