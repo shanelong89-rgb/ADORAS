@@ -479,6 +479,23 @@
           <div id="rebuildIndexesResult" class="result"></div>
         </div>
       </div>
+
+      <!-- Clean Up Duplicate Users -->
+      <div class="card">
+        <div class="card-header">
+          <h2>👥 Clean Up Duplicate Users</h2>
+          <p>Remove duplicate user accounts with the same email</p>
+        </div>
+        <div class="card-content">
+          <div class="warning">
+            ⚠️ This will find users with duplicate emails and keep the one with the most connections/requests. Other duplicates will be deleted.
+          </div>
+          <button class="btn-danger" onclick="cleanupDuplicateUsers()">
+            Clean Up Duplicate Users
+          </button>
+          <div id="cleanupDuplicatesResult" class="result"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1053,6 +1070,37 @@
         }
       } catch (error) {
         showResult('rebuildIndexesResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Clean Up Duplicate Users
+    async function cleanupDuplicateUsers() {
+      if (!confirm('This will find users with duplicate emails and keep the one with the most connections/requests. Other duplicates will be deleted. Continue?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/cleanup-duplicate-users`, {
+          method: 'POST',
+          headers: AUTH_HEADERS
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showResult('cleanupDuplicatesResult', `
+            ✅ <strong>Cleanup complete!</strong><br>
+            <div class="data-list">
+              <div class="data-item">
+                <strong>Duplicate users deleted:</strong> ${data.deletedCount}
+              </div>
+            </div>
+          `, 'success');
+        } else {
+          showResult('cleanupDuplicatesResult', `❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('cleanupDuplicatesResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
       }
     }
   </script>
