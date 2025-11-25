@@ -496,6 +496,39 @@
           <div id="cleanupDuplicatesResult" class="result"></div>
         </div>
       </div>
+
+      <!-- Recreate Auth Account -->
+      <div class="card" style="border: 2px solid #48bb78;">
+        <div class="card-header" style="background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);">
+          <h2>🔐 Recreate Auth Account</h2>
+          <p>Reconnect a KV profile to a new Supabase Auth account</p>
+        </div>
+        <div class="card-content">
+          <div class="warning" style="background: #e6fffa; border-color: #38b2ac; color: #234e52;">
+            ℹ️ Use this if a user profile exists in the database but the Auth account was deleted. This will recreate the Auth account with the SAME user ID.
+          </div>
+          <div class="form-group">
+            <label for="recreateAuthEmail">User Email</label>
+            <input 
+              type="email" 
+              id="recreateAuthEmail" 
+              placeholder="shanelong89@gmail.com"
+            />
+          </div>
+          <div class="form-group">
+            <label for="recreateAuthPassword">New Password</label>
+            <input 
+              type="password" 
+              id="recreateAuthPassword" 
+              placeholder="Enter new password"
+            />
+          </div>
+          <button class="btn-success" onclick="recreateAuthAccount()">
+            Recreate Auth Account
+          </button>
+          <div id="recreateAuthResult" class="result"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1123,6 +1156,49 @@
         }
       } catch (error) {
         showResult('cleanupDuplicatesResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Recreate Auth Account
+    async function recreateAuthAccount() {
+      const email = document.getElementById('recreateAuthEmail').value.trim();
+      const password = document.getElementById('recreateAuthPassword').value.trim();
+
+      if (!email || !password) {
+        showResult('recreateAuthResult', '❌ Please enter both email and password', 'error');
+        return;
+      }
+
+      if (!confirm(`⚠️ Are you sure you want to recreate the Auth account for ${email}? This will recreate the Auth account with the SAME user ID.`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/recreate-auth-account`, {
+          method: 'POST',
+          headers: AUTH_HEADERS,
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showResult('recreateAuthResult', `
+            ✅ <strong>Auth account recreated successfully!</strong><br>
+            <div class="data-list">
+              <div class="data-item">
+                <strong>User ID:</strong> <span>${data.userId}</span>
+              </div>
+              <div class="data-item">
+                <strong>Email:</strong> <span>${data.email}</span>
+              </div>
+            </div>
+          `, 'success');
+        } else {
+          showResult('recreateAuthResult', `❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('recreateAuthResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
       }
     }
   </script>
