@@ -301,7 +301,7 @@ Example: Memory "abc123" → media/photos/abc123.jpg
 
     setIsDeleting(true);
     try {
-      const response = await apiClient.deleteConnectionData(connectionId);
+      const response = await apiClient.deleteConnectionData(connectionId, confirmationInput);
       
       if (response.success) {
         toast.success(`All memories with ${partnerName} have been deleted`);
