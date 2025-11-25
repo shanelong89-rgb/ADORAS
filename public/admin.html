@@ -408,16 +408,33 @@
       <div class="card">
         <div class="card-header">
           <h2>🧹 Clean Up Orphaned Data</h2>
-          <p>Remove invitations from deleted users</p>
+          <p>Remove invitations and requests from deleted users</p>
         </div>
         <div class="card-content">
           <div class="warning">
             This will find and delete invitations and connection requests that belong to users who no longer exist.
           </div>
           <button class="btn-success" onclick="cleanupOrphans()">
-            Clean Up Orphaned Data
+            Clean Up Orphaned Invitations
           </button>
           <div id="cleanupResult" class="result"></div>
+        </div>
+      </div>
+
+      <!-- Clean Up Orphaned Connections -->
+      <div class="card">
+        <div class="card-header">
+          <h2>🔗 Clean Up Orphaned Connections</h2>
+          <p>Remove connections where user profiles are missing</p>
+        </div>
+        <div class="card-content">
+          <div class="warning">
+            ⚠️ This will delete connections where one or both users no longer exist, along with all associated memories.
+          </div>
+          <button class="btn-danger" onclick="cleanupOrphanedConnections()">
+            Clean Up Orphaned Connections
+          </button>
+          <div id="cleanupConnectionsResult" class="result"></div>
         </div>
       </div>
     </div>
@@ -887,6 +904,37 @@
         }
       } catch (error) {
         showResult('cleanupResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
+      }
+    }
+
+    // Clean Up Orphaned Connections
+    async function cleanupOrphanedConnections() {
+      if (!confirm('This will delete connections where one or both users no longer exist, along with all associated memories. Continue?')) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/admin/cleanup-orphaned-connections`, {
+          method: 'POST',
+          headers: AUTH_HEADERS
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showResult('cleanupConnectionsResult', `
+            ✅ <strong>Cleanup complete!</strong><br>
+            <div class="data-list">
+              <div class="data-item">
+                <strong>Orphaned connections deleted:</strong> ${data.deletedCount}
+              </div>
+            </div>
+          `, 'success');
+        } else {
+          showResult('cleanupConnectionsResult', `❌ ${data.error}`, 'error');
+        }
+      } catch (error) {
+        showResult('cleanupConnectionsResult', `❌ <strong>Network error:</strong> ${error.message}`, 'error');
       }
     }
   </script>
