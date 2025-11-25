@@ -823,14 +823,12 @@ class AdorasAPIClient {
   /**
    * Delete connection data (alias for deleteAllConnectionMemories)
    */
-  async deleteConnectionData(connectionId: string): Promise<{ success: boolean; message?: string; error?: string }> {
-    // For deleteConnectionData, we don't require confirmation phrase in the API call
-    // The confirmation is handled in the UI
+  async deleteConnectionData(connectionId: string, confirmationPhrase: string): Promise<{ success: boolean; message?: string; error?: string }> {
     return this.request<{ success: boolean; message?: string; error?: string }>(
       `/connections/${connectionId}/memories/all`,
       {
         method: 'DELETE',
-        body: JSON.stringify({ confirmationPhrase: 'CONFIRMED' }),
+        body: JSON.stringify({ confirmationPhrase }),
       }
     );
   }
