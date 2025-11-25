@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -142,6 +142,21 @@ function parseChronologicalDate(content: string, currentAge: number = 20, partne
 }
 
 export function MediaLibraryTab({ memories, userType, userId, userAge = 20, partnerBirthday, onEditMemory, onDeleteMemory }: MediaLibraryTabProps) {
+  // 🐛 DEBUG: Log when component receives new memories
+  useEffect(() => {
+    console.log('📊 MediaLibraryTab received memories:', {
+      count: memories.length,
+      userType,
+      userId,
+      memorySample: memories.slice(0, 2).map(m => ({
+        id: m.id,
+        type: m.type,
+        category: m.category,
+        content: m.content.substring(0, 50)
+      }))
+    });
+  }, [memories, userType, userId]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
@@ -288,6 +303,17 @@ export function MediaLibraryTab({ memories, userType, userId, userAge = 20, part
           selectedCategory === 'All' || 
           (selectedCategory === 'Prompts' && memory.promptQuestion) ||
           (selectedCategory !== 'Prompts' && memory.category === selectedCategory);
+        
+        // 🐛 DEBUG: Log filtering decisions
+        if (!matchesCategory && memories.length > 0) {
+          console.log('🔍 Memory filtered out:', {
+            memoryId: memory.id,
+            selectedCategory,
+            memoryCategory: memory.category,
+            hasPrompt: !!memory.promptQuestion
+          });
+        }
+        
         return matchesCategory;
       }
       
@@ -353,6 +379,16 @@ export function MediaLibraryTab({ memories, userType, userId, userAge = 20, part
           return 0;
       }
     });
+
+  // 🐛 DEBUG: Log filtered results
+  useEffect(() => {
+    console.log('📊 MediaLibraryTab filteredMemories:', {
+      enrichedCount: enrichedMemories.length,
+      filteredCount: filteredMemories.length,
+      selectedCategory,
+      searchQuery
+    });
+  }, [enrichedMemories.length, filteredMemories.length, selectedCategory, searchQuery]);
 
   // Calendar data - organize memories by year/month/day
   const calendarData = useMemo(() => {
