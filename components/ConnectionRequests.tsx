@@ -53,15 +53,24 @@ export function ConnectionRequests({ isOpen, onClose, onAccepted }: ConnectionRe
       const response = await apiClient.getConnectionRequests();
       
       if (response.success) {
-        setReceivedRequests(response.receivedRequests || []);
-        setSentRequests(response.sentRequests || []);
+        // Filter out any null/undefined entries
+        const validReceivedRequests = (response.receivedRequests || []).filter((req): req is ConnectionRequest => !!req && !!req.id);
+        const validSentRequests = (response.sentRequests || []).filter((req): req is ConnectionRequest => !!req && !!req.id);
+        setReceivedRequests(validReceivedRequests);
+        setSentRequests(validSentRequests);
       } else {
         console.error('Failed to load connection requests:', response.error);
         toast.error('Failed to load connection requests');
+        // Reset to empty arrays on error
+        setReceivedRequests([]);
+        setSentRequests([]);
       }
     } catch (error) {
       console.error('Error loading connection requests:', error);
       toast.error('Network error. Please try again.');
+      // Reset to empty arrays on error
+      setReceivedRequests([]);
+      setSentRequests([]);
     } finally {
       setIsLoading(false);
     }
