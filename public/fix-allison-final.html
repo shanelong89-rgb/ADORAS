@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Allison - Final</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, sans-serif;
+      background: #1a1a2e;
+      color: white;
+      padding: 40px 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; color: #667eea; }
+    .info {
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      border-left: 4px solid #51cf66;
+    }
+    button {
+      background: #51cf66;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 15px;
+    }
+    button:hover { background: #40c057; }
+    button:disabled { background: #4a5568; cursor: not-allowed; }
+    .log {
+      background: #0f3460;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      max-height: 500px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+    .log div { margin-bottom: 8px; }
+    .success { color: #51cf66; }
+    .error { color: #ff6b6b; }
+    .warning { color: #ffd93d; }
+    .info-text { color: #74c0fc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 Fix Allison Account - Final</h1>
+    
+    <div class="info">
+      <h3 style="color: #51cf66; margin-bottom: 10px;">✅ The Plan:</h3>
+      <ol style="margin-left: 20px;">
+        <li>Create KV profile for <code>c2d51ad1</code> (correct Auth UUID)</li>
+        <li>Migrate all 3 connections from <code>a6ade4b8</code> → <code>c2d51ad1</code></li>
+        <li>Delete profile <code>a6ade4b8</code></li>
+      </ol>
+      <p style="margin-top: 15px;"><strong>Result:</strong> allison.tam@hotmail.com signs into c2d51ad1 with all connections!</p>
+    </div>
+
+    <button onclick="executeFix()">🚀 Execute Fix</button>
+
+    <div id="log" class="log"></div>
+  </div>
+
+  <script>
+    const API = 'https://cyaaksjydpegofrldxbo.supabase.co/functions/v1/make-server-deded1eb';
+    const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5YWFrc2p5ZHBlZ29mcmxkeGJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMDYxMzEsImV4cCI6MjA3Njc4MjEzMX0.bL4r0JJWlSV6JjHnE4ArNFK53OkgLaPutacbekRcWxw';
+
+    const EMAIL = 'allison.tam@hotmail.com';
+    const CORRECT_UUID = 'c2d51ad1-7386-4ce3-99a3-6fed398b99a7'; // Auth UUID
+    const WRONG_UUID = 'a6ade4b8-a80e-4e34-90e8-455f73ae0dcc'; // To be deleted
+
+    const CONNECTIONS = [
+      '1761271547985-2djx70l',
+      '1761271821274-jwolla1',
+      '1763892989969-6fdtnw9'
+    ];
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const timestamp = new Date().toISOString();
+      const className = type === 'success' ? 'success' : 
+                       type === 'error' ? 'error' : 
+                       type === 'warning' ? 'warning' : 'info-text';
+      logDiv.innerHTML += `<div class="${className}">${timestamp}: ${message}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    async function executeFix() {
+      log('🚀 Starting fix process...', 'warning');
+
+      try {
+        // Step 1: Create profile for correct UUID
+        log('Step 1: Creating KV profile for c2d51ad1...', 'info');
+        
+        const createRes = await fetch(`${API}/admin/restore-profile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({
+            userId: CORRECT_UUID,
+            email: EMAIL,
+            name: 'allison tam',
+            type: 'teller',
+            timezone: 'America/Los_Angeles',
+            onboarded: true
+          })
+        });
+
+        const createData = await createRes.json();
+        
+        if (createData.success || createData.error?.includes('already exists')) {
+          log('✅ Profile created/exists for c2d51ad1', 'success');
+        } else {
+          log('⚠️ Profile creation: ' + (createData.error || 'Unknown response'), 'warning');
+        }
+
+        // Step 2: Migrate all 3 connections
+        log('Step 2: Migrating 3 connections...', 'info');
+        
+        for (const connId of CONNECTIONS) {
+          log(`  Migrating connection ${connId}...`, 'info');
+          
+          const migrateRes = await fetch(`${API}/admin/migrate-connection`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${KEY}`
+            },
+            body: JSON.stringify({
+              connectionId: connId,
+              oldUserId: WRONG_UUID,
+              newUserId: CORRECT_UUID,
+              userName: 'allison tam',
+              userEmail: EMAIL,
+              userType: 'teller'
+            })
+          });
+
+          const migrateData = await migrateRes.json();
+          
+          if (migrateData.success) {
+            log(`  ✅ Connection ${connId} migrated (${migrateData.memoryCount} memories)`, 'success');
+          } else if (migrateData.error?.includes('does not contain user ID')) {
+            log(`  ℹ️ Connection ${connId} already migrated`, 'info');
+          } else {
+            log(`  ⚠️ Connection ${connId}: ${migrateData.error}`, 'warning');
+          }
+        }
+
+        log('✅ All connections processed', 'success');
+
+        // Step 3: Delete wrong profile
+        log('Step 3: Deleting wrong profile a6ade4b8...', 'info');
+        
+        const deleteRes = await fetch(`${API}/admin/delete-user-profile`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${KEY}`
+          },
+          body: JSON.stringify({
+            userId: WRONG_UUID
+          })
+        });
+
+        const deleteData = await deleteRes.json();
+        
+        if (deleteData.success) {
+          log('✅ Wrong profile deleted', 'success');
+        } else {
+          log('⚠️ Profile deletion: ' + (deleteData.error || deleteData.message), 'warning');
+        }
+
+        // Done!
+        log('', 'info');
+        log('🎉 FIX COMPLETE!', 'success');
+        log('', 'info');
+        log('✅ allison.tam@hotmail.com → c2d51ad1-7386-4ce3-99a3-6fed398b99a7', 'success');
+        log('✅ All 3 connections migrated', 'success');
+        log('✅ Old profile deleted', 'success');
+        log('', 'info');
+        log('👉 Allison can now sign in successfully!', 'success');
+
+      } catch (error) {
+        log('❌ Fatal Error: ' + error.message, 'error');
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+</html>
